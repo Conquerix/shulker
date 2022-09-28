@@ -45,8 +45,6 @@
 
       devShell = foreachSystem (system: import ./shell.nix { pkgs = pkgsBySystem."${system}"; });
 
-      templates = import ./nix/templates;
-
       packages = foreachSystem (system: import ./nix/pkgs self system);
       overlay = foreachSystem (system: _final: _prev: self.packages."${system}");
       overlays = foreachSystem (

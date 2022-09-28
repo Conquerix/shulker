@@ -41,8 +41,8 @@ in
       };
     };
 
-    time.timeZone = "America/Toronto";
-    i18n.defaultLocale = "en_US.UTF-8";
+    time.timeZone = "Europe/Paris";
+    i18n.defaultLocale = "fr_FR.UTF-8";
 
     services = {
       cron.enable = true;
@@ -54,7 +54,7 @@ in
       curl
       git
       pciutils
-      vim
+      micro
     ];
   };
 }
