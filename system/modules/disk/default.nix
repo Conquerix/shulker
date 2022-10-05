@@ -16,13 +16,5 @@ in
 
     # Enable thumbnail service
     services.tumbler.enable = true;
-
-    # Install thunar and accompanying volumne manager used for automounting drives.
-    # Installing thunar as it does not have that many other dependencies
-    # unlike something like dolphin for kde or nautilus for gnome
-    environment.systemPackages = with pkgs.xfce; [
-      thunar
-      thunar-volman
-    ];
   };
 }

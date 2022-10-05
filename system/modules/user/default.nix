@@ -4,6 +4,8 @@ with self.lib;
 let
   cfg = config.nyx.modules.user;
 
+  defaultName = existsOrDefault "name" user null;
+
   isPasswdCompatible = str: !(hasInfix ":" str || hasInfix "\n" str);
   passwdEntry = type: lib.types.addCheck type isPasswdCompatible // {
     name = "passwdEntry ${type.name}";
@@ -23,6 +25,19 @@ let
 in
 {
   options.nyx.modules.user = {
+
+    name = mkOption {
+      type = types.str;
+      default = defaultName;
+      description = "User's name";
+    };
+    
+    home = mkOption {
+      type = with types; nullOr types.path;
+      default = null;
+      description = "Path of home manager home file";
+    };
+  
     extraGroups = mkOption {
       type = types.listOf types.str;
       default = defaultExtraGroups;
@@ -39,11 +54,17 @@ in
   };
 
   config = mkMerge [
+
+    (
+      mkIf (cfg.home != null) {
+        home-manager.users."${cfg.name}" = mkUserHome { inherit system; config = cfg.home; };
+      }
+    )
+  
     {
       users = {
         users."${cfg.name}" = with cfg; {
           inherit hashedPassword extraGroups;
-          description = "James Simpson";
           isNormalUser = true;
           # `shell` attribute cannot be removed! If no value is present then there will be no shell
           # configured for the user and SSH will not allow logins!

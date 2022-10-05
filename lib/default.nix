@@ -132,10 +132,8 @@ rec {
               };
             }
           )
-          (import ../system/common/modules)
-          (import ../system/common/profiles)
-          (import ../system/nixos/modules)
-          (import ../system/nixos/profiles)
+          (import ../system/modules)
+          (import ../system/profiles)
           (import (strToPath config ../system/nixos/hosts))
         ];
         specialArgs =

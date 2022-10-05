@@ -1,9 +1,6 @@
 { config, inputs, lib, pkgs, ... }:
 
 with lib;
-let
-  nixConf = import ../../../nix/conf.nix;
-in
 {
   config = {
     boot = {
@@ -17,18 +14,12 @@ in
       supportedFilesystems = [ "cifs" "ntfs" "nfs" ];
     };
 
-    # This is deprecated. Use `networking.interface.<name>.useDHCP`
-    networking.useDHCP = false;
     networking.networkmanager.enable = true;
 
     nix = {
-      # inherit (nixConf) binaryCaches binaryCachePublicKeys;
-
       settings = {
-        substituters = nixConf.binaryCaches;
-        trusted-public-keys = nixConf.binaryCachePublicKeys;
 
-        # Save space by hardlinking store files
+        # Save space by hardlinking store directories containing the exact same content.
         auto-optimise-store = true;
 
         allowed-users = [ "root" ];
