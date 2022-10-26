@@ -1,10 +1,10 @@
 { config, lib, pkgs, ... }:
 
 with lib;
-let cfg = config.nyx.modules.bluetooth;
+let cfg = config.shulker.modules.bluetooth;
 in
 {
-  options.nyx.modules.bluetooth.enable = mkEnableOption "Bluetooth";
+  options.shulker.modules.bluetooth.enable = mkEnableOption "Bluetooth";
 
   config = mkIf cfg.enable {
     hardware.bluetooth.enable = true;

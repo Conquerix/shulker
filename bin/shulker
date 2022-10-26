@@ -1,0 +1,516 @@
+#!/usr/bin/env bash
+
+set -e
+
+# color chart https://stackoverflow.com/a/5947802
+RED='\033[0;31m'
+GRN='\033[0;32m'
+YLO='\033[0;33m'
+BLU='\033[0;34m'
+# MTA='\033[0;35m'
+CYN='\033[0;36m'
+RST='\033[0m'
+
+SHULKER_ROOT="$(dirname "$(dirname "$(readlink -f "$0")")")"
+
+# shellcheck disable=SC2034
+HOME_MANAGER_BACKUP_EXT="nbak"
+
+# shellcheck shell=bash
+INTERNAL_COMMANDS="^(build|check|fmt|gc|help|rollback|switch|test|update)$"
+
+declare -A INTERNAL_ALIASES
+INTERNAL_ALIASES['b']="build"
+INTERNAL_ALIASES['c']="check"
+INTERNAL_ALIASES['f']="fmt"
+INTERNAL_ALIASES['g']="gc"
+INTERNAL_ALIASES['s']="switch"
+INTERNAL_ALIASES['t']="test"
+INTERNAL_ALIASES['up']="update"
+
+NIXARGS=(--experimental-features "nix-command flakes")
+
+function main() {
+  # Parse command line options
+  if [ -z "$*" ]; then
+    cmd_help # There is no arguments passed print help
+  elif [[ $1 == '--help' ]]; then
+    HELP=true
+  elif [[ $1 =~ $INTERNAL_COMMANDS ]]; then
+    SHULKER_COMMAND="${1//-/_}"
+    shift
+  elif [[ -n ${INTERNAL_ALIASES[$1]} ]]; then
+    SHULKER_COMMAND="${INTERNAL_ALIASES[$1]}"
+    shift
+  else
+    failure "Unknown command: \`$1\`"
+    cmd_help
+  fi
+
+  SHULKER_ARGS=()
+  while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+      -v | --verbose) # used by all commands
+        DEBUG="YES"
+        ;;
+      -h | --help)
+        CMD_HELP=true
+        ;;
+      *)
+        SHULKER_ARGS+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  [ -n "$HELP" ] && cmd_help
+
+  "cmd_$SHULKER_COMMAND" "${SHULKER_ARGS[@]}"
+  exit 0
+}
+
+# --- Commands ----------------------------------------------------------------
+
+function cmd_build() {
+  set +e
+  local help_msg
+  IFS='' read -r -d '' help_msg <<EOF
+USAGE:
+  shulker build [target]
+
+Build an output target. If no output target is specified shulker will build
+either the nixos system configuration or the toplevel host config.
+
+OPTIONS:
+  -h, --help      Show help message
+EOF
+  set -e
+
+  local -a args
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      *)
+        args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  [ -n "$CMD_HELP" ] && {
+    printf "%s\n" "$help_msg"
+    exit 1
+  }
+
+  (
+    cd "$SHULKER_ROOT"
+
+    # If a build target has been specified then tell nix build this target
+    if [[ ${#args[@]} -gt 0 ]]; then
+      debug "target argument was passed to build. Building ${args[0]}"
+      nix build ".#top.${args[0]}" "${NIXARGS[@]}"
+    else
+      # There was no target passed to build so infer what do build
+      debug "Building NixosConfiguration for the host machine: $(hostname)"
+      sudo nixos-rebuild build --flake .
+    fi
+  )
+}
+
+function cmd_check() {
+  set +e
+  local help_msg
+  IFS='' read -r -d '' help_msg <<EOF
+USAGE:
+  shulker check
+
+Execute flake check output.
+
+OPTIONS:
+  -h, --help      Show help message
+EOF
+  set -e
+
+  local -a args
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      *)
+        args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  [ -n "$CMD_HELP" ] && {
+    printf "%s\n" "$help_msg"
+    exit 1
+  }
+
+  (
+    cd "$SHULKER_ROOT"
+
+    nix flake check
+  )
+}
+
+function cmd_fmt() {
+  set +e
+  local help_msg
+  IFS='' read -r -d '' help_msg <<EOF
+USAGE:
+  shulker fmt [OPTIONS] [target...]
+
+Execute formatters for file types.
+
+OPTIONS:
+  -h, --help      Show help message
+EOF
+  set -e
+
+  local -a args
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      *)
+        args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  [ -n "$CMD_HELP" ] && {
+    printf "%s\n" "$help_msg"
+    exit 1
+  }
+
+  (
+    cd "$SHULKER_ROOT"
+
+    # Formatting *.nix files
+    nix-shell -p fd -p nixpkgs-fmt --run "fd . --type f --extension nix --exec nixpkgs-fmt {}"
+  )
+}
+
+function cmd_gc() {
+  set +e
+  local help_msg
+  IFS='' read -r -d '' help_msg <<EOF
+USAGE:
+  shulker gc [OPTIONS] [target...]
+
+Garbage collection and nix store optimization
+
+OPTIONS:
+  -h, --help      Show help message
+  -a, --all       GC both user and system profiles
+  -s, --system    Only gc system profile
+EOF
+  set -e
+
+  local -a args
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -a | --all) do_all=true ;;
+      -s | --system) do_system=true ;;
+      *)
+        args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  [ -n "$CMD_HELP" ] && {
+    printf "%s\n" "$help_msg"
+    exit 1
+  }
+
+  if [ -n "$do_all" ] || [ -n "$do_system" ]; then
+    info "Cleaning up system profile"
+    sudo nix-collect-garbage -d
+    sudo nix-store --optimize
+
+    # nix-collect-garbage is a Nix tool, not a NixOS tool. It won't delete old
+    # boot entries until you do a nixos-rebuild (which means we'll always have
+    # 2 boot entries at any time). Instead, we properly delete them by
+    # reloading the current environment.
+    sudo nix-env --delete-generations old --profile /nix/var/nix/profiles/system
+    sudo /nix/var/nix/profiles/system/bin/switch-to-configuration switch
+  fi
+
+  if [ -n "$do_all" ] || [ -z "$do_system" ]; then
+    info "Cleaning up system profile"
+    nix-collect-garbage -d
+  fi
+}
+
+function cmd_rollback() {
+  set +e
+  local help_msg
+  IFS='' read -r -d '' help_msg <<EOF
+USAGE:
+  shulker rollback [OPTIONS]
+
+Rollback the current generation.
+
+OPTIONS:
+  -h, --help      Show help message
+EOF
+  set -e
+
+  local -a args
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      *)
+        args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  [ -n "$CMD_HELP" ] && {
+    printf "%s\n" "$help_msg"
+    exit 1
+  }
+
+  (
+    cd "$SHULKER_ROOT"
+
+    sudo nixos-rebuild --rollback
+  )
+}
+
+function cmd_switch() {
+  set +e
+  local help_msg
+  IFS='' read -r -d '' help_msg <<EOF
+USAGE:
+  shulker switch [OPTIONS] [target...]
+
+Switch the current installed configuration state.
+
+OPTIONS:
+  -h, --help      Show help message
+  -l, --link      Link after switch
+EOF
+  set -e
+
+  local -a args
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -l | --link)
+        do_link=true
+        ;;
+      *)
+        args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  [ -n "$CMD_HELP" ] && {
+    printf "%s\n" "$help_msg"
+    exit 1
+  }
+
+  (
+    cd "$SHULKER_ROOT"
+
+    # Making sure that the target builds before trying to unlink and switch
+    cmd_build "${SHULKER_ARGS[@]}"
+
+    # Since the build completed with no issues then it is safe to unlink
+    # and switch to the new config
+    cmd_unlink
+
+    # Switch to new configuration
+    if [[ ${#args[@]} -gt 0 ]]; then
+      debug "Switching to defined target ${args[0]} on nixos system"
+      sudo nixos-rebuild switch --flake ".#${args[0]}"
+    else
+      debug "Nixos detected switching NixosConfiguration for the host machine: $(hostname)"
+      sudo nixos-rebuild switch --flake .
+    fi
+
+    [ -n "$do_link" ] && cmd_link
+  )
+}
+
+function cmd_test() {
+  set +e
+  local help_msg
+  IFS='' read -r -d '' help_msg <<EOF
+USAGE:
+  shulker test [OPTIONS] [target...]
+
+Test the current installed configuration state.
+
+OPTIONS:
+  -h, --help      Show help message
+  -l, --link      Link after switch
+EOF
+  set -e
+
+  local -a args
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -l | --link)
+        do_link=true
+        ;;
+      *)
+        args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  [ -n "$CMD_HELP" ] && {
+    printf "%s\n" "$help_msg"
+    exit 1
+  }
+
+  (
+    cd "$SHULKER_ROOT"
+
+    # Making sure that the target builds before trying to unlink and switch
+    cmd_build "${SHULKER_ARGS[@]}"
+
+    # Since the build completed with no issues then it is safe to unlink
+    # and switch to the new config
+    cmd_unlink
+
+    # Switch to new configuration
+    if [[ ${#args[@]} -gt 0 ]]; then
+      debug "Switching to defined target ${args[0]} on nixos system"
+      sudo nixos-rebuild test --flake ".#${args[0]}"
+    else
+      debug "Nixos detected switching NixosConfiguration for the host machine: $(hostname)"
+      sudo nixos-rebuild test --flake . # TODO: How do force to use extra binary caches?
+    fi
+
+    [ -n "$do_link" ] && cmd_link
+  )
+}
+
+function cmd_update() {
+  set +e
+  local help_msg
+  IFS='' read -r -d '' help_msg <<EOF
+USAGE:
+  shulker update [OPTIONS] [inputs...]
+
+Update flake.lock file
+
+OPTIONS:
+  -h, --help      Show help message
+EOF
+  set -e
+
+  local -a args
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      *)
+        args+=("$1")
+        ;;
+    esac
+    shift
+  done
+
+  [ -n "$CMD_HELP" ] && {
+    printf "%s\n" "$help_msg"
+    exit 1
+  }
+
+  (
+    cd "$SHULKER_ROOT"
+
+    # TODO: update flake-url / inputs
+    nix flake update
+  )
+}
+
+function cmd_help() {
+  if [[ $1 =~ $INTERNAL_COMMANDS ]]; then
+    $1 '--help'
+  fi
+
+  set +e
+  local msg
+  IFS='' read -r -d '' msg <<EOF
+Utility script to work with my nix configuration more effectively
+
+USAGE:
+  shulker <COMMAND> [OPTIONS...]
+
+COMMANDS:
+  build  - Build target
+  check  - Execute flake check
+  fmt    - Execute formatters
+  gc     - Garbage collection and nix store optimization
+  switch - Switch to configuration
+  update - Update flake inputs
+
+OPTIONS:
+  -v, --verbose  - Output verbose information
+  -h, --help     - Output help information
+EOF
+  set -e
+
+  printf "%s\n" "$msg"
+  exit 1
+}
+
+# --- Utility functions -------------------------------------------------------
+
+function get_distro() {
+  cat /etc/*-release | grep '^ID=' | sed -E 's|^ID="(.*)"|\1|g'
+}
+
+function is_nixos() {
+  [ "$(get_distro)" == "nixos" ]
+}
+
+function is_darwin() {
+  [ "$(uname -s)" == "Darwin" ]
+}
+
+function debug() {
+  if [ -n "$DEBUG" ]; then echo_e "${BLU}[DEBUG]: $*${RST}"; fi
+}
+
+function info() {
+  echo_e "$*"
+}
+
+function warn() {
+  echo_e "${YLO}[WARN]: $*${RST}"
+}
+
+function error() {
+  echo_e "${RED}[ERROR]: $*${RST}" 1>&2
+}
+
+function failure() {
+  error "$1"
+  exit "${2:-1}"
+}
+
+# --- Echo replacements -------------------------------------------------------
+
+function echo() {
+  IFS=' '
+  printf '%s\n' "$*"
+}
+
+function echo_n() {
+  IFS=' '
+  printf '%s' "$*"
+}
+
+function echo_e() {
+  IFS=' '
+  printf '%b\n' "$*"
+}
+
+# --- Execute main process ----------------------------------------------------
+main "$@"
+
+# vim: et sw=2 ts=2 sts=2

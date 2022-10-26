@@ -1,8 +1,13 @@
 { lib, ... }:
 
+with builtins;
+with lib;
 {
-  imports = [ ./common.nix ./desktop.nix ./development.nix ./extended.nix ];
-
-  config.nyx.profiles.common.enable = lib.mkDefault false;
+  imports =
+    let
+      paths = filterAttrs (n: v: v != null && !(hasPrefix "_" n)) (readDir ./.);
+      dirs = filterAttrs (n: v: v == "directory") paths;
+      map' = p: map (x: "${toString ./.}/${x}") (attrNames p);
+    in
+    map' dirs;
 }
-

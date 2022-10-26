@@ -2,10 +2,10 @@
 
 with lib;
 let
-  cfg = config.nyx.modules.theme;
+  cfg = config.shulker.modules.theme;
 in
 {
-  options.nyx.modules.theme = {
+  options.shulker.modules.theme = {
     name = mkOption {
       type = types.str;
       description = "Name of the theme loaded into color attributes";
@@ -19,7 +19,7 @@ in
   };
 
   config = {
-    nyx.modules.theme.colors = with builtins; fromJSON (readFile ((toString ./.) + "/${cfg.name}.json"));
+    shulker.modules.theme.colors = with builtins; fromJSON (readFile ((toString ./.) + "/${cfg.name}.json"));
   };
 }
 

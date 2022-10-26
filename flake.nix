@@ -1,7 +1,6 @@
 {
   description = ''
-    Nyx is the personal configuration. This repository holdes .dotfile configuration as well as both nix (with
-    home-manager) and nixos configurations.
+    Shulker is my personal configuration. This repository contains configurations for all my systems.
   '';
 
   inputs = {
@@ -13,16 +12,9 @@
     nur.url = "github:nix-community/nur";
     nur.inputs.nixpkgs.follows = "nixpkgs";
 
-    flake-compat.url = "github:edolstra/flake-compat";
-    flake-compat.flake = false;
+    impermanence.url = "github:nix-community/impermanence";
 
-    # Overlays
-    fenix.url = "github:nix-community/fenix";
-    fenix.inputs.nixpkgs.follows = "nixpkgs";
-
-    nushell-src.url = "github:nushell/nushell";
-    nushell-src.flake = false;
-
+    agenix.url = "github:ryantm/agenix";
   };
 
   outputs = { self, ... }@inputs:
@@ -35,7 +27,6 @@
         import inputs.nixpkgs {
           inherit system;
           config = import ./nix/config.nix;
-          overlays = self.overlays."${system}";
         }
       );
     in
@@ -46,28 +37,28 @@
       devShell = foreachSystem (system: import ./shell.nix { pkgs = pkgsBySystem."${system}"; });
 
       packages = foreachSystem (system: import ./nix/pkgs self system);
-      overlay = foreachSystem (system: _final: _prev: self.packages."${system}");
-      overlays = foreachSystem (
-        system: with inputs; let
-          ovs = attrValues (import ./nix/overlays self);
-        in
-        [
-          (self.overlay."${system}")
-          (nur.overlay)
-          (fenix.overlay)
-        ] ++ ovs
-      );
+
+      homeManagerConfigurations = mapAttrs' mkHome {
+        conquerix = { };
+      };
 
       nixosConfigurations = mapAttrs' mkSystem {
+        shulker = { };
         pride = { };
         sloth = { };
         vm-dev = { };
       };
 
       # Convenience output that aggregates the output configurations.
-      # Also used in ci to build targets generally.
-      top = genAttrs
-            (builtins.attrNames inputs.self.nixosConfigurations)
-            (attr: inputs.self.nixosConfigurations.${attr}.config.system.build.toplevel);
+     top =
+       let
+       nixtop = genAttrs
+         (builtins.attrNames inputs.self.nixosConfigurations)
+         (attr: inputs.self.nixosConfigurations.${attr}.config.system.build.toplevel);
+       hometop = genAttrs
+         (builtins.attrNames inputs.self.homeManagerConfigurations)
+         (attr: inputs.self.homeManagerConfigurations.${attr}.activationPackage);
+       in
+       nixtop // hometop;
     };
 }

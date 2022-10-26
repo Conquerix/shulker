@@ -2,10 +2,10 @@
 
 with lib;
 let
-  cfg = config.nyx.profiles.desktop;  
+  cfg = config.shulker.profiles.desktop;
 in
 {
-  options.nyx.profiles.desktop = {
+  options.shulker.profiles.desktop = {
     enable = mkEnableOption "desktop profile";
 
     laptop = mkOption {
@@ -17,7 +17,7 @@ in
 
   config = mkIf cfg.enable {
 
-	fonts = {
+    fonts = {
       fonts = with pkgs; [
         (
           nerdfonts.override {
@@ -26,7 +26,7 @@ in
         )
       ];
     };
-    
+
     services.printing.enable = true;
 
     # Sound setting
@@ -45,7 +45,7 @@ in
       firefox
     ];
 
-    hardware = {};
+    hardware = { };
 
     # Desktop environment
     services.xserver = {

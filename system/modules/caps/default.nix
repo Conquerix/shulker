@@ -1,10 +1,10 @@
 { config, lib, pkgs, ... }:
 
 with lib;
-let cfg = config.nyx.modules.caps;
+let cfg = config.shulker.modules.caps;
 in
 {
-  options.nyx.modules.caps.enable = mkEnableOption "Caps to escape+crtl";
+  options.shulker.modules.caps.enable = mkEnableOption "Caps to escape+crtl";
 
   config = mkIf cfg.enable {
     # Map CapsLock to Esc on single press and Ctrl on when used with multiple keys.

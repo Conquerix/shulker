@@ -50,7 +50,7 @@ rec {
           in
           [
             {
-              from = { id = "nyx"; type = "indirect"; };
+              from = { id = "shulker"; type = "indirect"; };
               to = toInput inputs.self;
             }
             {
@@ -60,11 +60,50 @@ rec {
           ];
       };
 
-      # Needs reviewing/understanding.
-      home.sessionPath = [ "$HOME/.local/nyx/bin" "$XDG_BIN_HOME" ];
+      # Directories to add to the PATH environment variable
+      home.sessionPath = [ "$HOME/.local/shulker/bin" "$XDG_BIN_HOME" ];
 
       home.stateVersion = "22.05";
     };
+
+    # Top level derivation for just home-manager
+  mkHome = name: { config ? name, user ? "conquerix", system ? "x86_64-linux" }:
+    let
+      pkgs = inputs.self.pkgsBySystem."${system}";
+      userConf = import (strToFile user ../user);
+      username = userConf.name;
+      homeDirectory = "/home/${username}";
+    in
+    nameValuePair name (
+      inputs.home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        modules = [
+          {
+            home = { inherit username homeDirectory; };
+
+            imports =
+              let
+                userConf = strToFile config ../home/hosts;
+                home = mkUserHome { inherit system; config = userConf; };
+              in
+              [ home ];
+
+            xdg.configFile."nix/nix.conf".text = ''experimental-features = nix-command flakes'';
+
+            nixpkgs = {
+              config = {allowUnfree = true;};
+              overlays = inputs.self.overlays."${system}";
+            };
+          }
+        ];
+        extraSpecialArgs =
+          let
+            self = inputs.self;
+            user = userConf;
+          in
+          { inherit inputs name self system user; };
+      }
+    );
 
   mkSystem = name: { config ? name, user ? "nixos", system ? "x86_64-linux" }:
     nameValuePair name (
@@ -94,7 +133,7 @@ rec {
             { pkgs, ... }: {
               # Don't rely on the configuration to enable a flake-compatible version of Nix.
               nix = {
-                package = pkgs.nixFlakes;
+                package = pkgs.nixVersions.stable;
                 extraOptions = "experimental-features = nix-command flakes";
               };
             }
@@ -134,7 +173,7 @@ rec {
           )
           (import ../system/modules)
           (import ../system/profiles)
-          (import (strToPath config ../system/nixos/hosts))
+          (import (strToPath config ../system/hosts))
         ];
         specialArgs =
           let
