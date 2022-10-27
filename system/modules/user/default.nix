@@ -14,6 +14,8 @@ let
 
   defaultHashedPassword = existsOrDefault "hashedPassword" user null;
 
+  defaultPublicSSHKeys = existsOrDefault "publicSSHKeys" user [];
+
   defaultExtraGroups = [
     "audio"
     "docker"
@@ -51,6 +53,12 @@ in
         Specifies the hashed password for the user.
       '';
     };
+
+     publicSSHKeys = mkOption {
+      type = types.listOf types.str;
+      default = defaultPublicSSHKeys;
+      description = "User's list of authorized keys for ssh login";
+    };
   };
 
   config = mkMerge [
@@ -78,5 +86,11 @@ in
 
       nix.settings.trusted-users = [ "${cfg.name}" ];
     }
+
+    (
+      mkIf (config.shulker.ssh_server.enable) {
+        users.users."${cfg.name}".openssh.authorizedKeys.keys = cfg.publicSSHKeys;
+      }
+    )
   ];
 }
