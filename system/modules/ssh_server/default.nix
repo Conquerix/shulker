@@ -13,26 +13,35 @@ in
 
       port = mkOption {
       	type = types.port;
-      	default = 22
-      	description = "Default port to open to tor. Changing it is highly recommended !"
+      	default = 22;
+      	description = "Default port to open to tor. Changing it is highly recommended !";
       };
+    };
   };
 
   config = mkIf cfg.ssh_server.enable {
 
   services.openssh.enable = true;
 
-  environment.persistence."/persistent" = mkIf (cfg.impermanence = true) {
+  environment = mkIf (cfg.impermanence.enable) {
 
-    files = [
+    persistence."/persist".files = [
       "/etc/ssh/ssh_host_rsa_key"
       "/etc/ssh/ssh_host_rsa_key.pub"
       "/etc/ssh/ssh_host_ed25519_key"
       "/etc/ssh/ssh_host_ed25519_key.pub"
+      (mkIf (cfg.impermanence.enable){
+          file = "/run/keys/tor/ssh_access/hs_ed25519_secret_key";
+          parentDirectory = {
+          	user = "tor";
+          	group = "tor";
+          	mode = "u=rwx,g=,o=";
+          };
+      })
       ];
     };
 
-  services.tor = mkIf (cfg.ssh_server.tor.enable = true) {
+  services.tor = mkIf (cfg.ssh_server.tor.enable) {
     enable = true;
     enableGeoIP = false;
     relay.onionServices = {

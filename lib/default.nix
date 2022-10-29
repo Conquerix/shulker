@@ -105,7 +105,7 @@ rec {
       }
     );
 
-  mkSystem = name: { config ? name, user ? "nixos", system ? "x86_64-linux" }:
+  mkSystem = name: { config ? name, user ? "conquerix", system ? "x86_64-linux" }:
     nameValuePair name (
       let
         pkgs = inputs.self.pkgsBySystem."${system}";
@@ -171,6 +171,7 @@ rec {
               };
             }
           )
+          (inputs.impermanence.nixosModule)
           (import ../system/modules)
           (import ../system/profiles)
           (import (strToPath config ../system/hosts))

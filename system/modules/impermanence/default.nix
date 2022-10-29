@@ -13,7 +13,7 @@ in
 
   config = mkIf cfg.enable {
 
-  environment.persistence."/persistent" = {
+  environment.persistence."/persist" = {
 
     hideMounts = true;
 
@@ -23,7 +23,7 @@ in
       "/var/lib/systemd/coredump"
       "/etc/NetworkManager/system-connections"
       "/etc/nixos"
-      (mkIf (cfg.home = true) "/home")
+      (mkIf (cfg.home) "/home")
       ];
 
     files = [

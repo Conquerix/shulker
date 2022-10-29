@@ -85,11 +85,11 @@ in
       in
       total;
 
-    xdg.configFile."git" = {
-      source = ../../../config/.config/git;
-      executable = true;
-      recursive = true;
-    };
+    # xdg.configFile."git" = {
+    #   source = ../../../config/.config/git;
+    #   executable = true;
+    #   recursive = true;
+    # };
 
     xdg.dataFile."git/nyx-gen".text =
       let

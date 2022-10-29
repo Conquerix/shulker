@@ -66,8 +66,8 @@ in
       shell.git.enable = true;
       # shell.gnupg.enable = true;
       # shell.ssh.enable = true;
-      shell.starship.enable = true;
-      shell.xdg.enable = true;
+      # shell.starship.enable = true;
+      # shell.xdg.enable = true;
     };
   };
 }

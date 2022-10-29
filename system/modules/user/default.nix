@@ -1,4 +1,4 @@
-{ config, lib, pkgs, self, user, ... }:
+{ config, lib, pkgs, self, user, system, ... }:
 
 with self.lib;
 let
@@ -76,7 +76,7 @@ in
           isNormalUser = true;
           # `shell` attribute cannot be removed! If no value is present then there will be no shell
           # configured for the user and SSH will not allow logins!
-          shell = pkgs.zsh;
+          shell = pkgs.bash;
           uid = 1000;
         };
 
@@ -88,7 +88,7 @@ in
     }
 
     (
-      mkIf (config.shulker.ssh_server.enable) {
+      mkIf (config.shulker.modules.ssh_server.enable) {
         users.users."${cfg.name}".openssh.authorizedKeys.keys = cfg.publicSSHKeys;
       }
     )

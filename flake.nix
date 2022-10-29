@@ -4,13 +4,11 @@
   '';
 
   inputs = {
+  
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
-
-    nur.url = "github:nix-community/nur";
-    nur.inputs.nixpkgs.follows = "nixpkgs";
 
     impermanence.url = "github:nix-community/impermanence";
 
@@ -34,7 +32,7 @@
       inherit pkgsBySystem;
       lib = import ./lib { inherit inputs; } // inputs.nixpkgs.lib;
 
-      devShell = foreachSystem (system: import ./shell.nix { pkgs = pkgsBySystem."${system}"; });
+      devShells."x86_64-linux"= foreachSystem (system: import ./shell.nix { pkgs = pkgsBySystem."${system}"; });
 
       packages = foreachSystem (system: import ./nix/pkgs self system);
 
@@ -44,9 +42,6 @@
 
       nixosConfigurations = mapAttrs' mkSystem {
         shulker = { };
-        pride = { };
-        sloth = { };
-        vm-dev = { };
       };
 
       # Convenience output that aggregates the output configurations.
