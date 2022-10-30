@@ -8,12 +8,12 @@ in
   options.shulker.modules.impermanence = {
     enable = mkEnableOption "Ephemeral root (& home) support";
 
-	home = mkEnableOption "Link /home to /persist/home";
+    home = mkEnableOption "Link /home to /nix/persist/home";
   };
 
   config = mkIf cfg.enable {
 
-  environment.persistence."/persist" = {
+  environment.persistence."/nix/persist" = {
 
     hideMounts = true;
 

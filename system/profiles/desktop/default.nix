@@ -7,12 +7,7 @@ in
 {
   options.shulker.profiles.desktop = {
     enable = mkEnableOption "desktop profile";
-
-    laptop = mkOption {
-      description = "Enable features for a laptop (trackpad, battery, etc...)";
-      type = types.bool;
-      default = false;
-    };
+    laptop = mkEnableOption "Enable features for a laptop (trackpad, battery, etc...)";
   };
 
   config = mkIf cfg.enable {
@@ -45,7 +40,9 @@ in
       firefox
     ];
 
-    hardware = { };
+    hardware = {
+      pulseaudio.enable = false;
+    };
 
     # Desktop environment
     services.xserver = {
