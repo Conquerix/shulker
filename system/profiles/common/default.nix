@@ -4,12 +4,6 @@ with lib;
 {
   config = {
     boot = {
-      loader.grub = {
-        enable = true;
-        efiSupport = true;
-        device = "nodev";
-      };
-
       # Enable running aarch64 binaries using qemu.
       binfmt.emulatedSystems = [ "aarch64-linux" ];
 

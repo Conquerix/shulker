@@ -3,6 +3,14 @@
 {
   imports = [ ./hardware.nix ];
 
+  boot = {
+    loader.grub = {
+      enable = true;
+      efiSupport = true;
+      device = "/dev/disk/by-uuid/8764-2ADD";
+    };
+  };
+
   shulker = {
     modules = {
       user.home = ./home.nix;
