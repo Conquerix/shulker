@@ -20,12 +20,12 @@
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/7A14-EF79";
+    { device = "/dev/disk/by-uuid/7BFA-D5FB";
       fsType = "vfat";
     };
 
   fileSystems."/nix" =
-    { device = "/dev/disk/by-uuid/2f2e2e71-53cd-4d32-bcc7-132acad6c811";
+    { device = "/dev/disk/by-uuid/19d35532-79f0-4388-b200-fad896351c94";
       fsType = "ext4";
     };
 
@@ -40,6 +40,12 @@
       fsType = "none";
       options = [ "bind" ];
     };
+
+  fileSystems."/home" =
+    { device = "/nix/persist/home";
+      fsType = "none";
+    };
+
 
   swapDevices = [ ];
 

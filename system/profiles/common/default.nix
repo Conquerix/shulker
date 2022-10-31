@@ -4,6 +4,8 @@ with lib;
 {
   config = {
     boot = {
+      kernelPackages = pkgs.linuxPackages_latest;
+      
       # Enable running aarch64 binaries using qemu.
       binfmt.emulatedSystems = [ "aarch64-linux" ];
 
@@ -13,6 +15,8 @@ with lib;
       # Enable support for nfs and ntfs.
       supportedFilesystems = [ "cifs" "ntfs" "nfs" ];
     };
+
+    hardware.enableRedistributableFirmware = true;
 
     networking.networkmanager.enable = true;
 

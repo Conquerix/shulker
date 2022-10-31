@@ -30,7 +30,7 @@ in
       "/etc/ssh/ssh_host_rsa_key.pub"
       "/etc/ssh/ssh_host_ed25519_key"
       "/etc/ssh/ssh_host_ed25519_key.pub"
-      (mkIf (cfg.impermanence.enable){
+      (mkIf (cfg.ssh_server.tor.enable){
           file = "/run/keys/tor/ssh_access/hs_ed25519_secret_key";
           parentDirectory = {
           	user = "tor";
