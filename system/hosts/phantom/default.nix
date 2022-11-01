@@ -24,7 +24,10 @@
 
   shulker = {
     modules = {
-      _1password.enable = true;
+      _1password = {
+        enable = true;
+        users = [ "conquerix" ];
+      };
       gnome = {
         enable = true;
         eyeCandy = true;
