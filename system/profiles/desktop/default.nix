@@ -37,7 +37,7 @@ in
 
     environment.systemPackages = with pkgs; [
       pamixer
-      firefox
+      firefox-wayland
     ];
 
     hardware = {

@@ -1,19 +1,21 @@
 { config, lib, pkgs, ... }:
 
 with lib;
-let cfg = config.shulker.modules.onepassword;
+let cfg = config.shulker.modules._1password;
 in
 {
-  options.shulker.modules.onepassword = { 
+  options.shulker.modules._1password = { 
     enable = mkEnableOption "1password app & security wrappers handling for system login usage";
   };
 
   config = mkIf cfg.enable {
-    system.packages = with pkgs;
+    environment.systemPackages = with pkgs;
       [
         _1password-gui
         _1password
       ];
+
+    users.groups.onepassword.gid = 5000;
 
     security.wrappers = {
         "1Password-BrowserSupport" =

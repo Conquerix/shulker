@@ -22,8 +22,8 @@ in
         "steam-runtime"
       ];
 
-    environment.sessionVariables = mkIf cfg.protonGE { 
-      rec {
+    environment = mkIf cfg.protonGE {
+        sessionVariables = rec {
           XDG_CACHE_HOME  = "\${HOME}/.cache";
           XDG_CONFIG_HOME = "\${HOME}/.config";
           XDG_BIN_HOME    = "\${HOME}/.local/bin";

@@ -20,12 +20,14 @@
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/7BFA-D5FB";
+    { #device = "/dev/disk/by-uuid/7BFA-D5FB";
+      device = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S649NF0RA31606A-part1";
       fsType = "vfat";
     };
 
   fileSystems."/nix" =
-    { device = "/dev/disk/by-uuid/19d35532-79f0-4388-b200-fad896351c94";
+    { #device = "/dev/disk/by-uuid/19d35532-79f0-4388-b200-fad896351c94";
+      device = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S649NF0RA31606A-part2";
       fsType = "ext4";
     };
 

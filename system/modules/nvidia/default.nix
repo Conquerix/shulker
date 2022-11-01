@@ -20,6 +20,8 @@ in
     hybrid = {
       enable = mkEnableOption "Hybrid graphics support";
 
+      egpu = mkEnableOption "Enable eGPU support";
+
       intelBusId = mkOption {
         description = ''
           Bus ID for the intel GPU. You can find it by running this nix shell
@@ -29,7 +31,7 @@ in
         '';
         type = types.str;
         default = "";
-        example = "PCI:1:0:0";
+        example = "PCI:0:2:0";
       };
 
       nvidiaBusId = mkOption {
@@ -41,20 +43,26 @@ in
         '';
         type = types.str;
         default = "";
-        example = "PCI:1:0:0";
+        example = "PCI:2:0:0";
       };
     };
   };
 
   config = mkIf cfg.enable {
 
+    nixpkgs.config.allowUnfree = true;
+    hardware.nvidia.nvidiaPersistenced = true;
+    hardware.nvidia.powerManagement.enable = true;
+    hardware.nvidia.powerManagement.finegrained = true;
+    hardware.nvidia.open = true;
     services.xserver.videoDrivers = [ "nvidia" ];
-
-    environment.systemPackages = mkIf cfg.hybrid.enable [ nvidia-offload ];
+    hardware.nvidia.modesetting.enable = true;
+    hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
     hardware.nvidia.prime = mkIf cfg.hybrid.enable {
       offload.enable = true;
-      intelBusId = cfg.intelBusId;
-      nvidiaBusId = cfg.nvidiaBusId;
+      sync.allowExternalGpu = mkIf cfg.hybrid.egpu true;
+      intelBusId = cfg.hybrid.intelBusId;
+      nvidiaBusId = cfg.hybrid.nvidiaBusId;
       };
     };
   }

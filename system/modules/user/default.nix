@@ -18,6 +18,7 @@ let
 
   defaultExtraGroups = [
     "audio"
+    "video"
     "docker"
     "games"
     "locate"

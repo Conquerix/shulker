@@ -1,10 +1,13 @@
-{config, ... }:
+{pkgs, ... }:
 
 {
   imports = [ ./hardware.nix ];
 
+  hardware.tuxedo-keyboard.enable = true;
+
   environment.systemPackages = [
-    config.pkgs.linuxKernel.packages.linux_6_0.tuxedo-keyboard
+    pkgs.linuxKernel.packages.linux_6_0.tuxedo-keyboard
+    pkgs.prismlauncher
   ];
 
   boot.loader = {
@@ -21,8 +24,8 @@
 
   shulker = {
     modules = {
-      onepassword.enable = true;
-      gnomeConfig = {
+      _1password.enable = true;
+      gnome = {
         enable = true;
         eyeCandy = true;
         moreUtils = true;
@@ -36,11 +39,37 @@
         enable = true;
         home = true;
       };
+      yubikey.enable = true;
     };
     profiles = {
       desktop = {
         enable = true;
         laptop = true;
+      };
+    };
+  };
+
+  specialisation = {
+    nvme-egpu.configuration = {
+      shulker.modules.nvidia  = {
+        enable = true;
+        hybrid = {
+          enable = true;
+          egpu = true;
+          intelBusId = "PCI:0:2:0";
+          nvidiaBusId = "PCI:2:0:0";
+        };
+      };
+    };
+    thunderbolt-egpu.configuration = {
+      shulker.modules.nvidia  = {
+        enable = true;
+        hybrid = {
+          enable = true;
+          egpu = true;
+          intelBusId = "PCI:0:2:0";
+          nvidiaBusId = "PCI:5:0:0";
+        };
       };
     };
   };

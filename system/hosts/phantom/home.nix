@@ -2,6 +2,9 @@
 
 {
   home.packages = with pkgs; [
+    emacs
+    emacs28Packages.tuareg
+    emacs28Packages.agda2-mode
   ];
 
   shulker = {
