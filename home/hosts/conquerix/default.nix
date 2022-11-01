@@ -2,7 +2,7 @@
 
 {
   home.stateVersion = "22.05";
-
+  
   shulker = {
     modules = {
       dev = {

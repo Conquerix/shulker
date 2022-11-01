@@ -16,6 +16,9 @@ in
       controlPath = "~/.ssh/sockets/%r@%h-%p";
       extraOptionOverrides = { "Include" = "~/.ssh/config.local"; };
       hashKnownHosts = true;
+      extraConfig = ''
+        IdentityAgent ~/.1password/agent.sock
+        '';
     };
   };
 }
