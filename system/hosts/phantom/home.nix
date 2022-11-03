@@ -8,6 +8,7 @@
     modules = {
       app = {
         discord.enable = true;
+        libreoffice.enable = true;
       };
       dev = {
         cc.enable = true;

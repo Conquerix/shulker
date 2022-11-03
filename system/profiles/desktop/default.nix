@@ -25,24 +25,17 @@ in
     services.printing.enable = true;
 
     # Sound setting
-    security.rtkit.enable = true;
-    services.pipewire = {
-      enable = true;
-      alsa.enable = true;
-      alsa.support32Bit = true;
-      pulse.enable = true;
-      # If you want to use JACK applications, uncomment this
-      #jack.enable = true;
+    hardware = {
+      pulseaudio.enable = true;
     };
 
     environment.systemPackages = with pkgs; [
       pamixer
+      pavucontrol
       firefox-wayland
     ];
 
-    hardware = {
-      pulseaudio.enable = false;
-    };
+    
 
     # Desktop environment
     services.xserver = {
