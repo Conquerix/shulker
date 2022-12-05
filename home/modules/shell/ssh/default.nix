@@ -6,6 +6,7 @@ in
 {
   options.shulker.modules.shell.ssh = {
     enable = mkEnableOption "ssh configuration";
+    _1password = mkEnableOption "Enable 1password identity agent";
   };
 
   config = mkIf cfg.enable {
@@ -15,7 +16,7 @@ in
       controlPath = "~/.ssh/control/%C";
       extraOptionOverrides = { "Include" = "~/.ssh/config.local"; };
       hashKnownHosts = true;
-      extraConfig = '' IdentityAgent ~/.1password/agent.sock '';
+      extraConfig = (mkIf (cfg._1password) '' IdentityAgent ~/.1password/agent.sock '');
     };
   };
 }
