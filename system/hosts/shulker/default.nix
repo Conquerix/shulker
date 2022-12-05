@@ -7,7 +7,7 @@
 
   security.acme.acceptTerms = true;
 
-  networking.firewall.allowedTCPPorts = [ 80 443 ];
+  networking.firewall.allowedTCPPorts = [ 80 443 23231 ];
 
   services.tor = {
     enable = true;
