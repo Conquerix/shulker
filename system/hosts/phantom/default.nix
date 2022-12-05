@@ -5,10 +5,36 @@
 
   hardware.tuxedo-keyboard.enable = true;
 
-  environment.systemPackages = [
-    pkgs.linuxKernel.packages.linux_6_0.tuxedo-keyboard
-    pkgs.prismlauncher
+  environment.systemPackages = with pkgs; [
+    linuxKernel.packages.linux_6_0.tuxedo-keyboard
+    (agda.withPackages (p: [ p.standard-library ]))
+    ocaml
   ];
+
+  services.emacs = {
+	enable = true;
+	install = true;
+	##package = pkgs.emacs-gtk;
+    package = with pkgs; ((emacsPackagesFor emacs-gtk).emacsWithPackages (epkgs: [ epkgs.tuareg ]));
+  };
+  
+  ##programs.emacs = {
+  ##  enable = true;
+  ##  package = pkgs.emacs-gtk;
+  ##  extraPackages = epkgs: [
+  ##    epkgs.agda2-mode
+  ##  ];
+  ##};
+  
+
+  services.tor = {
+  	enable = true;
+  	client.enable = true;
+  	torsocks.enable = true;
+  };
+
+  virtualisation.virtualbox.host.enable = true;
+  users.extraGroups.vboxusers.members = [ "user-with-access-to-virtualbox" ];
 
   boot.loader = {
   efi = {
@@ -74,6 +100,66 @@
           nvidiaBusId = "PCI:5:0:0";
         };
       };
+    };
+    nvme-egpu-external-display.configuration = {
+      shulker.modules.nvidia  = {
+        enable = true;
+        hybrid = {
+          enable = true;
+          egpu = true;
+          intelBusId = "PCI:0:2:0";
+          nvidiaBusId = "PCI:2:0:0";
+        };
+      };
+      system.nixos.tags = [ "external-display" ];
+      hardware.nvidia.modesetting.enable = pkgs.lib.mkForce false;
+      hardware.nvidia.prime.offload.enable = pkgs.lib.mkForce false;
+      hardware.nvidia.powerManagement.enable = pkgs.lib.mkForce false;
+      services.xserver.displayManager.gdm.wayland = false;
+      services.xserver.config = pkgs.lib.mkOverride 0
+      ''
+    Section "Module"
+        Load           "modesetting"
+    EndSection
+    
+    Section "Device"
+        Identifier     "Device0"
+        Driver         "nvidia"
+        BusID          "2:0:0"
+        Option         "AllowEmptyInitialConfiguration"
+        Option         "AllowExternalGpus" "True"
+    EndSection
+    '';
+    };
+    thunderbolt-egpu-external-display.configuration = {
+      shulker.modules.nvidia  = {
+        enable = true;
+        hybrid = {
+          enable = true;
+          egpu = true;
+          intelBusId = "PCI:0:2:0";
+          nvidiaBusId = "PCI:5:0:0";
+        };
+      };
+      system.nixos.tags = [ "external-display" ];
+      hardware.nvidia.modesetting.enable = pkgs.lib.mkForce false;
+      hardware.nvidia.prime.offload.enable = pkgs.lib.mkForce false;
+      hardware.nvidia.powerManagement.enable = pkgs.lib.mkForce false;
+      services.xserver.displayManager.gdm.wayland = false;
+      services.xserver.config = pkgs.lib.mkOverride 0
+      ''
+    Section "Module"
+        Load           "modesetting"
+    EndSection
+    
+    Section "Device"
+        Identifier     "Device0"
+        Driver         "nvidia"
+        BusID          "5:0:0"
+        Option         "AllowEmptyInitialConfiguration"
+        Option         "AllowExternalGpus" "True"
+    EndSection
+    '';
     };
   };
 }

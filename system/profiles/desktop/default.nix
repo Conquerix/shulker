@@ -26,7 +26,11 @@ in
 
     # Sound setting
     hardware = {
-      pulseaudio.enable = true;
+      pulseaudio = {
+        enable = true;
+        package = pkgs.pulseaudioFull;
+      };
+      bluetooth.enable = true;
     };
 
     environment.systemPackages = with pkgs; [

@@ -1,7 +1,8 @@
 { config, lib, pkgs, ... }:
 
 with lib;
-let cfg = config.shulker.modules.steam;
+let 
+  cfg = config.shulker.modules.steam;
 in
 {
   options.shulker.modules.steam = { 
@@ -18,6 +19,7 @@ in
 
     nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
         "steam"
+        "steam-tui"
         "steam-original"
         "steam-runtime"
       ];
@@ -34,7 +36,15 @@ in
           PATH = [ 
             "\${XDG_BIN_HOME}"
           ];
+          # For HiDPI
+          #GDK_SCALE = "2";
         };
-      };
+      systemPackages = with pkgs; [
+        steamtinkerlaunch
+      	protonup
+      	protontricks
+      	steam-tui
+      ];
+    };
   };
 }

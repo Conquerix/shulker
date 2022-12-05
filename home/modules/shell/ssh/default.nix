@@ -12,6 +12,7 @@ in
     programs.ssh = {
       enable = true;
       controlMaster = "auto";
+      controlPath = "~/.ssh/control/%C";
       extraOptionOverrides = { "Include" = "~/.ssh/config.local"; };
       hashKnownHosts = true;
       extraConfig = '' IdentityAgent ~/.1password/agent.sock '';

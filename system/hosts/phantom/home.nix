@@ -2,6 +2,11 @@
 
 {
   home.packages = with pkgs; [
+    prismlauncher
+    android-tools
+    vlc
+    pinta
+    zoom-us
   ];
 
   shulker = {

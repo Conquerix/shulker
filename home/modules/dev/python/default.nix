@@ -14,12 +14,12 @@ in
       description = "List of extra packages to be installed";
       type = with types; listOf package;
       default = with pkgs.python39Packages; [
-        black
-        jedi
+        #black
+        #jedi
         pip
-        poetry
-        pylint
-        setuptools
+        #poetry
+        #pylint
+        #setuptools
       ];
     };
   };

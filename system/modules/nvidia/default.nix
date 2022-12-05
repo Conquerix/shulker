@@ -53,7 +53,6 @@ in
     nixpkgs.config.allowUnfree = true;
     hardware.nvidia.nvidiaPersistenced = true;
     hardware.nvidia.powerManagement.enable = true;
-    hardware.nvidia.powerManagement.finegrained = true;
     hardware.nvidia.open = true;
     services.xserver.videoDrivers = [ "nvidia" ];
     hardware.nvidia.modesetting.enable = true;
