@@ -20,6 +20,8 @@ with lib;
 
     networking.networkmanager.enable = true;
 
+    users.groups.config.name = "config";
+
     nix = {
       settings = {
 
