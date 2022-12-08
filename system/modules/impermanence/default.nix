@@ -23,6 +23,7 @@ in
       "/var/lib/systemd/coredump"
       "/etc/NetworkManager/system-connections"
       "/etc/nixos"
+      "/root/.ssh"
       (mkIf (cfg.home) "/home")
       ];
 
