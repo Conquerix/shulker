@@ -46,6 +46,11 @@ with lib;
       locate.enable = true;
     };
 
+    security.acme = {
+      defaults.email = "pierre@fournier.net";
+      acceptTerms = true;
+    };
+
     # List of bare minimal requirements for a system to have to bootstrap from
     environment.systemPackages = with pkgs; [
       curl
