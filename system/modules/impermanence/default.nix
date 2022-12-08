@@ -22,7 +22,8 @@ in
       "/var/lib/bluetooth"
       "/var/lib/systemd/coredump"
       "/etc/NetworkManager/system-connections"
-      {directory = "/etc/nixos"; user = "conquerix"; group = "config"; mode = "u=rw,g=rw,o=r";}
+      "/etc/nixos"
+      "/root/.ssh"
       (mkIf (cfg.home) "/home")
       ];
 
