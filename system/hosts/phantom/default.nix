@@ -17,24 +17,12 @@
 	##package = pkgs.emacs-gtk;
     package = with pkgs; ((emacsPackagesFor emacs-gtk).emacsWithPackages (epkgs: [ epkgs.tuareg ]));
   };
-  
-  ##programs.emacs = {
-  ##  enable = true;
-  ##  package = pkgs.emacs-gtk;
-  ##  extraPackages = epkgs: [
-  ##    epkgs.agda2-mode
-  ##  ];
-  ##};
-  
 
   services.tor = {
   	enable = true;
   	client.enable = true;
   	torsocks.enable = true;
   };
-
-  virtualisation.virtualbox.host.enable = true;
-  users.extraGroups.vboxusers.members = [ "user-with-access-to-virtualbox" ];
 
   boot.loader = {
   efi = {
@@ -76,6 +64,7 @@
         laptop = true;
       };
     };
+    wireguard-client.enable = true;
   };
 
   specialisation = {

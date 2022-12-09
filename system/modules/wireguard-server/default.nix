@@ -52,7 +52,7 @@ in
             allowedIPs = [ "192.168.10.2/32" ];
           }
           { # Phantom
-            publicKey = "{john doe's public key}";
+            publicKey = "twbugLyoNIV/U06EI0Gs29hd0QJKsHkpdoD3o/dE6zM=";
             allowedIPs = [ "10.100.0.3/32" ];
           }
           { # Allay
