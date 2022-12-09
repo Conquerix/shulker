@@ -16,7 +16,7 @@ in
       controlPath = "~/.ssh/control/%C";
       extraOptionOverrides = { "Include" = "~/.ssh/config.local"; };
       hashKnownHosts = true;
-      extraConfig = (mkIf (cfg._1password.enable) '' IdentityAgent ~/.1password/agent.sock '');
+       extraConfig = mkIf (cfg._1password) '' IdentityAgent ~/.1password/agent.sock '';
     };
   };
 }
