@@ -47,10 +47,10 @@ in
   
         peers = [
           # List of allowed peers.
-          #{ # Warden
-          #  publicKey = "{client public key}";
-          #  allowedIPs = [ "192.168.10.2/32" ];
-          #}
+          { # Warden
+            publicKey = "gfwhPNVOMoBxaCXP+dIcuLv+r2aat127wE+vO20Y/l0=";
+            allowedIPs = [ "192.168.10.2/32" ];
+          }
           { # Phantom
             publicKey = "twbugLyoNIV/U06EI0Gs29hd0QJKsHkpdoD3o/dE6zM=";
             allowedIPs = [ "10.100.0.3/32" ];
