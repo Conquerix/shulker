@@ -34,12 +34,12 @@ in
         # This allows the wireguard server to route your traffic to the internet and hence be like a VPN
         # For this to work you have to set the dnsserver IP of your router (or dnsserver of choice) in your clients
         postSetup = ''
-          ${pkgs.iptables}/bin/iptables -t nat -A POSTROUTING -s 192.168.10.0/24 -o cfg.extInterface -j MASQUERADE
+          ${pkgs.iptables}/bin/iptables -t nat -A POSTROUTING -s 192.168.10.0/24 -o ${cfg.extInterface} -j MASQUERADE
         '';
   
         # This undoes the above command
         postShutdown = ''
-          ${pkgs.iptables}/bin/iptables -t nat -D POSTROUTING -s 192.168.10.0/24 -o cfg.extInterface -j MASQUERADE
+          ${pkgs.iptables}/bin/iptables -t nat -D POSTROUTING -s 192.168.10.0/24 -o ${cfg.extInterface} -j MASQUERADE
         '';
   
         # Path to the private key file.
@@ -47,18 +47,18 @@ in
   
         peers = [
           # List of allowed peers.
-          { # Warden
-            publicKey = "{client public key}";
-            allowedIPs = [ "192.168.10.2/32" ];
-          }
+          #{ # Warden
+          #  publicKey = "{client public key}";
+          #  allowedIPs = [ "192.168.10.2/32" ];
+          #}
           { # Phantom
             publicKey = "twbugLyoNIV/U06EI0Gs29hd0QJKsHkpdoD3o/dE6zM=";
             allowedIPs = [ "10.100.0.3/32" ];
           }
-          { # Allay
-            publicKey = "{john doe's public key}";
-            allowedIPs = [ "10.100.0.4/32" ];
-          }
+          #{ # Allay
+          #  publicKey = "{john doe's public key}";
+          #  allowedIPs = [ "10.100.0.4/32" ];
+          #}
         ];
       };
     };
