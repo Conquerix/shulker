@@ -21,6 +21,8 @@ in
     networking.firewall = {
       allowedUDPPorts = [ 51820 ];
     };
+
+    boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
   
     networking.wireguard.interfaces = {
       # "wg0" is the network interface name. You can name the interface arbitrarily.
