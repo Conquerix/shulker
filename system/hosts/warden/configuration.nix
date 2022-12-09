@@ -67,21 +67,48 @@
   # /etc :
 
   environment.etc = {
-    "machine-id".source                   = "/persist/etc/machine-id";
-    "ssh/ssh_host_rsa_key".source         = "/persist/etc/ssh/ssh_host_rsa_key";
-    "ssh/ssh_host_rsa_key.pub".source     = "/persist/etc/ssh/ssh_host_rsa_key.pub";
-    "ssh/ssh_host_ed25519_key".source     = "/persist/etc/ssh/ssh_host_ed25519_key";
-    "ssh/ssh_host_ed25519_key.pub".source = "/persist/etc/ssh/ssh_host_ed25519_key.pub";
-    "nixos".source                        = "/persist/etc/nixos";
+    "machine-id".source                   = "/nix/persist/etc/machine-id";
+    "ssh/ssh_host_rsa_key".source         = "/nix/persist/etc/ssh/ssh_host_rsa_key";
+    "ssh/ssh_host_rsa_key.pub".source     = "/nix/persist/etc/ssh/ssh_host_rsa_key.pub";
+    "ssh/ssh_host_ed25519_key".source     = "/nix/persist/etc/ssh/ssh_host_ed25519_key";
+    "ssh/ssh_host_ed25519_key.pub".source = "/nix/persist/etc/ssh/ssh_host_ed25519_key.pub";
+    "nixos".source                        = "/nix/persist/etc/nixos";
+    "wireguard/private_key".source        = "/nix/persist/etc/wireguard/private_key";
   };
 
   # /var/lib/tor :
 
   systemd.tmpfiles.rules = [
-      "L /run/keys/tor/ssh_access/hs_ed25519_secret_key - - - - /persist/tor/ssh_access/hs_ed25519_secret_key"
+      "L /run/keys/tor/ssh_access/hs_ed25519_secret_key - - - - /nix/persist/tor/ssh_access/hs_ed25519_secret_key"
   #    "L /var/lib/tor/ - - - - /persist/var/lib/tor/"
   ];
   
+  networking.firewall = {
+    allowedUDPPorts = [ 51820 ];
+  };
+  
+  networking.wireguard.interfaces = {
+    # "wg0" is the network interface name. You can name the interface arbitrarily.
+    wg0 = {
+      # Determines the IP address and subnet of the server's end of the tunnel interface.
+      ips = [ "192.168.10.2/24" ];
+  
+      # The port that WireGuard listens to. Must be accessible by the client.
+      listenPort = 51820;
+      # Path to the private key file.
+      privateKeyFile = "/etc/wireguard/private_key";
+      peers = [
+        { # Shulker server
+          publicKey = "vLo4XYe84WcCnkLynjO2SjBzHmFuYeuFN0CF5b/CfBc=";
+          allowedIPs = [ "192.168.10.0/24" ];
+          endpoint = "shulker.fr:51820";
+          persistentKeepalive = 25;
+        }
+      ];
+    };
+  };
+
+
   # List services that you want to enable:
 
   services.tor = {
@@ -131,3 +158,4 @@
   system.stateVersion = "22.05"; # Did you read the comment?
 
 }
+

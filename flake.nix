@@ -43,6 +43,7 @@
       nixosConfigurations = mapAttrs' mkSystem {
         shulker = { };
         phantom = { };
+        warden  = { };
       };
 
       # Convenience output that aggregates the output configurations.
