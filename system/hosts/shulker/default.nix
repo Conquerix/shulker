@@ -20,7 +20,7 @@
       user.home = ./home.nix;
       ssh_server.enable = true;
       soft-serve.enable = true;
-      wireguard-server = {
+      wireguard.server = {
       	enable = true;
       	extInterface = "ens3";
       };

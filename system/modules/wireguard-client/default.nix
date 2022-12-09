@@ -5,9 +5,8 @@ let cfg = config.shulker.modules.wireguard.client;
 in
 {
   options.shulker.modules.wireguard.client = {
-      enable = mkEnableOption "Enable wireguard client";
-      };
-    };
+    enable = mkEnableOption "Enable wireguard client";
+  };
 
   config = mkIf cfg.enable {
     networking.firewall = {
@@ -37,7 +36,7 @@ in
       };
     };
 
-    environment = mkIf (cfg.impermanence.enable) {
+    environment = mkIf (config.shulker.modules.impermanence.enable) {
       persistence."/nix/persist".files = [
         {file = "/etc/wireguard/private_key"; parentDirectory = { mode = "u=rw,g=,o="; };}
       ];

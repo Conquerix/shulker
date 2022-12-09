@@ -63,7 +63,7 @@ in
       };
     };
 
-    environment = mkIf (cfg.impermanence.enable) {
+    environment = mkIf (config.shulker.modules.impermanence.enable) {
       persistence."/nix/persist".files = [
         {file = "/etc/wireguard/private_key"; parentDirectory = { mode = "u=rw,g=,o="; };}
       ];

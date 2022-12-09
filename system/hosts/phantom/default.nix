@@ -57,6 +57,7 @@
         home = true;
       };
       yubikey.enable = true;
+      wireguard.client.enable = true;
     };
     profiles = {
       desktop = {
@@ -64,7 +65,6 @@
         laptop = true;
       };
     };
-    wireguard-client.enable = true;
   };
 
   specialisation = {
