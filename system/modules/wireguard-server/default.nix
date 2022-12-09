@@ -57,10 +57,10 @@ in
             publicKey = "twbugLyoNIV/U06EI0Gs29hd0QJKsHkpdoD3o/dE6zM=";
             allowedIPs = [ "10.100.0.3/32" ];
           }
-          #{ # Allay
-          #  publicKey = "{john doe's public key}";
-          #  allowedIPs = [ "10.100.0.4/32" ];
-          #}
+          { # Allay
+            publicKey = "w1Un60Pqlc1c5KR8eDu+r9hozBCMIJ3IKhdkSI2Wy3c=";
+            allowedIPs = [ "10.100.0.4/32" ];
+          }
         ];
       };
     };
