@@ -24,7 +24,7 @@
       fsType = "zfs";
     };
 
-  fileSystems."/var/log" =
+  fileSystems."/nix/persist/var/log" =
     { device = "store_pool/log";
       fsType = "zfs";
     };
@@ -49,7 +49,7 @@
       fsType = "zfs";
     };
 
-  fileSystems."/persist" =
+  fileSystems."/nix/persist" =
     { device = "cfg_pool/persist";
       fsType = "zfs";
     };

@@ -3,11 +3,11 @@
 {
   imports = [ ./hardware.nix ];
 
-  services.nginx.enable = true;
-
-  security.acme.acceptTerms = true;
-
-  networking.firewall.allowedTCPPorts = [ 80 443 ];
+  # Use the systemd-boot EFI boot loader.
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  
+  networking.hostId = "2118dc3b";
 
   shulker = {
     modules = {
@@ -18,6 +18,10 @@
           enable = true;
           port = 45022;
         };
+      };
+      wireguard.client = {
+      	enable = true;
+      	clientIP = "192.168.10.2";
       };
     };
   };
