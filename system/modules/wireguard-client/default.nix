@@ -6,6 +6,11 @@ in
 {
   options.shulker.modules.wireguard.client = {
     enable = mkEnableOption "Enable wireguard client";
+    clientIP = mkOption {
+    	description = ''Address of the client in the server's subnet'';
+    	type = types.str;
+    	default = "192.160.10.0";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -17,7 +22,7 @@ in
       # "wg0" is the network interface name. You can name the interface arbitrarily.
       wg0 = {
         # Determines the IP address and subnet of the server's end of the tunnel interface.
-        ips = [ "192.168.10.1/24" ];
+        ips = [ "${cfg.clientIP}/24" ];
   
         # The port that WireGuard listens to. Must be accessible by the client.
         listenPort = 51820;

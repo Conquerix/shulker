@@ -57,7 +57,10 @@
         home = true;
       };
       yubikey.enable = true;
-      wireguard.client.enable = true;
+      wireguard.client = {
+        enable = true;
+        clientIP = "192.168.10.3";
+      };
     };
     profiles = {
       desktop = {
