@@ -52,6 +52,7 @@
   fileSystems."/nix/persist" =
     { device = "cfg_pool/persist";
       fsType = "zfs";
+      neededForBoot = true;
     };
 
   swapDevices = [ ];

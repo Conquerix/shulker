@@ -24,7 +24,6 @@ let
     "locate"
     "networmanager"
     "wheel"
-    "config"
   ];
 in
 {

@@ -35,7 +35,7 @@ in
           parentDirectory = {
           	user = "tor";
           	group = "tor";
-          	mode = "u=rwx,g=,o=";
+          	mode = "u=rw,g=,o=";
           };
       })
       ];
