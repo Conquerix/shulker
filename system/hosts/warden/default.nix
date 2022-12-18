@@ -12,10 +12,11 @@
   shulker = {
     modules = {
       user.home = ./home.nix;
+      impermanence.enable = true;
       ssh_server = {
         enable = true;
         tor = {
-          enable = true;
+          enable = false;
           port = 45022;
         };
       };

@@ -20,8 +20,6 @@ with lib;
 
     networking.networkmanager.enable = true;
 
-    users.groups.config.name = "config";
-
     nix = {
       settings = {
 
@@ -44,6 +42,7 @@ with lib;
     services = {
       cron.enable = true;
       locate.enable = true;
+      timesyncd.enable = true;
     };
 
     security.acme = {
