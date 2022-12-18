@@ -58,7 +58,7 @@ in
             allowedIPs = [ "192.168.10.3/32" ];
           }
           { # Allay
-            publicKey = "w1Un60Pqlc1c5KR8eDu+r9hozBCMIJ3IKhdkSI2Wy3c=";
+            publicKey = "w1Un60Pqlc1c5KR8eDu+r9hozBCMIJ3IKhdkSl2Wy3c=";
             allowedIPs = [ "192.168.10.4/32" ];
           }
         ];
