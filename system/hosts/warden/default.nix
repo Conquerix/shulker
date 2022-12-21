@@ -1,7 +1,9 @@
 { ... }:
 
 {
-  imports = [ ./hardware.nix ];
+  imports = [
+    ./hardware.nix
+  ];
 
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
@@ -9,9 +11,15 @@
   
   networking.hostId = "2118dc3b";
 
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 23241 ];
+  };
+
   shulker = {
     modules = {
       user.home = ./home.nix;
+      docker.enable = true;
       impermanence.enable = true;
       ssh_server = {
         enable = true;
