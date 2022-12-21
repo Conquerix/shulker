@@ -3,16 +3,22 @@
 {
   imports = [ ./hardware.nix ];
 
-  services.nginx.enable = true;
+  networking.firewall.allowedTCPPorts = [ 80 443 23231 23241 ];
 
   security.acme.acceptTerms = true;
 
-  networking.firewall.allowedTCPPorts = [ 80 443 23231 ];
-
-  services.tor = {
+  services.nginx = {
     enable = true;
-    client.enable = true;
-    torsocks.enable = true;
+    streamConfig = ''
+      upstream warden-VH2 {
+        server 192.168.10.2:23241;
+      }
+      
+      server {
+        listen 23241;
+        proxy_pass warden-VH2;
+      }
+    '';
   };
 
   shulker = {
