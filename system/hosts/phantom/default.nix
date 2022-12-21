@@ -15,7 +15,7 @@
 	enable = true;
 	install = true;
 	##package = pkgs.emacs-gtk;
-    package = with pkgs; ((emacsPackagesFor emacs-gtk).emacsWithPackages (epkgs: [ epkgs.tuareg ]));
+    package = with pkgs; ((emacsPackagesFor emacs-gtk).emacsWithPackages (epkgs: [ epkgs.tuareg epkgs.markdown-mode epkgs.markdown-preview-mode ]));
   };
 
   services.tor = {
@@ -77,6 +77,7 @@
         hybrid = {
           enable = true;
           egpu = true;
+          offload = true;
           intelBusId = "PCI:0:2:0";
           nvidiaBusId = "PCI:2:0:0";
         };
@@ -88,70 +89,78 @@
         hybrid = {
           enable = true;
           egpu = true;
+          offload = true;
           intelBusId = "PCI:0:2:0";
           nvidiaBusId = "PCI:5:0:0";
         };
       };
     };
-    nvme-egpu-external-display.configuration = {
+    egpu-external-display.configuration = {
+      system.nixos.tags = [ "external-display" ];
+      boot.kernelParams = [ "module_blacklist=i915" ];
+      hardware.nvidia.modesetting.enable = pkgs.lib.mkForce false;
+      hardware.nvidia.powerManagement.enable = pkgs.lib.mkForce false;
       shulker.modules.nvidia  = {
         enable = true;
-        hybrid = {
-          enable = true;
-          egpu = true;
-          intelBusId = "PCI:0:2:0";
-          nvidiaBusId = "PCI:2:0:0";
-        };
       };
-      system.nixos.tags = [ "external-display" ];
-      hardware.nvidia.modesetting.enable = pkgs.lib.mkForce false;
-      hardware.nvidia.prime.offload.enable = pkgs.lib.mkForce false;
-      hardware.nvidia.powerManagement.enable = pkgs.lib.mkForce false;
-      services.xserver.displayManager.gdm.wayland = false;
-      services.xserver.config = pkgs.lib.mkOverride 0
-      ''
-    Section "Module"
-        Load           "modesetting"
-    EndSection
-    
-    Section "Device"
-        Identifier     "Device0"
-        Driver         "nvidia"
-        BusID          "2:0:0"
-        Option         "AllowEmptyInitialConfiguration"
-        Option         "AllowExternalGpus" "True"
-    EndSection
-    '';
     };
-    thunderbolt-egpu-external-display.configuration = {
-      shulker.modules.nvidia  = {
-        enable = true;
-        hybrid = {
-          enable = true;
-          egpu = true;
-          intelBusId = "PCI:0:2:0";
-          nvidiaBusId = "PCI:5:0:0";
-        };
-      };
-      system.nixos.tags = [ "external-display" ];
-      hardware.nvidia.modesetting.enable = pkgs.lib.mkForce false;
-      hardware.nvidia.prime.offload.enable = pkgs.lib.mkForce false;
-      hardware.nvidia.powerManagement.enable = pkgs.lib.mkForce false;
-      services.xserver.displayManager.gdm.wayland = false;
-      services.xserver.config = pkgs.lib.mkOverride 0
-      ''
-    Section "Module"
-        Load           "modesetting"
-    EndSection
-    
-    Section "Device"
-        Identifier     "Device0"
-        Driver         "nvidia"
-        BusID          "5:0:0"
-        Option         "AllowEmptyInitialConfiguration"
-        Option         "AllowExternalGpus" "True"
-    EndSection
-    '';
-    };
+    #nvme-egpu-external-display.configuration = {
+    #  shulker.modules.nvidia  = {
+    #    enable = true;
+    #    hybrid = {
+    #      enable = true;
+    #      egpu = true;
+    #      intelBusId = "PCI:0:2:0";
+    #      nvidiaBusId = "PCI:2:0:0";
+    #    };
+    #  };
+    #  system.nixos.tags = [ "external-display" ];
+    #  hardware.nvidia.modesetting.enable = pkgs.lib.mkForce false;
+    #  hardware.nvidia.powerManagement.enable = pkgs.lib.mkForce false;
+    #  services.xserver.displayManager.gdm.wayland = false;
+    #  services.xserver.config = pkgs.lib.mkOverride 0
+    #  ''
+    #Section "Module"
+    #    Load           "modesetting"
+    #EndSection
+    #
+    #Section "Device"
+    #    Identifier     "Device0"
+    #    Driver         "nvidia"
+    #    BusID          "2:0:0"
+    #    Option         "AllowEmptyInitialConfiguration"
+    #    Option         "AllowExternalGpus" "True"
+    #EndSection
+    #'';
+    #};
+    #thunderbolt-egpu-external-display.configuration = {
+    #  shulker.modules.nvidia  = {
+    #    enable = true;
+    #    hybrid = {
+    #      enable = true;
+    #      egpu = true;
+    #      intelBusId = "PCI:0:2:0";
+    #      nvidiaBusId = "PCI:5:0:0";
+    #    };
+    #  };
+    #  system.nixos.tags = [ "external-display" ];
+    #  hardware.nvidia.modesetting.enable = pkgs.lib.mkForce false;
+    #  hardware.nvidia.powerManagement.enable = pkgs.lib.mkForce false;
+    #  services.xserver.displayManager.gdm.wayland = false;
+    #  services.xserver.config = pkgs.lib.mkOverride 0
+    #  ''
+    #Section "Module"
+    #    Load           "modesetting"
+    #EndSection
+    #
+    #Section "Device"
+    #    Identifier     "Device0"
+    #    Driver         "nvidia"
+    #    BusID          "5:0:0"
+    #    Option         "AllowEmptyInitialConfiguration"
+    #    Option         "AllowExternalGpus" "True"
+    #EndSection
+    #'';
+    #};
   };
 }

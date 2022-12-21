@@ -22,6 +22,10 @@ in
 
       egpu = mkEnableOption "Enable eGPU support";
 
+      offload = mkEnableOption "Enable offload mode";
+
+      sync = mkEnableOption "Enable sync mode";
+
       intelBusId = mkOption {
         description = ''
           Bus ID for the intel GPU. You can find it by running this nix shell
@@ -58,8 +62,9 @@ in
     hardware.nvidia.modesetting.enable = true;
     hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
     hardware.nvidia.prime = mkIf cfg.hybrid.enable {
-      offload.enable = true;
-      sync.allowExternalGpu = mkIf cfg.hybrid.egpu true;
+      offload.enable = cfg.hybrid.offload;
+      sync.enable = cfg.hybrid.sync;
+      sync.allowExternalGpu = cfg.hybrid.egpu;
       intelBusId = cfg.hybrid.intelBusId;
       nvidiaBusId = cfg.hybrid.nvidiaBusId;
       };
