@@ -3,17 +3,19 @@
 {
   imports = [
     ./hardware.nix
+    ./minecraft.nix
   ];
 
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  
+
+  # For zfs.
   networking.hostId = "2118dc3b";
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 23241 ];
+    allowedTCPPorts = [ 23241 25501 ];
   };
 
   shulker = {
@@ -23,10 +25,6 @@
       impermanence.enable = true;
       ssh_server = {
         enable = true;
-        tor = {
-          enable = false;
-          port = 45022;
-        };
       };
       wireguard.client = {
       	enable = true;
