@@ -3,20 +3,24 @@
 {
   imports = [ ./hardware.nix ];
 
-  networking.firewall.allowedTCPPorts = [ 80 443 23231 23241 ];
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 80 443 23231 25501 ];
+    allowedUDPPorts = [ 25501 ];
+  };
 
   security.acme.acceptTerms = true;
 
   services.nginx = {
     enable = true;
     streamConfig = ''
-      upstream warden-VH2 {
-        server 192.168.10.2:23241;
+      upstream warden-minecraft-VH2 {
+        server 192.168.10.2:25501;
       }
       
       server {
-        listen 23241;
-        proxy_pass warden-VH2;
+        listen 25501;
+        proxy_pass warden-minecraft-VH2;
       }
     '';
   };
