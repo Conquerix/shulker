@@ -1,4 +1,3 @@
-{ inputs, ... }:
 {
   config.virtualisation.oci-containers.containers = {
   	minecraft-VH2 = {
@@ -16,18 +15,30 @@
   	  };
   	};
 
-  	"minecraft-Project-Paper-1-19" = {
-  	  image = "itzg/minecraft-server";
-  	  ports = [ "25502:25502" "25512:25512" "25522:25522/udp" "25532:25532"];
-  	  volumes = [
-  	  	"/storage/fast/Minecraft-Servers/Project-Paper-1.19/data:/data"
-  	  ];
-  	  environment = {
-  	    EULA = "TRUE";
-  	  	TYPE = "CURSEFORGE";
-  	  	CF_SERVER_MOD = "/modpacks/VaultHunters.zip";
-  	  	CF_BASE_DIR = "/data";
-  	  };
-  	};
+  	#"minecraft-Project-Paper-1-19" = {
+  	#  image = "itzg/minecraft-server";
+  	#  ports = [ "25502:25502" "25512:25512" "25522:25522/udp" "25532:25532"];
+  	#  volumes = [
+  	#  	"/storage/fast/Minecraft-Servers/Project-Paper-1.19/data:/data"
+  	#  ];
+  	#  environment = {
+  	#    EULA = "TRUE";
+  	#  	TYPE = "CURSEFORGE";
+  	#  	CF_SERVER_MOD = "/modpacks/VaultHunters.zip";
+  	#  	CF_BASE_DIR = "/data";
+  	#  };
+  	#};
+
+  	minecraft-limbo = {
+      image = "itzg/minecraft-server";
+      ports = [ "30000:30000" ];
+      environment = {
+        TYPE = "LIMBO";
+        EULA = "true";
+      };
+      volumes = [
+        "/storage/fast/Minecraft-Servers/limbo/data:/data"
+      ];
+    };
   };
 }
