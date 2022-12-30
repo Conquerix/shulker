@@ -7,6 +7,7 @@
     vlc
     pinta
     zoom-us
+    lapce
   ];
 
   shulker = {
