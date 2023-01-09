@@ -4,7 +4,7 @@ with lib;
 {
   config = {
     boot = {
-      kernelPackages = pkgs.linuxPackages_latest;
+      kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
       
       # Enable running aarch64 binaries using qemu.
       binfmt.emulatedSystems = [ "aarch64-linux" ];
