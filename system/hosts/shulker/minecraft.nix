@@ -29,6 +29,12 @@ let
   # ViaBackwards (Velocity plugin)
   vb_url = "https://github.com/ViaVersion/ViaBackwards/releases/download/4.5.1/ViaBackwards-4.5.1.jar";
 
+  # LuckPerms (Velocity/Paper plugin)
+  lp_url = "https://download.luckperms.net/1464/velocity/LuckPerms-Velocity-5.4.56.jar";
+
+  # CMI Bungee (Velocity plugin)
+  cmib_url = "https://www.zrips.net/cmib/download.php?file=CMIB-1.0.2.2.jar";
+
 in
 
 {
@@ -52,6 +58,10 @@ in
       upstream warden-minecraft-VH2-V {
         server 192.168.10.2:25521;
       }
+
+      upstream warden-jupyter {
+        server 192.168.10.2:8888;
+      }
       
       server {
         listen 25501;
@@ -61,6 +71,11 @@ in
       server {
         listen 25521 udp;
         proxy_pass warden-minecraft-VH2-V;
+      }
+
+      server {
+        listen 8888;
+        proxy_pass warden-jupyter;
       }
     '';
   };
@@ -75,7 +90,7 @@ in
       	ENABLE_RCON = ''"true"'';
       	JVM_XX_OPTS = "-XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled -XX:+AlwaysPreTouch -XX:MaxInlineLevel=15";
       	#MEMORY = "2048m";
-      	PLUGINS = "${asl_url},${vv_url},${vr_url},${ev_url},${mtn_url},${sgui_url},${ptcl_url},${vver_url},${vb_url}";
+      	PLUGINS = "${asl_url},${vv_url},${vr_url},${ev_url},${mtn_url},${sgui_url},${ptcl_url},${vver_url},${vb_url},${lp_url},${cmib_url}";
       };
       volumes = [
       	"/docker/minecraft-velocity/server:/server"
