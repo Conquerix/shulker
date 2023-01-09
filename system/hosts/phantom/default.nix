@@ -9,6 +9,8 @@
     linuxKernel.packages.linux_6_0.tuxedo-keyboard
     (agda.withPackages (p: [ p.standard-library ]))
     ocaml
+    julia
+    jupyter
   ];
 
   services.emacs = {

@@ -8,6 +8,7 @@
     pinta
     zoom-us
     lapce
+    eclipses.eclipse-modeling
   ];
 
   shulker = {
