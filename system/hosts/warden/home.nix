@@ -6,6 +6,9 @@
 
   shulker = {
     modules = {
+      dev = {
+        python.enable = true;
+      };
       shell = {
         ssh.enable = true;
       };

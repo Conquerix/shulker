@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
   imports = [
@@ -15,8 +15,7 @@
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 23241 25501 25502];
-    allowedUDPPorts = [ 25521 25522];
+    allowedTCPPorts = [ ];
   };
 
   shulker = {
