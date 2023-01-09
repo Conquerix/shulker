@@ -29,6 +29,12 @@ let
   # ViaBackwards (Velocity plugin)
   vb_url = "https://github.com/ViaVersion/ViaBackwards/releases/download/4.5.1/ViaBackwards-4.5.1.jar";
 
+  # LuckPerms (Velocity/Paper plugin)
+  lp_url = "https://download.luckperms.net/1464/velocity/LuckPerms-Velocity-5.4.56.jar";
+
+  # CMI Bungee (Velocity plugin)
+  cmib_url = "https://www.zrips.net/cmib/download.php?file=CMIB-1.0.2.2.jar";
+
 in
 
 {
@@ -75,7 +81,7 @@ in
       	ENABLE_RCON = ''"true"'';
       	JVM_XX_OPTS = "-XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled -XX:+AlwaysPreTouch -XX:MaxInlineLevel=15";
       	#MEMORY = "2048m";
-      	PLUGINS = "${asl_url},${vv_url},${vr_url},${ev_url},${mtn_url},${sgui_url},${ptcl_url},${vver_url},${vb_url}";
+      	PLUGINS = "${asl_url},${vv_url},${vr_url},${ev_url},${mtn_url},${sgui_url},${ptcl_url},${vver_url},${vb_url},${lp_url},${cmib_url}";
       };
       volumes = [
       	"/docker/minecraft-velocity/server:/server"
