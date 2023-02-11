@@ -15,6 +15,7 @@
     modules = {
       user.home = ./home.nix;
       ssh_server.enable = true;
+      yubikey.enable = true;
       soft-serve.enable = true;
       docker.enable = true;
       wireguard.server = {
