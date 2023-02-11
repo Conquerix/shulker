@@ -7,8 +7,13 @@
     vlc
     pinta
     zoom-us
+    spotify
     lapce
-    eclipses.eclipse-modeling
+    (with eclipses; eclipseWithPlugins {
+      eclipse = eclipse-modeling;
+      plugins = [ plugins.cdt ];
+    })
+    openmodelica.combined
   ];
 
   shulker = {

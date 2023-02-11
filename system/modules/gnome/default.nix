@@ -17,6 +17,7 @@ in
       just-perfection # Many options
       appindicator # Systray icons
       bluetooth-quick-connect # Better bluetooth button in quick settings
+      gsconnect
       
       (mkIf (cfg.eyeCandy) burn-my-windows) # Cool animations
       (mkIf (cfg.eyeCandy) dash-to-dock) # Dock on dekstop
@@ -33,10 +34,16 @@ in
       pkgs.gnome.gnome-tweaks
       pkgs.gtk-engine-murrine
       pkgs.sassc
+      pkgs.okular
     ];
 
     services.udev.packages = with pkgs; [ 
       gnome.gnome-settings-daemon 
     ];
+
+    programs.kdeconnect = {
+    	enable = true;
+    	package = pkgs.gnomeExtensions.gsconnect;
+    };
   };
 }

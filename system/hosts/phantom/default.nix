@@ -6,7 +6,7 @@
   hardware.tuxedo-keyboard.enable = true;
 
   environment.systemPackages = with pkgs; [
-    linuxKernel.packages.linux_6_0.tuxedo-keyboard
+    #linuxKernel.packages.linux_6_0.tuxedo-keyboard
     (agda.withPackages (p: [ p.standard-library ]))
     ocaml
     julia

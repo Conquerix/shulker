@@ -12,7 +12,7 @@
 
     impermanence.url = "github:nix-community/impermanence";
 
-    mail-server.url = "git+https://gitlab.com/simple-nixos-mailserver/nixos-mailserver";
+    mail-server.url = "gitlab:simple-nixos-mailserver/nixos-mailserver";
 
     agenix.url = "github:ryantm/agenix";
   };
