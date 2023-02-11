@@ -37,6 +37,7 @@ in
       pamixer
       pavucontrol
       firefox-wayland
+      qt6.qtwayland
     ];
 
     

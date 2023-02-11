@@ -13,10 +13,22 @@ let
     setuptools
     numpy
     matplotlib
-    scipy
     jupytext
     jupyter
+    scipy
+    (
+      buildPythonPackage rec {
+        pname = "profilehooks";
+        version = "1.12.0";
+        src = fetchPypi {
+          inherit pname version;
+          sha256 = "sha256-Bbh1id+KjGMP1wG65gCMwc//RFe9AGSIetJSSDJ6W6M=";
+        };
+        doCheck = false;
+      }
+    )
   ];
+  
 in
 {
   options.shulker.modules.dev.python = {
