@@ -14,6 +14,7 @@ in
     environment.systemPackages = with pkgs; [
       yubikey-personalization
       yubikey-manager
+      opensc
     ];
 
     security.pam.yubico = {
@@ -24,17 +25,17 @@ in
 
     programs.gnupg.agent = {
       enable = true;
-      enableSSHSupport = true;
+      enableSSHSupport = false;
       pinentryFlavor = if cfg.istty then "curses" else "qt";
     };
-    # environment.shellInit = ''
-    #   export SSH_AUTH_SOCK="/run/user/$UID/gnupg/S.gpg-agent.ssh"
-    # '';
 
+    programs.ssh.startAgent = true;
+
+    programs.ssh.agentPKCS11Whitelist = "${pkgs.opensc}/lib/opensc-pkcs11.so";
+    
     services = {
       # Required for gpg smartcard (yubikey) to work
       pcscd.enable = true;
-
       # Required for Yubikey device to work
       udev.packages = with pkgs; [ yubikey-personalization libu2f-host ];
     };
