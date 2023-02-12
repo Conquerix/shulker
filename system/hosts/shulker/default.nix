@@ -18,6 +18,12 @@
       yubikey.enable = true;
       soft-serve.enable = true;
       docker.enable = true;
+      searx = {
+        enable = true;
+        port = 23232;
+        url = "searx.shulker.fr";
+        secret_key = "SUPER_USEFUL_SECRET_KEY_I_NEED_TO_SETUP_A_GOOD_SECRET_MANAGEMENT_NOW-sdhftjdxhshrserhds34568TSDGXHFZ44YERGEZ3ETSYRRDGfegzetsgezt";
+      };
       wireguard.server = {
       	enable = true;
       	extInterface = "ens3";
