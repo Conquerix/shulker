@@ -58,10 +58,6 @@ in
       upstream warden-minecraft-VH2-V {
         server 192.168.10.2:25521;
       }
-
-      upstream warden-jupyter {
-        server 192.168.10.2:8888;
-      }
       
       server {
         listen 25501;
@@ -71,11 +67,6 @@ in
       server {
         listen 25521 udp;
         proxy_pass warden-minecraft-VH2-V;
-      }
-
-      server {
-        listen 8888;
-        proxy_pass warden-jupyter;
       }
     '';
   };
