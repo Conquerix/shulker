@@ -3,7 +3,11 @@
 {
   imports = [ ./hardware.nix ];
 
-  hardware.tuxedo-keyboard.enable = true;
+  hardware = {
+    tuxedo-keyboard.enable = true;
+  };
+
+  boot.kernel.sysctl = { "vm.max_map_count" = 1048576; };
 
   environment.systemPackages = with pkgs; [
     #linuxKernel.packages.linux_6_0.tuxedo-keyboard

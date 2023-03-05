@@ -64,7 +64,7 @@ in
     hardware.nvidia.prime = mkIf cfg.hybrid.enable {
       offload.enable = cfg.hybrid.offload;
       sync.enable = cfg.hybrid.sync;
-      sync.allowExternalGpu = cfg.hybrid.egpu;
+      allowExternalGpu = cfg.hybrid.egpu;
       intelBusId = cfg.hybrid.intelBusId;
       nvidiaBusId = cfg.hybrid.nvidiaBusId;
       };

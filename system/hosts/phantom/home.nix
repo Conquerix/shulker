@@ -26,6 +26,7 @@
         cc.enable = true;
         nix.enable = true;
         python.enable = true;
+        ocaml.enable = true;
       };
       shell = {
         direnv.enable = true;
