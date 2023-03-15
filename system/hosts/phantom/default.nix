@@ -17,6 +17,10 @@
     jupyter
   ];
 
+  virtualisation = {
+    anbox.enable = true;
+  };
+
   services.emacs = {
 	enable = true;
 	install = true;
