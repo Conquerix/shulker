@@ -3,7 +3,7 @@
 {
   imports = [
     ./hardware.nix
-    ./minecraft.nix
+#    ./minecraft.nix
   ];
 
   # Use the systemd-boot EFI boot loader.
@@ -15,8 +15,37 @@
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ ];
+    allowedTCPPorts = [ 23080 ];
   };
+
+  services.transmission = {
+    enable = true;
+    settings = {
+      download-dir = "/storage/fast/torrent/";
+      incomplete-dir = "/storage/fast/torrent/.incomplete/";
+      incomplete-dir-enabled = true;
+      rpc-whitelist = "127.0.0.1,192.168.*.*";
+    };
+  };
+
+  environment.systemPackages = with pkgs; [
+    stig
+  ];
+
+  services.nginx = {
+    enable = true;
+    streamConfig = ''
+      upstream idrac {
+        server 192.168.1.10:443;
+      }
+
+      server {
+        listen 23080;
+        proxy_pass idrac;
+      }
+    '';
+  };
+  
 
   shulker = {
     modules = {
