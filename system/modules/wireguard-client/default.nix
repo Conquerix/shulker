@@ -11,6 +11,7 @@ in
     	type = types.str;
     	default = "192.160.10.0";
     };
+    vpn = mkEnableOption "Enable vpn mode";
   };
 
   config = mkIf cfg.enable {
@@ -33,7 +34,7 @@ in
         peers = [
           { # Shulker server
             publicKey = "vLo4XYe84WcCnkLynjO2SjBzHmFuYeuFN0CF5b/CfBc=";
-            allowedIPs = [ "192.168.10.0/24" ];
+            allowedIPs = if cfg.vpn then [ "0.0.0.0/0" ] else [ "192.168.10.0/24" ];
             endpoint = "shulker.fr:51820";
             persistentKeepalive = 25;
           }
