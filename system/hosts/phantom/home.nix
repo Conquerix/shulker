@@ -3,17 +3,8 @@
 {
   home.packages = with pkgs; [
     prismlauncher
-    android-tools
-    vlc
-    pinta
     zoom-us
     spotify
-    lapce
-    (with eclipses; eclipseWithPlugins {
-      eclipse = eclipse-modeling;
-      plugins = [ plugins.cdt ];
-    })
-    openmodelica.combined
   ];
 
   shulker = {
