@@ -8,14 +8,11 @@ let
 
   extraPackages = p: with p; [
     pip
-    pysmt
-    z3
     setuptools
     numpy
     matplotlib
-    jupytext
-    jupyter
     scipy
+    python-lsp-server
     (
       buildPythonPackage rec {
         pname = "profilehooks";
@@ -39,7 +36,6 @@ in
     home.packages = with pkgs; [
       (python310.withPackages extraPackages)
       pipenv
-      z3
     ];
 
     # home.sessionVariables = {

@@ -53,6 +53,7 @@
         clientIP = "192.168.10.3";
         #vpn = true;
       };
+      docker.enable = true;
     };
     profiles = {
       desktop = {

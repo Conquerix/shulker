@@ -12,6 +12,7 @@
       app = {
         discord.enable = true;
         libreoffice.enable = true;
+        vscodium.enable = true;
       };
       dev = {
         cc.enable = true;

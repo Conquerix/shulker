@@ -19,6 +19,7 @@ in
     virtualisation.docker = {
       enable = true;
       enableOnBoot = true;
+      enableNvidia = mkIf config.shulker.modules.nvidia.enable true;
     };
   };
 }

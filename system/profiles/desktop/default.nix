@@ -51,6 +51,7 @@ in
         touchpad.tapping = true;
       };
       displayManager.gdm.enable = true;
+      displayManager.gdm.wayland = true;
       desktopManager.gnome.enable = true;
     };
     environment.gnome.excludePackages = (with pkgs; [

@@ -57,6 +57,9 @@ with lib;
       git
       pciutils
       micro
+      xclip
+      wl-clipboard
+      helix
     ];
   };
 }
