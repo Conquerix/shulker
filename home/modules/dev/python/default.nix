@@ -34,7 +34,7 @@ in
 
   config = mkIf cfg.enable {
     home.packages = with pkgs; [
-      (python310.withPackages extraPackages)
+      (python311.withPackages extraPackages)
       pipenv
     ];
 
