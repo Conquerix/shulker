@@ -3,12 +3,11 @@
 {
   imports = [ 
     ./hardware.nix 
-    ./minecraft.nix
+    #./minecraft.nix
   ];
 
   networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [ 80 443 8888 ];
+    allowedTCPPorts = [ 443 8888 23231 ];
   };
 
   shulker = {

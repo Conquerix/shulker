@@ -58,8 +58,8 @@ with lib;
       pciutils
       micro
       xclip
+      openssl
       wl-clipboard
-      helix
     ];
   };
 }
