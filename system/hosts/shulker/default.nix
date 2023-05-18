@@ -3,12 +3,24 @@
 {
   imports = [ 
     ./hardware.nix 
-    ./minecraft.nix
+    #./minecraft.nix
   ];
 
   networking.firewall = {
+    allowedTCPPorts = [ 80 443 8888 23231 ];
+  };
+
+  ## AgentGPT redirection
+  services.nginx = {
     enable = true;
-    allowedTCPPorts = [ 80 443 8888 ];
+    virtualHosts."AgentGPT" = {
+      serverName = "gpt.shulker.fr";
+      forceSSL = true;
+      enableACME = true;
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:23233";
+      };
+    };
   };
 
   shulker = {

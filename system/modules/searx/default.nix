@@ -31,31 +31,32 @@ in
 
   config = mkIf cfg.enable {
 
-    #services.searx = {
-    #  enable = true;
-    #  settings = {
-    #    general.instance_name = "Shulker search";
-    #    server.base_url = "https://${cfg.url}/";
-    #    server.port = cfg.port;
-    #    server.bind_address = cfg.address;
-    #    server.secret_key = cfg.secret_key;
-    #	};
+    services.searx = {
+      enable = true;
+      package = pkgs.searxng;
+      settings = {
+        general.instance_name = "Shulker search";
+        server.base_url = "https://${cfg.url}/";
+        server.port = cfg.port;
+        server.bind_address = "127.0.0.1";
+        server.secret_key = cfg.secret_key;
+    	};
+    };
+
+    #virtualisation.oci-containers.containers = {
+    #  searxng = {
+    #    image = "searxng/searxng:latest";
+    #    ports = [ "${toString cfg.port}:8080" ];
+    #    #cap_drop = [ "ALL" ];
+    #    #cap_add = [ "CHOWN" "SETGID" "SETUID" ];
+    #    environment = {
+    #      INSTANCE_NAME = "Shulker search";
+    #      SEARXNG_BASE_URL = "https://${cfg.url}/";
+    #    };
+    #  };
     #};
 
-    virtualisation.oci-containers.containers = {
-      searxng = {
-        image = "searxng/searxng:latest";
-        ports = [ "${toString cfg.port}:8080" ];
-        #cap_drop = [ "ALL" ];
-        #cap_add = [ "CHOWN" "SETGID" "SETUID" ];
-        environment = {
-          INSTANCE_NAME = "Shulker search";
-          SEARXNG_BASE_URL = "https://${cfg.url}/";
-        };
-      };
-    };
     
-  
     services.nginx = {
       enable = true;
       virtualHosts."searx" = {
@@ -63,7 +64,7 @@ in
         forceSSL = true;
         enableACME = true;
         locations."/" = {
-          proxyPass = "http://${cfg.address}:${toString cfg.port}";
+          proxyPass = "http://127.0.0.1:${toString cfg.port}";
         };
       };
     };
