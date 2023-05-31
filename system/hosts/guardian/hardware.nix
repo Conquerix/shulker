@@ -8,7 +8,7 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.initrd.availableKernelModules = [ "xhci_pci" "thunderbolt" "nvme" "usb_storage" "sd_mod" ];
+  boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod" "sdhci_pci" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
@@ -16,18 +16,21 @@
   fileSystems."/" =
     { device = "none";
       fsType = "tmpfs";
-      options = [ "defaults" "size=8G" "mode=755" ];
+      options = [ "defaults" "size=2G" "mode=755" ];
     };
 
   fileSystems."/boot" =
-    { #device = "/dev/disk/by-uuid/7BFA-D5FB";
-      device = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S649NF0RA31606A-part1";
+    { device = "/dev/disk/by-uuid/A598-878D";
       fsType = "vfat";
     };
 
   fileSystems."/nix" =
-    { #device = "/dev/disk/by-uuid/19d35532-79f0-4388-b200-fad896351c94";
-      device = "/dev/disk/by-id/nvme-Samsung_SSD_980_1TB_S649NF0RA31606A-part2";
+    { device = "/dev/disk/by-uuid/6a43cf09-c4f8-4a1c-bf4e-b330638b771e";
+      fsType = "ext4";
+    };
+
+  fileSystems."/storage" =
+    { device = "/dev/disk/by-uuid/16f1fef9-08cc-419a-b073-36a441c0d97f";
       fsType = "ext4";
     };
 
@@ -43,12 +46,6 @@
       options = [ "bind" ];
     };
 
-  fileSystems."/home" =
-    { device = "/nix/persist/home";
-      fsType = "none";
-    };
-
-
   swapDevices = [ ];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
@@ -56,9 +53,11 @@
   # still possible to use this option, but it's recommended to use it in conjunction
   # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
   networking.useDHCP = lib.mkDefault true;
-  # networking.interfaces.wlo1.useDHCP = lib.mkDefault true;
+  # networking.interfaces.enp2s0.useDHCP = lib.mkDefault true;
+  # networking.interfaces.wlp1s0.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   powerManagement.cpuFreqGovernor = lib.mkDefault "powersave";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  # high-resolution display
 }

@@ -1,16 +1,14 @@
 { pkgs, ... }:
 
 {
-  home.packages = with pkgs; [
-  ];
-
+  
   shulker = {
     modules = {
-      dev = {
-        python.enable = true;
-      };
       shell = {
-        ssh.enable = true;
+        ssh = {
+          enable = true;
+          _1password = true;
+        };
       };
     };
 
