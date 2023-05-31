@@ -3,36 +3,12 @@
 {
   home.packages = with pkgs; [
     prismlauncher
+    ferium
+    packwiz
     zoom-us
     spotify
     wineWowPackages.waylandFull
   ];
-
-  gtk = {
-    enable = true;
-  
-      theme = {
-        name = "colloid-gtk-theme";
-        package = pkgs.colloid-gtk-theme;
-      };
-  
-      iconTheme = {
-        name = "colloid-icon-theme";
-        package = pkgs.colloid-icon-theme;
-      };
-
-    gtk3.extraConfig = {
-      Settings = ''
-        gtk-application-prefer-dark-theme=1
-      '';
-    };
-
-    gtk4.extraConfig = {
-      Settings = ''
-        gtk-application-prefer-dark-theme=1
-      '';
-    };
-  };
   
   shulker = {
     modules = {
