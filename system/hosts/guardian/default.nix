@@ -17,13 +17,6 @@
 
   shulker = {
     modules = {
-      _1password = {
-        enable = true;
-        users = [ "conquerix" ];
-      };
-      gnome = {
-        enable = true;
-      };
       user.home = ./home.nix;
       impermanence = {
         enable = true;
@@ -33,7 +26,7 @@
       ssh_server.enable = true;
       };
     profiles = {
-      desktop = {
+      tvbox = {
         enable = true;
       };
     };
