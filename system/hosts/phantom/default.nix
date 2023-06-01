@@ -15,8 +15,6 @@
   	torsocks.enable = true;
   };
 
-  programs.wshowkeys.enable = true;
-
   boot.loader = {
   efi = {
     canTouchEfiVariables = true;
