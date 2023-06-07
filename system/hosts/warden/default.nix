@@ -60,6 +60,13 @@
       	enable = true;
       	clientIP = "192.168.10.2";
       };
+      pufferpanel = {
+      	enable = true;
+      	webPort = 24480;
+      	sftpPort = 24457;
+      	companyName = "QSMP Fan Server";
+      	storagePath = "/storage/fast/pufferpanel";
+      };
     };
   };
 }
