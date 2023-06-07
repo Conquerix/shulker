@@ -3,10 +3,13 @@
 {
   home.packages = with pkgs; [
     prismlauncher
+    ferium
+    packwiz
     zoom-us
     spotify
+    wineWowPackages.waylandFull
   ];
-
+  
   shulker = {
     modules = {
       app = {

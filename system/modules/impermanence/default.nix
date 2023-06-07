@@ -9,6 +9,8 @@ in
     enable = mkEnableOption "Ephemeral root (& home) support";
 
     home = mkEnableOption "Link /home to /nix/persist/home";
+
+    docker = mkEnableOption "Link /var/lib/docker to /nix/persist/var/lib/docker";
   };
 
   config = mkIf cfg.enable {
@@ -25,6 +27,7 @@ in
       "/etc/nixos"
       "/root/.ssh"
       (mkIf (cfg.home) "/home")
+      (mkIf (cfg.docker) "/var/lib/docker")
       ];
 
     files = [

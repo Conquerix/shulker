@@ -35,8 +35,6 @@
       };
       gnome = {
         enable = true;
-        eyeCandy = true;
-        moreUtils = true;
       };
       steam = {
         enable = true;
@@ -46,6 +44,7 @@
       impermanence = {
         enable = true;
         home = true;
+        docker = true;
       };
       yubikey.enable = true;
       wireguard.client = {
