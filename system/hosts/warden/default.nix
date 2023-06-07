@@ -4,6 +4,7 @@
   imports = [
     ./hardware.nix
 #    ./minecraft.nix
+#	./turbopilot.nix
   ];
 
   # Use the systemd-boot EFI boot loader.

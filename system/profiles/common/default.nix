@@ -55,6 +55,7 @@ with lib;
     environment.systemPackages = with pkgs; [
       curl
       git
+      git-lfs
       pciutils
       micro
       xclip
