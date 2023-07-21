@@ -8,6 +8,8 @@
     zoom-us
     spotify
     wineWowPackages.waylandFull
+    libvlc
+    soundux
   ];
   
   shulker = {
