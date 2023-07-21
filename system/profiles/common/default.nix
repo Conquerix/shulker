@@ -18,7 +18,7 @@ with lib;
 
     hardware.enableRedistributableFirmware = true;
 
-    networking.networkmanager.enable = true;
+    networking.networkmanager.enable = lib.mkDefault true;
     systemd.services.NetworkManager-wait-online.enable = false;
 
     nix = {
@@ -61,6 +61,7 @@ with lib;
       xclip
       openssl
       wl-clipboard
+      zip
     ];
   };
 }
