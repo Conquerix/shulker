@@ -62,6 +62,10 @@ in
             publicKey = "w1Un60Pqlc1c5KR8eDu+r9hozBCMIJ3IKhdkSl2Wy3c=";
             allowedIPs = [ "192.168.10.4/32" ];
           }
+          { # Guardian
+          	publicKey = "J2amctRH90iC1bnd2UnqOp9D9Rpbgmb0w/Xs+caB83U=";
+          	allowedIPs = [ "192.168.10.5/32" ];
+          }
         ];
       };
     };
