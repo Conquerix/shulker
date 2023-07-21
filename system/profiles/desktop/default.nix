@@ -25,12 +25,29 @@ in
     services.printing.enable = true;
 
     # Sound setting
+#    sound.enable = lib.mkForce false;
+#    security.rtkit.enable = true;
+#    services.pipewire = {
+#      enable = true;
+#      alsa.enable = true;
+#      alsa.support32Bit = true;
+#      pulse.enable = true;
+#      jack.enable = true;
+#    };
+    
     hardware = {
       pulseaudio = {
         enable = true;
         package = pkgs.pulseaudioFull;
       };
-      bluetooth.enable = true;
+      bluetooth = {
+        enable = true;
+        settings = {
+          General = {
+            Enable = "Source,Sink,Media,Socket";
+          };
+        };
+      };
     };
 
     environment.systemPackages = with pkgs; [
