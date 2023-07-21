@@ -61,6 +61,7 @@ with lib;
       xclip
       openssl
       wl-clipboard
+      zip
     ];
   };
 }

@@ -57,7 +57,7 @@ in
 	virtualisation.oci-containers.containers = {
 	  pufferpanel = {
 	    image = "pufferpanel/pufferpanel:latest";
-	    ports = [ "${toString cfg.webPort}:8080" "${toString cfg.sftpPort}:5657" "25500-25599:25500-25599"];
+	    ports = [ "${toString cfg.webPort}:8080" "${toString cfg.sftpPort}:5657" "25565:25565" "25566:25566/udp" "25567:25567" "25568:25568/udp"];
         volumes = [
           "${cfg.storagePath}/config:/etc/pufferpanel"
           "${cfg.storagePath}/data:/var/lib/pufferpanel"
