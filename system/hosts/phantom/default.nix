@@ -9,6 +9,11 @@
 
   boot.kernel.sysctl = { "vm.max_map_count" = 1048576; };
 
+  environment.systemPackages = with pkgs; [
+  	vlc
+  	libvlc
+  ];
+
   services.tor = {
   	enable = true;
   	client.enable = true;
