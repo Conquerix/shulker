@@ -33,9 +33,9 @@ in
   
         peers = [
           { # Shulker server
-            publicKey = "vLo4XYe84WcCnkLynjO2SjBzHmFuYeuFN0CF5b/CfBc=";
+            publicKey = "2xrdv1hBlJAQx8jo5P6hie6QzWSjbdGC8wP4pvCP6Rs=";
             allowedIPs = if cfg.vpn then [ "0.0.0.0/0" ] else [ "192.168.10.0/24" ];
-            endpoint = "shulker.fr:51820";
+            endpoint = "141.94.96.139:51820";
             persistentKeepalive = 25;
           }
         ];

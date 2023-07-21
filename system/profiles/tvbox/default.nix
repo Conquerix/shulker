@@ -13,26 +13,13 @@ in
 
     services.printing.enable = true;
 
-    # Sound setting
-    hardware = {
-      pulseaudio = {
-        enable = true;
-        package = pkgs.pulseaudioFull;
-      };
-      bluetooth.enable = true;
-    };
-
     services.xserver = {
       enable = true;
       desktopManager.kodi = {
         enable = true;
-        package = pkgs.kodi.withPackages (pkgs: with pkgs; [ youtube netflix ]);
+        package = pkgs.kodi-wayland.withPackages (pkgs: with pkgs; [ youtube netflix ]);
       };
       displayManager = {
-        lightdm = {
-          autoLogin.timeout = 3;
-          enable = true;
-        };
         autoLogin = {
           enable = true;
           user = "kodi";
