@@ -21,7 +21,23 @@ in
 
   config = mkIf cfg.ssh_server.enable {
 
-  services.openssh.enable = true;
+  services.openssh = {
+    enable = true;
+    settings.PasswordAuthentication = false;
+    settings.KbdInteractiveAuthentication = false;
+    openFirewall = true;
+    hostKeys = [
+      {
+        bits = 4096;
+        path = "/nix/persist/etc/ssh/ssh_host_rsa_key";
+        type = "rsa";
+      }
+      {
+        path = "/nix/persist/etc/ssh/ssh_host_ed25519_key";
+        type = "ed25519";
+      }
+    ];
+  };
 
   environment = mkIf (cfg.impermanence.enable) {
 
@@ -37,7 +53,7 @@ in
           	group = "tor";
           	mode = "u=rw,g=,o=";
           };
-      })
+        })
       ];
     };
 
