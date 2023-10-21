@@ -6,6 +6,11 @@
     #./minecraft.nix
   ];
 
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 80 443 ];
+  };
+
   shulker = {
     modules = {
       user.home = ./home.nix;
