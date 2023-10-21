@@ -59,7 +59,7 @@ in
             allowedIPs = [ "192.168.10.3/32" ];
           }
           { # Wither
-          	publicKey = "vLo4XYe84WcCnkLynjO2SjBzHmFuYeuFN0CF5b/CfBc=";
+          	publicKey = "9JNyydvMlIDGpOCwAW6a8TzPALGvRq2UKBiPFLV8GwM=";
           	allowedIPs = [ "192.168.10.4/32" ];
           }
           { # Guardian
