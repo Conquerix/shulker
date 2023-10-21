@@ -152,7 +152,7 @@
       };
       wireguard.client = {
       	enable = true;
-      	clientIP = "192.168.10.6"
+      	clientIP = "192.168.10.6";
       };
       crafty_controller = {
       	enable = true;
