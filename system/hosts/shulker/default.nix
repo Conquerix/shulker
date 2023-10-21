@@ -26,6 +26,7 @@
       	enable = true;
       	extInterface = "ens3";
       };
+      pterodactyl.panel.enable = true;
     };
   };
 }
