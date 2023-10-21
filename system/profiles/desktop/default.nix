@@ -13,7 +13,7 @@ in
   config = mkIf cfg.enable {
 
     fonts = {
-      fonts = with pkgs; [
+      packages = with pkgs; [
         (
           nerdfonts.override {
             fonts = [ "JetBrainsMono" "Hack" "Meslo" "UbuntuMono" ];
@@ -25,19 +25,20 @@ in
     services.printing.enable = true;
 
     # Sound setting
-#    sound.enable = lib.mkForce false;
-#    security.rtkit.enable = true;
-#    services.pipewire = {
-#      enable = true;
-#      alsa.enable = true;
-#      alsa.support32Bit = true;
-#      pulse.enable = true;
-#      jack.enable = true;
-#    };
+    sound.enable = lib.mkForce false;
+    security.rtkit.enable = true;
+    services.pipewire = {
+      enable = true;
+      alsa.enable = true;
+      alsa.support32Bit = true;
+      pulse.enable = true;
+      jack.enable = true;
+    };
     
     hardware = {
       pulseaudio = {
-        enable = true;
+        #enable = true;
+        enable = false;
         package = pkgs.pulseaudioFull;
       };
       bluetooth = {
@@ -53,8 +54,9 @@ in
     environment.systemPackages = with pkgs; [
       pamixer
       pavucontrol
-      firefox-wayland
-      qt6.qtwayland
+      firefox#-wayland
+      #qt6.qtwayland
+      vlc
     ];
 
     

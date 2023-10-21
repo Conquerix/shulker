@@ -21,13 +21,15 @@ in
       alttab-mod # Better Alt+Tab
       aylurs-widgets # Beatiful widgets
       vitals # CPU temp, etc
-      
+      forge # Better windows tiling.
+      pop-shell # Better than forge right above ?
     ] ++ [
       pkgs.gnome.gnome-themes-extra
       pkgs.gnome.gnome-tweaks
       pkgs.gtk-engine-murrine
       pkgs.sassc
       pkgs.okular
+      pkgs.pop-launcher
     ];
 
     services.udev.packages = with pkgs; [ 

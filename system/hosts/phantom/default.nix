@@ -12,6 +12,8 @@
   environment.systemPackages = with pkgs; [
   	vlc
   	libvlc
+  	texmaker
+  	texlive.combined.scheme-full
   ];
 
   services.tor = {
@@ -58,6 +60,7 @@
         #vpn = true;
       };
       docker.enable = true;
+      #encrypted_dns.enable=true;
     };
     profiles = {
       desktop = {

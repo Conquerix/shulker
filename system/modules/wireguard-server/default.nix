@@ -58,13 +58,17 @@ in
             publicKey = "twbugLyoNIV/U06EI0Gs29hd0QJKsHkpdoD3o/dE6zM=";
             allowedIPs = [ "192.168.10.3/32" ];
           }
-          { # Allay
-            publicKey = "w1Un60Pqlc1c5KR8eDu+r9hozBCMIJ3IKhdkSl2Wy3c=";
-            allowedIPs = [ "192.168.10.4/32" ];
+          { # Wither
+          	publickey = "vLo4XYe84WcCnkLynjO2SjBzHmFuYeuFN0CF5b/CfBc=";
+          	allowedIPs = [ "192.168.10.4/32" ];
           }
           { # Guardian
           	publicKey = "J2amctRH90iC1bnd2UnqOp9D9Rpbgmb0w/Xs+caB83U=";
           	allowedIPs = [ "192.168.10.5/32" ];
+          }
+          { # Vindicator
+            publicKey = "2xrdv1hBlJAQx8jo5P6hie6QzWSjbdGC8wP4pvCP6Rs=";
+            allowedIPs = [ "192.168.10.6/32" ];
           }
         ];
       };

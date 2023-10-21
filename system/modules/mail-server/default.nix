@@ -20,24 +20,24 @@ in
   };
 
   config = mkIf cfg.enable {
-    mailserver = {
-      enable = true;
-      fqdn = "mail.shulker.fr";
-      domains = [ "shulker.fr" ];
-  
-      # A list of all login accounts. To create the password hashes, use
-      # nix-shell -p mkpasswd --run 'mkpasswd -sm bcrypt'
-      loginAccounts = {
-        "admin@shulker.fr" = {
-          hashedPasswordFile = "./admin.secrets";
-          aliases = ["admin@shulker.fr"];
-        };
-        #"user2@example.com" = { ... };
-      };
-  
-      # Use Let's Encrypt certificates. Note that this needs to set up a stripped
-      # down nginx and opens port 80.
-      certificateScheme = 3;
-    };
+#    mailserver = {
+#      enable = true;
+#      fqdn = "mail.shulker.fr";
+#      domains = [ "shulker.fr" ];
+#  
+#      # A list of all login accounts. To create the password hashes, use
+#      # nix-shell -p mkpasswd --run 'mkpasswd -sm bcrypt'
+#      loginAccounts = {
+#        "admin@shulker.fr" = {
+#          hashedPasswordFile = "./admin.secrets";
+#          aliases = ["admin@shulker.fr"];
+#        };
+#        #"user2@example.com" = { ... };
+#      };
+#  
+#      # Use Let's Encrypt certificates. Note that this needs to set up a stripped
+#      # down nginx and opens port 80.
+#      certificateScheme = 3;
+#    };
   };
 }

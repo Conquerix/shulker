@@ -12,9 +12,9 @@
 
     impermanence.url = "github:nix-community/impermanence";
 
-    mail-server.url = "gitlab:simple-nixos-mailserver/nixos-mailserver";
+    # mail-server.url = "gitlab:simple-nixos-mailserver/nixos-mailserver";
 
-    agenix.url = "github:ryantm/agenix";
+    # agenix.url = "github:ryantm/agenix";
   };
 
   outputs = { self, ... }@inputs:
@@ -38,6 +38,16 @@
 
       packages = foreachSystem (system: import ./nix/pkgs self system);
 
+      overlay = foreachSystem (system: _final: _prev: self.packages."${system}");
+        overlays = foreachSystem (
+          system: with inputs; let
+            ovs = attrValues (import ./nix/overlays self);
+          in
+          [
+            (self.overlay."${system}")
+          ] ++ ovs
+        );
+
       homeManagerConfigurations = mapAttrs' mkHome {
         conquerix = { };
       };
@@ -48,18 +58,19 @@
         warden     = { };
         guardian   = { };
         vindicator = { };
+        wither     = { };
       };
 
       # Convenience output that aggregates the output configurations.
-     top =
-       let
-       nixtop = genAttrs
-         (builtins.attrNames inputs.self.nixosConfigurations)
-         (attr: inputs.self.nixosConfigurations.${attr}.config.system.build.toplevel);
-       hometop = genAttrs
-         (builtins.attrNames inputs.self.homeManagerConfigurations)
-         (attr: inputs.self.homeManagerConfigurations.${attr}.activationPackage);
-       in
-       nixtop // hometop;
+      top =
+        let
+        nixtop = genAttrs
+          (builtins.attrNames inputs.self.nixosConfigurations)
+          (attr: inputs.self.nixosConfigurations.${attr}.config.system.build.toplevel);
+        hometop = genAttrs
+          (builtins.attrNames inputs.self.homeManagerConfigurations)
+          (attr: inputs.self.homeManagerConfigurations.${attr}.activationPackage);
+        in
+        nixtop // hometop;
     };
 }

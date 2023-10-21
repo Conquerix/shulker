@@ -19,7 +19,6 @@ with lib;
     hardware.enableRedistributableFirmware = true;
 
     networking.networkmanager.enable = lib.mkDefault true;
-    systemd.services.NetworkManager-wait-online.enable = false;
 
     nix = {
       settings = {
@@ -62,6 +61,7 @@ with lib;
       openssl
       wl-clipboard
       zip
+      bat
     ];
   };
 }

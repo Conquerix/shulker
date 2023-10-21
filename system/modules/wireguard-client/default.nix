@@ -14,11 +14,7 @@ in
     vpn = mkEnableOption "Enable vpn mode";
   };
 
-  config = mkIf cfg.enable {
-    networking.firewall = {
-      allowedUDPPorts = [ 51820 ];
-    };
-  
+  config = mkIf cfg.enable {  
     networking.wireguard.interfaces = {
       # "wg0" is the network interface name. You can name the interface arbitrarily.
       wg0 = {
@@ -33,15 +29,20 @@ in
   
         peers = [
           { # Shulker server
-            publicKey = "2xrdv1hBlJAQx8jo5P6hie6QzWSjbdGC8wP4pvCP6Rs=";
+            publicKey = "vLo4XYe84WcCnkLynjO2SjBzHmFuYeuFN0CF5b/CfBc=";
             allowedIPs = if cfg.vpn then [ "0.0.0.0/0" ] else [ "192.168.10.0/24" ];
-            endpoint = "141.94.96.139:51820";
+            endpoint = "51.178.27.137:51820";
             persistentKeepalive = 25;
           }
         ];
       };
     };
 
+    networking.firewall =  {
+      allowedUDPPorts = [ 51820 ];
+      checkReversePath = mkIf (cfg.vpn) false;
+    };
+    
     environment = mkIf (config.shulker.modules.impermanence.enable) {
       persistence."/nix/persist".files = [
         {file = "/etc/wireguard/private_key"; parentDirectory = { mode = "u=rw,g=,o="; };}

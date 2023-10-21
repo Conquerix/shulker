@@ -17,30 +17,8 @@
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 23080 5657 24480];
-    allowedTCPPortRanges = [ {from = 25500; to = 25599;} {from = 25700; to = 25799;} ];
-    allowedUDPPorts = [ 25566 25568 ];
-    allowedUDPPortRanges = [ {from = 25600; to = 25699;} ];
-  };
-
-
-  # Systemd timer/service for qsmp backups
-  systemd.timers."qsmp-backups" = {
-    wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "*:0/15";
-        Unit = "qsmp-backups.service";
-      };
-  };
-  
-  systemd.services."qsmp-backups" = {
-    script = ''
-      ${pkgs.rsync}/bin/rsync -P -r /storage/fast/pufferpanel/data/servers/02a242f8/simplebackups/* /storage/mass/qsmp/backups/
-    '';
-    serviceConfig = {
-      Type = "oneshot";
-      User = "root";
-    };
+    allowedTCPPorts = [ 23080 5657 24480 26000 27000 30080 30443 5900 50443 50080 ];
+    allowedUDPPorts = [ 25566 25568 26001 ];
   };
 
   shulker = {
@@ -54,19 +32,6 @@
       wireguard.client = {
       	enable = true;
       	clientIP = "192.168.10.2";
-      };
-      pufferpanel = {
-      	enable = true;
-      	webPort = 24480;
-      	sftpPort = 24457;
-      	companyName = "QSMP Fan Server";
-      	storagePath = "/storage/fast/pufferpanel";
-      };
-      crafty_controller = {
-      	enable = true;
-      	webPort = 35080;
-      	httpsPort = 35443;
-      	storagePath = "/storage/fast/crafty-controller";
       };
     };
   };

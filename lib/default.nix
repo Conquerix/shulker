@@ -172,7 +172,7 @@ rec {
             }
           )
           (inputs.impermanence.nixosModule)
-          (inputs.mail-server.nixosModule)
+          #(inputs.mail-server.nixosModule)
           (import ../system/modules)
           (import ../system/profiles)
           (import (strToPath config ../system/hosts))

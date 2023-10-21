@@ -49,6 +49,18 @@ in
         default = "";
         example = "PCI:2:0:0";
       };
+
+      amdgpuBusId = mkOption {
+        description = ''
+          Bus ID for the amd GPU. You can find it by running this nix shell
+          `nix-shell -p lshw --run "lshw -c display"`. Taking the output of this for example
+          `bus info: pci@0000:01:00.0`, take everything after the first colon, replace the `.` with a `:`
+          Remove leading `0`
+        '';
+        type = types.str;
+        default = "";
+        example = "PCI:c:0:0";
+      };
     };
   };
 
@@ -56,6 +68,7 @@ in
 
     nixpkgs.config.allowUnfree = true;
     hardware.nvidia.nvidiaPersistenced = true;
+    hardware.nvidia.nvidiaSettings = true;
     hardware.nvidia.powerManagement.enable = true;
     hardware.nvidia.open = true;
     services.xserver.videoDrivers = [ "nvidia" ];
@@ -63,9 +76,11 @@ in
     hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
     hardware.nvidia.prime = mkIf cfg.hybrid.enable {
       offload.enable = cfg.hybrid.offload;
+      offload.enableOffloadCmd = cfg.hybrid.offload;
       sync.enable = cfg.hybrid.sync;
       allowExternalGpu = cfg.hybrid.egpu;
       intelBusId = cfg.hybrid.intelBusId;
+      amdgpuBusId = cfg.hybrid.amdgpuBusId;
       nvidiaBusId = cfg.hybrid.nvidiaBusId;
       };
     };
