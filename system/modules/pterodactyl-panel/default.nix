@@ -49,10 +49,13 @@ in
       enable = true;
       port = 6379;
     };
+    
     services.nginx = {
       enable = true;
       user = cfg.user;
       virtualHosts."${cfg.nginxVhost}" = {
+        forceSSL = true;
+        enableACME = true;
         root = "${cfg.dataDir}/public";
         extraConfig = ''
           index index.html index.htm index.php;
@@ -79,6 +82,7 @@ in
         };
       };
     };
+    
     services.phpfpm.pools.pterodactyl = {
       user = cfg.user;
       settings = {
@@ -124,16 +128,19 @@ in
       wantedBy = [ "multi-user.target" ];
     };
 
-    environment.systemPackages = [
-      # php 8.1 with the needed exts
-      pterodactlyPhp81
-      # composer
-      (pkgs.php81Packages.composer.override { php = pterodactlyPhp81; })
-    ];
-  };
+    services.mysql = {
+      enable = true;
+      package = pkgs.mariadb;
+    };
 
-	environment = mkIf (config.shulker.modules.impermanence.enable) {
-	  persistence."/nix/persist".directories = [ "${cfg.dataDir}" ];
-	};
+    environment = {
+      systemPackages = [
+        # php 8.1 with the needed exts
+        pterodactlyPhp81
+        # composer
+        (pkgs.php81Packages.composer.override { php = pterodactlyPhp81; })
+      ];
+      persistence."/nix/persist".directories = mkIf (config.shulker.modules.impermanence.enable) [ "${cfg.dataDir}" ];
+    };
   };
 }
