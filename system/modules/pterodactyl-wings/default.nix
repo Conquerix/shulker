@@ -3,18 +3,11 @@
 with lib;
 let
   cfg = config.shulker.modules.pterodactyl.wings;
-  configuration = ''
-    # /etc/pterodactyl/configuration.yml managed by /etc/NixOS/wings.nix
-  '' + "${cfg.configuration}";
   wings = cfg.pkg;
 in
 {
   options.shulker.modules.pterodactyl.wings = {
     enable = mkEnableOption "Enable Pterodactyl Wings";
-    configuration = mkOption {
-      type = types.str;
-      default = null;
-    };
     version = mkOption {
       type = types.str;
       default = "latest";
@@ -23,13 +16,8 @@ in
   };
   
   config = mkIf cfg.enable {
-    assertions = [{
-      assertion = cfg.configuration != null;
-      message = "wings is enabled, configuration must be set.";
-    }];
 
     shulker.modules.docker.enable = true;
-    environment.etc."pterodactyl/config.yml".text = configuration;
     environment.systemPackages = [ wings ];
     systemd.services.wings = {
       enable = cfg.enable;
