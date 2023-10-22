@@ -47,7 +47,7 @@
 
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 80 443 27000 2022 ];
+      allowedTCPPorts = [ 80 443 4443 27000 2022 ];
       allowedTCPPortRanges = [ 
         {from = 25600; to = 26001;} #Minecraft Servers
       ];
