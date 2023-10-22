@@ -17,7 +17,7 @@
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 23080 5657 24480 26000 27000 30080 30443 5900 50443 50080 ];
+    allowedTCPPorts = [ 4443 2022 23080 5657 24480 26000 27000 30080 30443 5900 50443 50080 ];
     allowedUDPPorts = [ 25566 25568 26001 ];
   };
 
@@ -32,6 +32,12 @@
       wireguard.client = {
       	enable = true;
       	clientIP = "192.168.10.2";
+      };
+      pterodactyl = {
+        wings = {
+          enable = true;
+          pkg = (builtins.getFlake "github:TeamMatest/nix-wings/2de9ee5f2bf8b8d2eeb214ba272a1e7e2cbe7ae0").packages.x86_64-linux.default;
+        };
       };
     };
   };

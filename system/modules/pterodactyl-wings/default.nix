@@ -17,6 +17,15 @@ in
   
   config = mkIf cfg.enable {
 
+    users.users."pterodactyl" = {
+      isSystemUser = true;
+      createHome = true;
+      home = "/srv/pterodactyl";
+      group = "pterodactyl";
+    };
+
+    users.groups."pterodactyl" = { };
+
     shulker.modules.docker.enable = true;
     environment.systemPackages = [ wings ];
     systemd.services.wings = {
@@ -29,7 +38,7 @@ in
       startLimitBurst = 30;
       serviceConfig = {
         User = "root";
-        WorkingDirectory = "/run/wings";
+        WorkingDirectory = "/srv/wings";
         LimitNOFILE = 4096;
         PIDFile = "/var/run/wings/daemon.pid";
         ExecStart = "${cfg.pkg}/bin/wings --config /srv/wings/config.yml";
@@ -40,9 +49,7 @@ in
     };
 
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
-      "/nix/persist".files = [
-        {file = "/srv/wings/config.yml"; parentDirectory = { mode = "u=rw,g=,o="; };}
-      ];
+      "/nix/persist".directories = [ "/srv/wings/" "/srv/pterodactyl/" ];
     };
   };
 }
