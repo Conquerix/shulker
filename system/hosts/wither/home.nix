@@ -7,6 +7,7 @@
     packwiz
     zoom-us
     spotify
+    spotify-tray
     wineWowPackages.waylandFull
     libvlc
     soundux

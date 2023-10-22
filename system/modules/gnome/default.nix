@@ -23,6 +23,7 @@ in
       vitals # CPU temp, etc
       forge # Better windows tiling.
       pop-shell # Better than forge right above ?
+      spotify-tray
     ] ++ [
       pkgs.gnome.gnome-themes-extra
       pkgs.gnome.gnome-tweaks

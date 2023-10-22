@@ -13,12 +13,9 @@
 
   services.xserver.displayManager.gdm.wayland = lib.mkForce false;
 
-  #environment.sessionVariables = {
-  #  # If your cursor becomes invisible
-  #  WLR_NO_HARDWARE_CURSORS = "1";
-  #  # Hint electron apps to use wayland
-  #  NIXOS_OZONE_WL = "1";
-  #};
+  environment.systemPackages = with pkgs; [
+    spot
+  ];
 
   shulker = {
     modules = {
@@ -42,19 +39,11 @@
       yubikey.enable = true;
       wireguard.client = {
         enable = true;
-        clientIP = "192.168.10.6";
-        #vpn = true;
+        clientIP = "192.168.10.4";
       };
       docker.enable = true;
-      #encrypted_dns.enable=true;
       nvidia  = {
         enable = true;
-        #hybrid = {
-        #  enable = true;
-        #  offload = true;
-        #  amdgpuBusId = "PCI:12:0:0";
-        #  nvidiaBusId = "PCI:1:0:0";
-        #};
       };
     };
     profiles = {
