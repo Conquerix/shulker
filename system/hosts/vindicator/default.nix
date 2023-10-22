@@ -47,7 +47,7 @@
 
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 80 443 27000 ];
+      allowedTCPPorts = [ 80 443 27000 2022 ];
       allowedTCPPortRanges = [ 
         {from = 25600; to = 26001;} #Minecraft Servers
       ];
@@ -86,59 +86,6 @@
     };
   };
 
-  services.nginx = {
-    enable = true;
-    streamConfig = ''
-      upstream warden-FQSMP-V2 {
-        server 192.168.10.2:26000;
-      }
-
-      upstream warden-FQSMP-V2-V {
-        server 192.168.10.2:26001;
-      }
-      
-      server {
-        listen 26000;
-        proxy_pass warden-FQSMP-V2;
-      }
-
-      server {
-        listen 26001 udp;
-        proxy_pass warden-FQSMP-V2-V;
-      }
-    '';
-    virtualHosts."Admin-Panel-Test-Minecraft" = {
-      serverName = "crafty-v2.shulker.fr";
-      forceSSL = true;
-      enableACME = true;
-      locations."/" = {
-        extraConfig = ''
-          #This is important for websockets
-          proxy_http_version 1.1;
-          proxy_redirect off;
-  
-          # These are important for websockets.
-          # They are required for crafty to function properly.
-          proxy_set_header Upgrade $http_upgrade;
-          proxy_set_header Connection $http_connection;
-          proxy_set_header X-Forwarded-Proto https;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header Host $host;
-          #End important websocket parts
-  
-          proxy_pass https://192.168.10.2:27000;
-  
-          proxy_buffering off;
-          client_max_body_size 0;
-          proxy_connect_timeout  3600s;
-          proxy_read_timeout  3600s;
-          proxy_send_timeout  3600s;
-          send_timeout  3600s;
-        '';
-      };
-    };
-  };
-
   shulker = {
     modules = {
       user.home = ./home.nix;
@@ -159,6 +106,12 @@
       	webPort = 35080;
       	httpsPort = 35443;
       	storagePath = "/var/lib/crafty-controller";
+      };
+      pterodactyl = {
+        wings = {
+          enable = true;
+          pkg = (builtins.getFlake "github:TeamMatest/nix-wings/2de9ee5f2bf8b8d2eeb214ba272a1e7e2cbe7ae0").packages.x86_64-linux.default;
+        };
       };
     };
   };

@@ -40,7 +40,7 @@ in
         User = "root";
         WorkingDirectory = "/srv/wings";
         LimitNOFILE = 4096;
-        PIDFile = "/var/run/wings/daemon.pid";
+        PIDFile = "/run/wings/daemon.pid";
         ExecStart = "${cfg.pkg}/bin/wings --config /srv/wings/config.yml";
         Restart = "on-failure";
         RestartSec = "5s";
