@@ -25,6 +25,30 @@
         proxy_pass         "http://127.0.0.1:4443";
       '';
     };
+    virtualHosts."warden-wings-node" = {
+      serverName = "warden.the-inbetween.net";
+      forceSSL = true;
+      enableACME = true;
+      locations."/".extraConfig = ''
+        proxy_set_header   X-Forwarded-For $remote_addr;
+        proxy_set_header   Host $host;
+        proxy_set_header Upgrade websocket;
+        proxy_set_header Connection Upgrade;
+        proxy_pass         "http://192.168.10.2:4443";
+      '';
+    };
+    virtualHosts."vindicator-wings-node" = {
+      serverName = "vindicator.the-inbetween.net";
+      forceSSL = true;
+      enableACME = true;
+      locations."/".extraConfig = ''
+        proxy_set_header   X-Forwarded-For $remote_addr;
+        proxy_set_header   Host $host;
+        proxy_set_header Upgrade websocket;
+        proxy_set_header Connection Upgrade;
+        proxy_pass         "http://192.168.10.6:4443";
+      '';
+    };
   };
   
 
