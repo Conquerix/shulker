@@ -1,4 +1,4 @@
-{pkgs, lib, ... }:
+{pkgs, lib, inputs, ... }:
 
 {
   imports = [ ./hardware.nix ];
@@ -11,10 +11,10 @@
 
   programs.gamemode.enable = true;
 
-  services.xserver.displayManager.gdm.wayland = lib.mkForce false;
+  #services.xserver.displayManager.gdm.wayland = lib.mkForce false;
 
-  environment.systemPackages = with pkgs; [
-    spot
+  environment.systemPackages = with inputs.getchoo.packages.${pkgs.system}; [
+  	modrinth-app
   ];
 
   shulker = {
@@ -44,6 +44,12 @@
       docker.enable = true;
       nvidia  = {
         enable = true;
+        hybrid = {
+          enable = true;
+          offload = true;
+          amdgpuBusId = "PCI:12:0:0";
+          nvidiaBusId = "PCI:1:0:0";
+        };
       };
     };
     profiles = {

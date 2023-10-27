@@ -69,7 +69,7 @@ rec {
     # Top level derivation for just home-manager
   mkHome = name: { config ? name, user ? "conquerix", system ? "x86_64-linux" }:
     let
-      pkgs = inputs.self.pkgsBySystem."${system}";
+      pkgs = inputs.self.legacyPackages."${system}";
       userConf = import (strToFile user ../user);
       username = userConf.name;
       homeDirectory = "/home/${username}";
@@ -90,8 +90,13 @@ rec {
 
             xdg.configFile."nix/nix.conf".text = ''experimental-features = nix-command flakes'';
 
+            nix = {
+              package = pkgs.nixVersions.stable;
+              extraOptions = "experimental-features = nix-command flakes";
+            };
+
             nixpkgs = {
-              config = {allowUnfree = true;};
+              config = import ../nix/config.nix;
               overlays = inputs.self.overlays."${system}";
             };
           }
@@ -108,7 +113,7 @@ rec {
   mkSystem = name: { config ? name, user ? "conquerix", system ? "x86_64-linux" }:
     nameValuePair name (
       let
-        pkgs = inputs.self.pkgsBySystem."${system}";
+        pkgs = inputs.self.legacyPackages."${system}";
         userConf = import (strToFile user ../user);
       in
       nixosSystem {

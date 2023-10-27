@@ -12,6 +12,11 @@
 
     impermanence.url = "github:nix-community/impermanence";
 
+    getchoo = {
+      url = "github:getchoo/nix-exprs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # mail-server.url = "gitlab:simple-nixos-mailserver/nixos-mailserver";
 
     # agenix.url = "github:ryantm/agenix";
@@ -27,26 +32,26 @@
         import inputs.nixpkgs {
           inherit system;
           config = import ./nix/config.nix;
+          #overlays = self.overlays."${system}";
         }
       );
     in
     rec {
-      inherit pkgsBySystem;
       lib = import ./lib { inherit inputs; } // inputs.nixpkgs.lib;
 
       devShells."x86_64-linux"= foreachSystem (system: import ./shell.nix { pkgs = pkgsBySystem."${system}"; });
 
-      packages = foreachSystem (system: import ./nix/pkgs self system);
-
-      overlay = foreachSystem (system: _final: _prev: self.packages."${system}");
-        overlays = foreachSystem (
-          system: with inputs; let
-            ovs = attrValues (import ./nix/overlays self);
-          in
-          [
-            (self.overlay."${system}")
-          ] ++ ovs
-        );
+      legacyPackages = pkgsBySystem;
+      #packages = foreachSystem (system: import ./nix/pkgs self system);
+      #overlay = foreachSystem (system: _final: _prev: self.packages."${system}");
+      #overlays = foreachSystem (
+      #  system: with inputs; let
+      #    ovs = attrValues (import ./nix/overlays self);
+      #  in
+      #  [
+      #    (self.overlay."${system}")
+      #  ] ++ ovs
+      #);
 
       homeManagerConfigurations = mapAttrs' mkHome {
         conquerix = { };

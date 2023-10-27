@@ -17,13 +17,6 @@ in
       dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
     };
 
-    nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-        "steam"
-        "steam-tui"
-        "steam-original"
-        "steam-runtime"
-      ];
-
     environment = mkIf cfg.protonGE {
         sessionVariables = rec {
           XDG_CACHE_HOME  = "\${HOME}/.cache";

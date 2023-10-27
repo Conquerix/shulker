@@ -66,7 +66,6 @@ in
 
   config = mkIf cfg.enable {
 
-    nixpkgs.config.allowUnfree = true;
     hardware.nvidia.nvidiaPersistenced = true;
     hardware.nvidia.nvidiaSettings = true;
     hardware.nvidia.powerManagement.enable = true;

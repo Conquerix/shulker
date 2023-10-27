@@ -54,8 +54,8 @@ in
     environment.systemPackages = with pkgs; [
       pamixer
       pavucontrol
-      firefox#-wayland
-      #qt6.qtwayland
+      firefox-wayland
+      qt6.qtwayland
       vlc
     ];
 
