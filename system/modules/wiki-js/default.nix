@@ -26,9 +26,27 @@ in
 
   config = mkIf cfg.enable {
 
+    services.postgresql = {
+      enable = true;
+      ensureUsers = [
+        {
+          name = "wikijs";
+          ensurePermissions = {
+            "DATABASE wiki" = "ALL PRIVILEGES";
+          };
+        }
+      ];
+      ensureDatabases = [
+        "wiki"
+      ];
+      authentication = "local wiki all peer map=wikijs";
+      identMap = "wikijs wiki-js wikijs";
+    };
+
     services.wiki-js = {
       enable = cfg.enable;
       settings.port = cfg.port;
+      settings.db.host = "/run/postgresql";
     };
     
     services.nginx = {
