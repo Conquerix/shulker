@@ -15,6 +15,10 @@
   # For zfs.
   networking.hostId = "2118dc3b";
 
+  environment.systemPackages = with pkgs; [
+  	transmission
+  ];
+
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 4443 2022 23080 5657 24480 26000 27000 30080 30443 5900 50443 50080 ];

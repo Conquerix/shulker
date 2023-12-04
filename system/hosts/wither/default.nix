@@ -13,9 +13,9 @@
 
   #services.xserver.displayManager.gdm.wayland = lib.mkForce false;
 
-  environment.systemPackages = with inputs.getchoo.packages.${pkgs.system}; [
-  	modrinth-app
-  ];
+  #environment.systemPackages = with inputs.getchoo.packages.${pkgs.system}; [
+  #	modrinth-app
+  #];
 
   shulker = {
     modules = {
