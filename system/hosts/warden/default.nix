@@ -15,13 +15,21 @@
   # For zfs.
   networking.hostId = "2118dc3b";
 
-  environment.systemPackages = with pkgs; [
-  	transmission
-  ];
+  services.transmission = {
+    enable = true;
+    openRPCPort = true;
+    openFirewall = true;
+    settings = {
+      incomplete-dir = "/storage/fast/transmission/.incomplete";
+      download-dir = "/storage/fast/transmission";
+      rpc-bind-address = "0.0.0.0";
+      rpc-whitelist = "127.0.0.1,192.168.10.4";
+    };
+  };
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 4443 2022 23080 5657 24480 26000 27000 30080 30443 5900 50443 50080 ];
+    allowedTCPPorts = [ 4443 2022 23080 5657 24480 26000 27000 30080 30443 5900 50443 50080 9091 ];
     allowedUDPPorts = [ 25566 25568 26001 ];
   };
 
