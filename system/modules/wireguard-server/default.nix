@@ -55,7 +55,7 @@ in
             allowedIPs = [ "192.168.10.2/32" ];
           }
           { # Phantom
-            publicKey = "twbugLyoNIV/U06EI0Gs29hd0QJKsHkpdoD3o/dE6zM=";
+            publicKey = "f2m5/gMPILz9ISGiAtwZFEWcU01jzU899bJBuhTiuyc=";
             allowedIPs = [ "192.168.10.3/32" ];
           }
           { # Wither
