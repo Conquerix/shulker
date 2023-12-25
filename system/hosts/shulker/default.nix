@@ -9,6 +9,7 @@
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ 80 443 2022 25565 4443 ];
+    allowedUDPPorts = [ 25565 ];
   };
 
   services.nginx = {
