@@ -101,12 +101,6 @@
       	enable = true;
       	clientIP = "192.168.10.6";
       };
-      crafty_controller = {
-      	enable = true;
-      	webPort = 35080;
-      	httpsPort = 35443;
-      	storagePath = "/var/lib/crafty-controller";
-      };
       pterodactyl = {
         wings = {
           enable = true;
