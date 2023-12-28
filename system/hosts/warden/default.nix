@@ -23,7 +23,7 @@
       incomplete-dir = "/storage/fast/transmission/.incomplete";
       download-dir = "/storage/fast/transmission";
       rpc-bind-address = "0.0.0.0";
-      rpc-whitelist = "127.0.0.1,192.168.10.4";
+      rpc-whitelist = "127.0.0.1,192.168.10.4,192.168.10.3";
     };
   };
 
