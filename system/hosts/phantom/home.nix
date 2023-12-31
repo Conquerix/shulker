@@ -3,14 +3,9 @@
 {
   home.packages = with pkgs; [
     prismlauncher
-    ferium
-    packwiz
-    zoom-us
     spotify
     wineWowPackages.waylandFull
     libvlc
-    soundux
-    easyeffects
     packwiz
   ];
   
@@ -25,7 +20,7 @@
         cc.enable = true;
         nix.enable = true;
         python.enable = true;
-        ocaml.enable = true;
+        rust.enable = true;
       };
       shell = {
         direnv.enable = true;
