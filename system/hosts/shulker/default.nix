@@ -103,7 +103,12 @@
       wiki-js = {
       	enable = true;
       	port = 23235;
-      	url = "wiki.the-inbetween.net";
+      	url = "old.wiki.the-inbetween.net";
+      };
+      outline = {
+      	enable = true;
+      	port = 23236;
+      	url = "wiki.the-inbetween.net"
       };
       searx = {
         enable = true;
