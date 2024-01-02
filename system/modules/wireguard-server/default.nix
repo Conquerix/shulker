@@ -46,7 +46,7 @@ in
         '';
   
         # Path to the private key file.
-        privateKeyFile = "/etc/wireguard/private_key";
+        privateKeyFile = "/run/secrets/wireguard-private-key";
   
         peers = [
           # List of allowed peers.
@@ -74,10 +74,6 @@ in
       };
     };
 
-    environment = mkIf (config.shulker.modules.impermanence.enable) {
-      persistence."/nix/persist".files = [
-        {file = "/etc/wireguard/private_key"; parentDirectory = { mode = "u=rw,g=,o="; };}
-      ];
-    };
+    opsm.secrets.wireguard-private-key.secretRef = "op://Shulker/${config.networking.hostName}/Wireguard Private Key";
   };
 }

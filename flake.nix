@@ -17,6 +17,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    opsm-nix.url = "github:i077/opsm-nix";
+
     # mail-server.url = "gitlab:simple-nixos-mailserver/nixos-mailserver";
 
     # agenix.url = "github:ryantm/agenix";

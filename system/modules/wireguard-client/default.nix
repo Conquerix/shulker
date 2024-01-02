@@ -25,7 +25,7 @@ in
         listenPort = 51820;
 
         # Path to the private key file.
-        privateKeyFile = "/etc/wireguard/private_key";
+        privateKeyFile = "/run/secrets/wireguard-private-key";
   
         peers = [
           { # Shulker server
@@ -42,11 +42,7 @@ in
       allowedUDPPorts = [ 51820 ];
       checkReversePath = mkIf (cfg.vpn) false;
     };
-    
-    environment = mkIf (config.shulker.modules.impermanence.enable) {
-      persistence."/nix/persist".files = [
-        {file = "/etc/wireguard/private_key"; parentDirectory = { mode = "u=rw,g=,o="; };}
-      ];
-    };
+
+    opsm.secrets.wireguard-private-key.secretRef = "op://Shulker/${config.networking.hostName}/Wireguard Private Key";
   };
 }

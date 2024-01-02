@@ -15,25 +15,25 @@ in
 
   config = mkIf cfg.enable {
 
-  environment.persistence."/nix/persist" = {
+    environment.persistence."/nix/persist" = {
 
-    hideMounts = true;
+      hideMounts = true;
 
-    directories = [
-      "/var/log"
-      "/var/lib/bluetooth"
-      "/var/lib/systemd/coredump"
-      "/etc/NetworkManager/system-connections"
-      "/etc/nixos"
-      "/etc/ssh"
-      "/etc/secrets"
-      "/root/.ssh"
-      (mkIf (cfg.home) "/home")
-      (mkIf (cfg.docker) "/var/lib/docker")
+      directories = [
+        "/var/log"
+        "/var/lib/bluetooth"
+        "/var/lib/systemd/coredump"
+        "/etc/NetworkManager/system-connections"
+        "/etc/nixos"
+        "/etc/ssh"
+        "/etc/secrets"
+        "/root/.ssh"
+        (mkIf (cfg.home) "/home")
+        (mkIf (cfg.docker) "/var/lib/docker")
       ];
 
-    files = [
-      "/etc/machine-id"
+      files = [
+        "/etc/machine-id"
       ];
     };
   };
