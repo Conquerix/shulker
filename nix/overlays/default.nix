@@ -1,14 +1,18 @@
-self: system:
+self:
 
 with self.lib;
 let
-  pkgs = self.pkgsBySystem."${system}";
   dirs = filterAttrs
-    (
-      n: v: v != null && !(hasPrefix "_" n) && (v == "directory")
-    )
+    ( n: v: v != null && !(hasPrefix "_" n) && (v == "directory") ) 
     (builtins.readDir ./.);
+  
   paths = mapAttrs (name: value: "${toString ./.}/${name}") dirs;
-  result = mapAttrs (name: value: pkgs.callPackage value { }) paths;
+  
+  result = mapAttrs
+    (name: value: import value {
+      inherit self;
+      inherit (self) inputs;
+    })
+    paths;
 in
 result

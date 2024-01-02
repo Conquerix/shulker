@@ -101,20 +101,31 @@
       ssh_server.enable = true;
       docker.enable = true;
       wiki-js = {
-      	enable = true;
+      	#enable = true;
       	port = 23235;
       	url = "old.wiki.the-inbetween.net";
       };
       outline = {
       	enable = true;
       	port = 23236;
-      	url = "wiki.the-inbetween.net"
+      	url = "wiki.the-inbetween.net";
+      	minio = {
+      	  port = 23240;
+      	  consolePort = 23239;
+      	  url = "minio.the-inbetween.net";
+      	  accessKey = "v5iyXbS0w8FUeJAEc6sp";
+      	};
       };
       searx = {
         enable = true;
         port = 23234;
         url = "searx.shulker.fr";
-        };
+      };
+      keycloak = {
+      	enable = true;
+      	port = 23237;
+      	url = "auth.the-inbetween.net";
+      };
       wireguard.server = {
       	enable = true;
       	extInterface = "ens3";

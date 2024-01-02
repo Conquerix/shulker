@@ -50,6 +50,13 @@ with lib;
       acceptTerms = true;
     };
 
+    services.nginx = {
+      recommendedGzipSettings = true;
+      recommendedOptimisation = true;
+      recommendedTlsSettings = true;
+      recommendedProxySettings = true;
+    };
+
     # List of bare minimal requirements for a system to have to bootstrap from
     environment.systemPackages = with pkgs; [
       curl
