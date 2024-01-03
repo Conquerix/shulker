@@ -71,15 +71,16 @@ with lib;
       bat
     ];
 
-    environment.persistence."/nix/persist" = mkIf (config.shulker.modules.impermanence.enable) {
-      files = [
-        {file = opsm.serviceAccountTokenPath; parentDirectory = { mode = "u=rw,g=,o="; };}
-      ];
-    };
-
     opsm = {
       enable = true;
       refreshInterval = null;
     };
+    
+    environment.persistence."/nix/persist" = mkIf (config.shulker.modules.impermanence.enable) {
+      files = [
+        {file = config.opsm.serviceAccountTokenPath; parentDirectory = { mode = "u=rw,g=,o="; };}
+      ];
+    };
+
   };
 }
