@@ -28,6 +28,7 @@
         users = [ "conquerix" ];
       };
       gnome.enable = true;
+      ssh_server.enable = true;
       steam = {
         enable = true;
         protonGE = true;
