@@ -100,11 +100,6 @@
       user.home = ./home.nix;
       ssh_server.enable = true;
       docker.enable = true;
-      wiki-js = {
-      	#enable = true;
-      	port = 23235;
-      	url = "old.wiki.the-inbetween.net";
-      };
       outline = {
       	enable = true;
       	port = 23236;
