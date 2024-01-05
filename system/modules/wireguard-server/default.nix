@@ -70,16 +70,14 @@ in
             publicKey = "2xrdv1hBlJAQx8jo5P6hie6QzWSjbdGC8wP4pvCP6Rs=";
             allowedIPs = [ "192.168.10.6/32" ];
           }
+          { # Ender Dragon
+            publicKey = "k40E/7Z1DpaiwkTPTnn660N7A/V9jwgwjsL2Lm0OSlU=";
+            allowedIPs = [ "192.168.10.7/32" ];
+          }
         ];
       };
     };
 
     opsm.secrets.wireguard-private-key.secretRef = "op://Shulker/${config.networking.hostName}/Wireguard Private Key";
-
-    environment = mkIf (config.shulker.modules.impermanence.enable) {
-      persistence."/nix/persist".files = [
-        {file = "/run/secrets/wireguard-private-key"; parentDirectory = { mode = "u=rw,g=,o="; };}
-      ];
-    };
   };
 }
