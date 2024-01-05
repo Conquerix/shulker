@@ -20,6 +20,8 @@ with lib;
 
     networking.networkmanager.enable = lib.mkDefault true;
 
+    programs.ssh.extraConfig = "HostKey /secrets/ssh-ed25519-key";
+
     nix = {
       settings = {
 
