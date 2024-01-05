@@ -19,5 +19,6 @@ in
       enable = true;
       polkitPolicyOwners = cfg.users;
     };
+    programs._1password.enable = true;
   };
 }
