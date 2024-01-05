@@ -41,6 +41,12 @@
       options = [ "bind" ];
     };
 
+  fileSystems."/secrets" =
+    { device = "/nix/persist/secrets";
+      fsType = "none";
+      options = [ "bind" ];
+    };
+
   fileSystems."/home" =
     { device = "/nix/persist/home";
       fsType = "none";
