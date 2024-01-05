@@ -74,6 +74,7 @@ with lib;
     opsm = {
       enable = true;
       refreshInterval = null;
+      secretDir = "/secrets";
     };
     
     environment.persistence."/nix/persist" = mkIf (config.shulker.modules.impermanence.enable) {

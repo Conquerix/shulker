@@ -46,7 +46,7 @@ in
         '';
   
         # Path to the private key file.
-        privateKeyFile = "/run/secrets/wireguard-private-key";
+        privateKeyFile = "/secrets/wireguard-private-key";
   
         peers = [
           # List of allowed peers.

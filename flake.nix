@@ -17,7 +17,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    opsm-nix.url = "github:i077/opsm-nix";
+    opsm-nix.url = "github:conquerix/opsm-nix";
 
     # mail-server.url = "gitlab:simple-nixos-mailserver/nixos-mailserver";
 
@@ -66,6 +66,7 @@
         guardian   = { };
         vindicator = { };
         wither     = { };
+        enderdragon= { };
       };
 
       # Convenience output that aggregates the output configurations.

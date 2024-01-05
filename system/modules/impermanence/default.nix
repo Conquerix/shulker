@@ -25,7 +25,6 @@ in
         "/var/lib/systemd/coredump"
         "/etc/NetworkManager/system-connections"
         "/etc/nixos"
-        "/etc/ssh"
         "/etc/secrets"
         "/root/.ssh"
         (mkIf (cfg.home) "/home")
