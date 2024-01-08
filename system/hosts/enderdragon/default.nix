@@ -3,12 +3,84 @@
 {
   imports = [
     ./hardware.nix
+    #./nginx.nix
   ];
 
   #boot.loader.efi.canTouchEfiVariables = true;
 
    # This is the regular setup for grub on UEFI which manages /boot
   # automatically.
+  
+    
+
+  zramSwap.enable = true;
+
+  networking = {
+
+    firewall = {
+      enable = true;
+      allowedTCPPorts = [ 80 443 4443 27000 2022 ];
+      allowedTCPPortRanges = [ 
+        {from = 25600; to = 26001;} #Minecraft Servers
+      ];
+      allowedUDPPortRanges = [
+        {from = 25600; to = 26001;} #Minecraft Servers (voice chats, etc.)
+      ];
+      
+    };
+  
+    networkmanager.enable = false;
+    useDHCP = true;
+
+    nameservers = [ "9.9.9.9" ];
+  };
+
+  services.nginx = {
+    enable = true;
+    virtualHosts."enderdragon-wings-node" = {
+      serverName = "enderdragon.the-inbetween.net";
+      forceSSL = true;
+      enableACME = true;
+      locations."/".extraConfig = ''
+        proxy_set_header   X-Forwarded-For $remote_addr;
+        proxy_set_header   Host $host;
+        proxy_set_header Upgrade websocket;
+        proxy_set_header Connection Upgrade;
+        proxy_pass         "http://127.0.0.1:4443";
+      '';
+    };
+  };
+
+  shulker = {
+    modules = {
+      user.home = ./home.nix;
+      docker.enable = true;
+      impermanence = {
+        enable = true;
+        docker = true;
+      };
+      outline = {
+      	enable = true;
+      	port = 23231;
+      	url = "wiki.the-inbetween.net";
+      };
+      ssh_server.enable = true;
+      wireguard.client = {
+      	enable = true;
+      	clientIP = "192.168.10.7";
+      };
+      pterodactyl = {
+        panel.enable = true;
+        manage.enable = true;
+        wings = {
+          enable = true;
+          pkg = (builtins.getFlake "github:TeamMatest/nix-wings/2de9ee5f2bf8b8d2eeb214ba272a1e7e2cbe7ae0").packages.x86_64-linux.default;
+        };
+      };
+    };
+  };
+
+
   boot.loader.grub.enable = true;
   boot.loader.grub.efiSupport = true;
   boot.loader.grub.device = "nodev";
@@ -46,53 +118,6 @@
           fi
           EOF
         '';
-      };
-    };
-  };
-    
-
-  zramSwap.enable = true;
-
-  networking = {
-
-    firewall = {
-      enable = true;
-      allowedTCPPorts = [ 80 443 4443 27000 2022 ];
-      allowedTCPPortRanges = [ 
-        {from = 25600; to = 26001;} #Minecraft Servers
-      ];
-      allowedUDPPortRanges = [
-        {from = 25600; to = 26001;} #Minecraft Servers (voice chats, etc.)
-      ];
-      
-    };
-  
-    networkmanager.enable = false;
-    useDHCP = true;
-
-    nameservers = [ "9.9.9.9" ];
-  };
-
-  shulker = {
-    modules = {
-      user.home = ./home.nix;
-      docker.enable = true;
-      impermanence = {
-        enable = true;
-        docker = true;
-      };
-      ssh_server = {
-        enable = true;
-      };
-      wireguard.client = {
-      	enable = true;
-      	clientIP = "192.168.10.7";
-      };
-      pterodactyl = {
-        wings = {
-          #enable = true;
-          pkg = (builtins.getFlake "github:TeamMatest/nix-wings/2de9ee5f2bf8b8d2eeb214ba272a1e7e2cbe7ae0").packages.x86_64-linux.default;
-        };
       };
     };
   };

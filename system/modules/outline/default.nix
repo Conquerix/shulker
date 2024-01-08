@@ -17,33 +17,6 @@ in
       default = 3000;
       description = "Default internal port to open outline.";
     };
-    minio = {
-      port = mkOption {
-        type = types.port;
-        default = 9000;
-        description = "Default internal for minio storage.";
-      };
-      consolePort = mkOption {
-        type = types.port;
-        default = 9001;
-        description = "Default internal for minio storage.";
-      };
-      region = mkOption {
-        type = types.str;
-        default = "shulker";
-        description = "Region of the minio server. Can be whatever you want";
-      };
-      url = mkOption {
-        type = types.str;
-        default = "minio.example.com";
-        description = "Url where minio admin console will be accessible.";
-      };
-      accessKey = mkOption {
-        type = types.str;
-        default = "changeme";
-        description = "S3 Access Key, to be found in minio config.";
-      };
-    };
     address = mkOption {
       type = types.str;
       default = "127.0.0.1";
@@ -53,36 +26,27 @@ in
 
   config = mkIf cfg.enable {
 
-  	services.minio = {
-  	  enable = true;
-  	  consoleAddress = ":${toString cfg.minio.consolePort}";
-  	  listenAddress = ":${toString cfg.minio.port}";
-  	  region = cfg.minio.region;
-  	  rootCredentialsFile = "/etc/minio/secrets/minio-root-credentials";
-  	};
+    opsm.secrets.outline-client-secret-key = {
+      secretRef = "op://Shulker/${config.networking.hostName}/Outline Client Secret Key";
+      user = config.services.outline.user;
+      group = config.services.outline.group;
+    };
 
     services.outline = {
       enable = cfg.enable;
       publicUrl = "https://${cfg.url}";
       port = cfg.port;
-      storage = {
-        #storageType = "local"; #set this when not using minio.
-        secretKeyFile = "/var/lib/outline/s3_secret_file";
-        uploadBucketUrl = "https://${cfg.minio.url}";
-        uploadBucketName = "outline";
-        region = cfg.minio.region;
-        accessKey = cfg.minio.accessKey;
-      };
+      storage.storageType = "local";
       forceHttps = false;
       oidcAuthentication = {
-        authUrl = "https://${config.shulker.modules.keycloak.url}/realms/master/protocol/openid-connect/auth";
-        tokenUrl = "https://${config.shulker.modules.keycloak.url}/realms/master/protocol/openid-connect/token";
-        userinfoUrl = "https://${config.shulker.modules.keycloak.url}/realms/master/protocol/openid-connect/userinfo";
-        clientId = "outline";
-        clientSecretFile = "/var/lib/outline/client_secret_file";
-        scopes = [ "openid" "email" "profile" ];
+        authUrl = "https://discordapp.com/api/oauth2/authorize";
+        tokenUrl = "https://discordapp.com/api/oauth2/token";
+        userinfoUrl = "https://discordapp.com/api/users/@me";
+        clientId = "1170421650861334618";
+        clientSecretFile = "/secrets/outline-client-secret-key";
+        scopes = [ "email" "identify" ];
         usernameClaim = "preferred_username";
-        displayName = "Keycloak";
+        displayName = "Discord";
       };
     };
     
@@ -101,27 +65,11 @@ in
 	        '';
 	      };
 	    };
-	    "minio" = {
-	      serverName = cfg.minio.url;
-	      forceSSL = true;
-	      enableACME = true;
-	      locations."/" = {
-	        proxyPass = "http://${cfg.address}:${toString cfg.minio.port}";
-	      };
-	    };
-	    "minio-console" = {
-	      serverName = "admin.${cfg.minio.url}";
-	      forceSSL = true;
-	      enableACME = true;
-	      locations."/" = {
-	        proxyPass = "http://${cfg.address}:${toString cfg.minio.consolePort}";
-	      };
-	    };
 	  };
     };
 
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
-      "/nix/persist".directories = [ "/var/lib/outline" "/var/lib/minio" "/etc/minio/secrets" ];
+      "/nix/persist".directories = [ "/var/lib/outline" ];
     };
   };
 }

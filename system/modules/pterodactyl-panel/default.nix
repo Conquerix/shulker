@@ -13,12 +13,12 @@ in
 {
   options.shulker.modules.pterodactyl.panel = {
     enable = mkEnableOption "Enable Pterodactyl Panel";
-    nginxVhost = mkOption {
+    url = mkOption {
       type = types.str;
       description = mdDoc ''
-        The Nginx virtual host, on which the panel will run.
+        The Url on which the panel will be available.
       '';
-      default = "admin.the-inbetween.net";
+      default = "panel.the-inbetween.net";
     };
     user = mkOption {
       type = types.str;
@@ -53,7 +53,8 @@ in
     services.nginx = {
       enable = true;
       user = cfg.user;
-      virtualHosts."${cfg.nginxVhost}" = {
+      virtualHosts.pterodactyl-panel = {
+        serverName = cfg.url;
         forceSSL = true;
         enableACME = true;
         root = "${cfg.dataDir}/public";
@@ -131,6 +132,15 @@ in
     services.mysql = {
       enable = true;
       package = pkgs.mariadb;
+      ensureDatabases = [ "panel" ];
+      ensureUsers = [
+      	{
+      	  name = "pterodactyl";
+      	  ensurePermissions = {
+      	  	"panel.*" = "ALL PRIVILEGES";
+      	  };
+      	}
+      ];
     };
 
     environment = {
@@ -140,7 +150,10 @@ in
         # composer
         (pkgs.php81Packages.composer.override { php = pterodactlyPhp81; })
       ];
-      persistence."/nix/persist".directories = mkIf (config.shulker.modules.impermanence.enable) [ "${cfg.dataDir}" ];
+      persistence."/nix/persist".directories = mkIf (config.shulker.modules.impermanence.enable) [ 
+        "${cfg.dataDir}"
+        "${config.services.mysql.dataDir}"
+      ];
     };
   };
 }
