@@ -29,11 +29,6 @@
       fsType = "ext4";
     };
 
-  fileSystems."/storage" =
-    { device = "/dev/disk/by-uuid/16f1fef9-08cc-419a-b073-36a441c0d97f";
-      fsType = "ext4";
-    };
-
   fileSystems."/etc/nixos" =
     { device = "/nix/persist/etc/nixos";
       fsType = "none";
@@ -42,6 +37,12 @@
 
   fileSystems."/var/log" =
     { device = "/nix/persist/var/log";
+      fsType = "none";
+      options = [ "bind" ];
+    };
+
+  fileSystems."/secrets" =
+    { device = "/nix/persist/secrets";
       fsType = "none";
       options = [ "bind" ];
     };

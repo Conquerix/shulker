@@ -7,13 +7,12 @@
     enable = true;
     allowedTCPPorts = [ 30080 30443 31443 ];
   };
-  
 
   services.nginx = {
     enable = true;
     streamConfig = ''
       upstream idrac {
-        server 192.168.1.10:80;
+        server 192.168.1.20:80;
       }
 
       server {
@@ -22,7 +21,7 @@
       }
 
       upstream idrac-ssl {
-        server 192.168.1.10:443;
+        server 192.168.1.20:443;
       }
 
       server {

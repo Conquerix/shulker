@@ -44,11 +44,5 @@ in
     };
 
     opsm.secrets.wireguard-private-key.secretRef = "op://Shulker/${config.networking.hostName}/Wireguard Private Key";
-
-    #environment = mkIf (config.shulker.modules.impermanence.enable) {
-    #  persistence."/nix/persist".files = [
-    #    {file = "/run/secrets/wireguard-private-key"; parentDirectory = { mode = "u=rw,g=,o="; };}
-    #  ];
-    #};
   };
 }
