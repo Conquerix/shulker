@@ -6,12 +6,9 @@
     #./nginx.nix
   ];
 
-  #boot.loader.efi.canTouchEfiVariables = true;
-
-   # This is the regular setup for grub on UEFI which manages /boot
-  # automatically.
-  
-    
+  environment.systemPackages = with pkgs; [
+  	mc-monitor
+  ];
 
   zramSwap.enable = true;
 
@@ -19,14 +16,16 @@
 
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 80 443 4443 27000 2022 ];
-      allowedTCPPortRanges = [ 
-        {from = 25600; to = 26001;} #Minecraft Servers
-      ];
-      allowedUDPPortRanges = [
-        {from = 25600; to = 26001;} #Minecraft Servers (voice chats, etc.)
-      ];
-      
+      allowedTCPPorts = [ 80 443 4443 27000 2022 25565 ];
+      allowedUDPPorts = [ 25565 ];
+      interfaces."wg0" = {
+      	allowedTCPPortRanges = [ 
+      	  {from = 25600; to = 26001;} #Minecraft Servers
+      	];
+      	allowedUDPPortRanges = [
+      	  {from = 25600; to = 26001;} #Minecraft Servers (voice chats, etc.)
+      	];
+      };
     };
   
     networkmanager.enable = false;
