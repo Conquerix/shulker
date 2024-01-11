@@ -1,7 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
-  
+  manual = {
+  	html.enable = false;
+  	manpages.enable = lib.mkForce false;
+  	json.enable = false;
+  };
   shulker = {
     modules = {
       shell = {
