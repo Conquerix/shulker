@@ -56,7 +56,7 @@ in
       virtualHosts.pterodactyl-panel = {
         serverName = cfg.url;
         forceSSL = true;
-        enableACME = true;
+        useACMEHost = "the-inbetween.net";
         root = "${cfg.dataDir}/public";
         extraConfig = ''
           index index.html index.htm index.php;
@@ -108,6 +108,7 @@ in
       createHome = true;
       home = cfg.dataDir;
       group = cfg.user;
+      extraGroups = [ "acme" ];
     };
 
     users.groups.${cfg.user} = { };

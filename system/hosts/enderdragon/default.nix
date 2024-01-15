@@ -1,4 +1,4 @@
-{ pkgs, config, ... }:
+{ lib, pkgs, config, ... }:
 
 {
   imports = [
@@ -12,19 +12,32 @@
 
   zramSwap.enable = true;
 
-  networking = {
+  environment.persistence = lib.mkIf (config.shulker.modules.impermanence.enable) {
+    "/nix/persist".directories = [ "/var/lib/acme/" ];
+  };
+  
 
+  security.acme.certs."the-inbetween.net" = {
+    webroot = "/var/lib/acme/acme-challenge/";
+    email = "admin@the-inbetween.net";
+    extraDomainNames = [ "the-inbetween.net" "panel.the-inbetween.net" "wiki.the-inbetween.net" "enderdragon.the-inbetween.net" "map.the-inbetween.net"];
+  };
+  
+  networking = {
     firewall = {
+	  trustedInterfaces = [ "docker0" "pterodactyl0" ];
       enable = true;
-      allowedTCPPorts = [ 80 443 4443 27000 2022 25565 ];
-      allowedUDPPorts = [ 25565 ];
-      interfaces."wg0" = {
-      	allowedTCPPortRanges = [ 
-      	  {from = 25600; to = 26001;} #Minecraft Servers
-      	];
-      	allowedUDPPortRanges = [
-      	  {from = 25600; to = 26001;} #Minecraft Servers (voice chats, etc.)
-      	];
+      allowedTCPPorts = [ 80 443 4443 27000 2022 25565 26600 ];
+      allowedUDPPorts = [ 25565 26600 ];
+      interfaces = {
+        "wg0" = {
+          allowedTCPPorts = [ 26600 ];
+          allowedUDPPorts = [ 26600 ];
+        };
+        "pterodactyl0" = {
+          allowedTCPPorts = [ 26600 ];
+          allowedUDPPorts = [ 26600 ];
+        };
       };
     };
   
@@ -36,17 +49,42 @@
 
   services.nginx = {
     enable = true;
-    virtualHosts."enderdragon-wings-node" = {
-      serverName = "enderdragon.the-inbetween.net";
-      forceSSL = true;
-      enableACME = true;
-      locations."/".extraConfig = ''
-        proxy_set_header   X-Forwarded-For $remote_addr;
-        proxy_set_header   Host $host;
-        proxy_set_header Upgrade websocket;
-        proxy_set_header Connection Upgrade;
-        proxy_pass         "http://127.0.0.1:4443";
-      '';
+    streamConfig = ''
+      upstream build-server {
+        server 127.0.0.1:25600;
+      }
+      server {
+        listen 26600;
+        proxy_pass build-server;
+      }
+    '';
+    virtualHosts = {
+      "enderdragon-wings-node" = {
+        serverName = "enderdragon.the-inbetween.net";
+        forceSSL = true;
+        #enableACME = true;
+        useACMEHost = "the-inbetween.net";
+        locations."/".extraConfig = ''
+          proxy_set_header   X-Forwarded-For $remote_addr;
+          proxy_set_header   Host $host;
+          proxy_set_header Upgrade websocket;
+          proxy_set_header Connection Upgrade;
+          proxy_pass         "http://127.0.0.1:4443";
+        '';
+      };
+      "bluemap-the-inbetween" = {
+        serverName = "map.the-inbetween.net";
+        forceSSL = true;
+        #enableACME = true;
+        useACMEHost = "the-inbetween.net";
+        locations."/".extraConfig = ''
+          proxy_set_header   X-Forwarded-For $remote_addr;
+          proxy_set_header   Host $host;
+          proxy_set_header Upgrade websocket;
+          proxy_set_header Connection Upgrade;
+          proxy_pass         "http://127.0.0.1:25700";
+        '';
+      };
     };
   };
 

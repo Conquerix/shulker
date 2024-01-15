@@ -56,7 +56,7 @@ in
         "outline" = {
 	      serverName = cfg.url;
 	      forceSSL = true;
-	      enableACME = true;
+	      useACMEHost = "the-inbetween.net";
 	      locations."/" = {
 	        proxyPass = "http://${cfg.address}:${toString cfg.port}";
 	        extraConfig = ''
@@ -69,7 +69,15 @@ in
     };
 
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
-      "/nix/persist".directories = [ "/var/lib/outline" ];
+      "/nix/persist".directories = [ 
+        "/var/lib/outline" 
+        {
+          directory = "/var/lib/redis-outline";
+          user = "outline";
+          group = "outline";
+          mode = "u=rwx,g=rx,o=";
+        }
+      ];
     };
   };
 }
