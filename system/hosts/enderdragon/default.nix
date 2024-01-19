@@ -124,7 +124,7 @@
   boot.loader.grub.efiInstallAsRemovable = true;
 
   boot.loader.grub.mirroredBoots = [
-    { devices = [ "/dev/disk/by-uuid/5DB4-0006" ];
+    { devices = [ "/dev/disk/by-uuid/5D35-7F32" ];
       path = "/boot-fallback"; }
   ];
   boot.supportedFilesystems = [ "zfs" ];
