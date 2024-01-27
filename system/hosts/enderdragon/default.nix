@@ -50,12 +50,12 @@
   services.nginx = {
     enable = true;
     streamConfig = ''
-      upstream build-server {
+      upstream main-world {
         server 127.0.0.1:25600;
       }
       server {
         listen 26600;
-        proxy_pass build-server;
+        proxy_pass main-world;
       }
     '';
     virtualHosts = {
@@ -64,11 +64,17 @@
         forceSSL = true;
         #enableACME = true;
         useACMEHost = "the-inbetween.net";
+        extraConfig = ''
+          client_max_body_size 500M;
+        '';
         locations."/".extraConfig = ''
           proxy_set_header   X-Forwarded-For $remote_addr;
           proxy_set_header   Host $host;
           proxy_set_header Upgrade websocket;
           proxy_set_header Connection Upgrade;
+          proxy_set_header "Access-Control-Allow-Origin" "*"; 
+          proxy_set_header "Access-Control-Allow-Methods" "GET, POST, OPTIONS"; 
+          proxy_set_header "Access-Control-Allow-Headers" "Authorization"; 
           proxy_pass         "http://127.0.0.1:4443";
         '';
       };
@@ -77,6 +83,9 @@
         forceSSL = true;
         #enableACME = true;
         useACMEHost = "the-inbetween.net";
+        extraConfig = ''
+          client_max_body_size 500M;
+        '';
         locations."/".extraConfig = ''
           proxy_set_header   X-Forwarded-For $remote_addr;
           proxy_set_header   Host $host;
@@ -85,6 +94,12 @@
           proxy_pass         "http://127.0.0.1:25700";
         '';
       };
+      #"website-the-inbetween" = {
+      #	serverName = "the-inbetween.net";
+      #	forceSSL = true;
+      #  useACMEHost = "the-inbetween.net";
+      #  root = "/srv/the-inbetween-website";
+      #};
     };
   };
 
@@ -100,6 +115,12 @@
       	enable = true;
       	port = 23231;
       	url = "wiki.the-inbetween.net";
+      };
+      ghost = {
+      	enable = true;
+      	port = 23232;
+      	url = "the-inbetween.net";
+      	dataDir = "/srv/ghost";
       };
       ssh_server.enable = true;
       wireguard.client = {
