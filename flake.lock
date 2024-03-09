@@ -1,25 +1,5 @@
 {
   "nodes": {
-    "getchoo": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1704502707,
-        "narHash": "sha256-cyZ0EKjVAgd7XqKIq7ybMXxZb6MJfTZ+PHyba7V6ol8=",
-        "owner": "getchoo",
-        "repo": "nix-exprs",
-        "rev": "af5fcfa114f7f56ccf0b785431b85db9843b8ea9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "getchoo",
-        "repo": "nix-exprs",
-        "type": "github"
-      }
-    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -27,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1704980804,
-        "narHash": "sha256-lPNNKdPqIYcjhhYIVwlajNt/HqVWbMOoSdNnwCvOP04=",
+        "lastModified": 1709938482,
+        "narHash": "sha256-2Vw2WOFmEXWQH8ziFNOr0U48Guh5FacuD6BOEIcE99s=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "93e804e7f8a1eb88bde6117cd5046501e66aa4bd",
+        "rev": "17431970b4ebc75a92657101ccffcfc9e1f9d8f0",
         "type": "github"
       },
       "original": {
@@ -42,11 +22,11 @@
     },
     "impermanence": {
       "locked": {
-        "lastModified": 1703656108,
-        "narHash": "sha256-hCSUqdFJKHHbER8Cenf5JRzjMlBjIdwdftGQsO0xoJs=",
+        "lastModified": 1708968331,
+        "narHash": "sha256-VUXLaPusCBvwM3zhGbRIJVeYluh2uWuqtj4WirQ1L9Y=",
         "owner": "nix-community",
         "repo": "impermanence",
-        "rev": "033643a45a4a920660ef91caa391fbffb14da466",
+        "rev": "a33ef102a02ce77d3e39c25197664b7a636f9c30",
         "type": "github"
       },
       "original": {
@@ -57,11 +37,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1704722960,
-        "narHash": "sha256-mKGJ3sPsT6//s+Knglai5YflJUF2DGj7Ai6Ynopz0kI=",
+        "lastModified": 1709703039,
+        "narHash": "sha256-6hqgQ8OK6gsMu1VtcGKBxKQInRLHtzulDo9Z5jxHEFY=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "317484b1ead87b9c1b8ac5261a8d2dd748a0492d",
+        "rev": "9df3e30ce24fd28c7b3e2de0d986769db5d6225d",
         "type": "github"
       },
       "original": {
@@ -93,11 +73,11 @@
         "utils": "utils"
       },
       "locked": {
-        "lastModified": 1704993347,
-        "narHash": "sha256-YjHBFPicfS/BlcAmg/z7wtfkk4crJQ2swjbRu60DpQE=",
+        "lastModified": 1705433782,
+        "narHash": "sha256-mTxBfVaXg6rNWnhMr5O7xgBgyImvm2Bo6Ri8H9GHQ9I=",
         "owner": "conquerix",
         "repo": "opsm-nix",
-        "rev": "c5e21fb46f1b2ec0454586e85528025004ba51e3",
+        "rev": "21742ac2612c2355537e3cc6ae7c2c05d9d1d9e1",
         "type": "github"
       },
       "original": {
@@ -108,7 +88,6 @@
     },
     "root": {
       "inputs": {
-        "getchoo": "getchoo",
         "home-manager": "home-manager",
         "impermanence": "impermanence",
         "nixpkgs": "nixpkgs",

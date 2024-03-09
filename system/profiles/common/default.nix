@@ -78,6 +78,13 @@ with lib;
       refreshInterval = null;
       secretDir = "/secrets";
     };
+
+    opsm.secrets.ssh-ed25519-key = {
+      secretRef = "op://Shulker/${config.networking.hostName} ssh ed25519/private_key";
+      sshKey = true;
+      mode = "0600";
+    };
+    
     
     environment.persistence."/nix/persist" = mkIf (config.shulker.modules.impermanence.enable) {
       files = [

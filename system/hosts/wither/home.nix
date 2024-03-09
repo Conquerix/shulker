@@ -10,9 +10,9 @@
     spotify-tray
     wineWowPackages.waylandFull
     libvlc
-    soundux
     easyeffects
     packwiz
+    mcman
   ];
   
   shulker = {

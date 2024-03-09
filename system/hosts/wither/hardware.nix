@@ -35,6 +35,12 @@
       options = [ "bind" ];
     };
 
+  fileSystems."/secrets" =
+    { device = "/nix/persist/secrets";
+      fsType = "none";
+      options = [ "bind" ];
+    };
+
   fileSystems."/var/log" =
     { device = "/nix/persist/var/log";
       fsType = "none";

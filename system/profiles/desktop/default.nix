@@ -55,6 +55,7 @@ in
       pamixer
       pavucontrol
       firefox-wayland
+      floorp
       qt6.qtwayland
       vlc
     ];

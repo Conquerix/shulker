@@ -26,11 +26,6 @@ in
        sshKey = true;
        mode = "0600";
      };
-#
-#    opsm.secrets.ssh-ed25519-key-bis = {
-#      secretRef = "op://Shulker/${config.networking.hostName} ssh ed25519/private_key?ssh-format=openssh";
-#      mode = "0600";
-#    };
 
     services.openssh = {
       enable = true;
@@ -42,10 +37,6 @@ in
           path = "/secrets/ssh-ed25519-key";
           type = "ed25519";
         }
-        #{
-        #  path = "/run/secrets/ssh-ed25519-key-2";
-        #  type = "ed25519";
-        #}
       ];
     };
 

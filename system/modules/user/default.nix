@@ -24,6 +24,7 @@ let
     "locate"
     "networmanager"
     "wheel"
+    "plugdev"
   ];
 in
 {
