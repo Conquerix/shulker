@@ -40,17 +40,18 @@ in
         image = "ghost:latest";
         ports = [ "${toString cfg.port}:2368" ];
         environment = {
-          NODE_ENV = "development";
+          #NODE_ENV = "development";
+          database__client = "sqlite3";
           database__connection__filename = "/var/lib/ghost/content/data/ghost.db";
           url = "https://${cfg.url}";
-          mail__from = "'The InBetween' <admin@${cfg.url}>";
+          #mail__from = "admin@${cfg.url}";
           mail__transport = "SMTP";
           mail__options__service = "Mailgun";
           mail__options__host = "smtp.eu.mailgun.org";
           mail__options__port = "465";
           mail__options__secure = "true";
-          mail__options__user = "noreply@${cfg.url}";
-          tls__rejectUnauthorized = "false";
+          mail__options__auth__user = "noreply@${cfg.url}";
+          #tls__rejectUnauthorized = "false";
         };
         environmentFiles = [
           "${config.opsm.secretDir}/ghost-mailgun-smtp-secret-key"
