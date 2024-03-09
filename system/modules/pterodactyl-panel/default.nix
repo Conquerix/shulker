@@ -60,6 +60,7 @@ in
         root = "${cfg.dataDir}/public";
         extraConfig = ''
           index index.html index.htm index.php;
+          client_max_body_size 500M;
         '';
         locations = {
           "~ \\.php$" = {
@@ -77,9 +78,19 @@ in
               fastcgi_connect_timeout 300;
               fastcgi_send_timeout 300;
               fastcgi_read_timeout 300;
+              proxy_set_header "Access-Control-Allow-Origin" *; 
+              proxy_set_header "Access-Control-Allow-Methods" "GET, POST, OPTIONS"; 
+              proxy_set_header "Access-Control-Allow-Headers" "Authorization"; 
             '';
           };
-          "/" = { tryFiles = "$uri $uri/ /index.php?$query_string"; };
+          "/" = {
+            tryFiles = "$uri $uri/ /index.php?$query_string";
+            extraConfig = ''
+              proxy_set_header "Access-Control-Allow-Origin" *; 
+              proxy_set_header "Access-Control-Allow-Methods" "GET, POST, OPTIONS"; 
+              proxy_set_header "Access-Control-Allow-Headers" "Authorization";
+            '';
+          };
         };
       };
     };

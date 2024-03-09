@@ -77,6 +77,7 @@ in
           group = "outline";
           mode = "u=rwx,g=rx,o=";
         }
+        config.services.postgresql.dataDir
       ];
     };
   };
