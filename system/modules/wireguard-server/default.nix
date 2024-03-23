@@ -74,6 +74,10 @@ in
             publicKey = "k40E/7Z1DpaiwkTPTnn660N7A/V9jwgwjsL2Lm0OSlU=";
             allowedIPs = [ "192.168.10.7/32" ];
           }
+          { # Ender Mite
+            publicKey = "LoGAYxqvBJYxBOY39VRd9vmyVAy592NDxQb2iBOf5wU=";
+            allowedIPs = [ "192.168.10.8/32" ];
+          }
         ];
       };
     };
