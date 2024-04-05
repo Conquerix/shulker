@@ -67,6 +67,7 @@
         vindicator = { };
         wither     = { };
         enderdragon= { };
+        endermite  = { };
       };
 
       # Convenience output that aggregates the output configurations.
