@@ -14,7 +14,7 @@ peers = [
     subnets = {
       simple = {
         listenPort = 51821;
-        ipAddresses = [ "10.10.10.1" ];
+        ipAddresses = [ "10.10.10.0/24" ];
         # no ipAddresses field will auto generate an IPv6 address
       };
     };
@@ -24,6 +24,7 @@ peers = [
       {
         # no match can be any
         ip = "51.178.27.137";
+        port = "51821";
         persistentKeepalive = 25;
       }
     ];
