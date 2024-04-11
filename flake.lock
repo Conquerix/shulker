@@ -67,6 +67,18 @@
         "type": "github"
       }
     },
+    "nixpkgs_3": {
+      "locked": {
+        "lastModified": 0,
+        "narHash": "sha256-g0bDwXFmTE7uGDOs9HcJsfLFhH7fOsASbAuOzDC+fhQ=",
+        "path": "/nix/store/k5l01g2zwhysjyl5zjvg5zxnj0lyxpp1-source",
+        "type": "path"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
     "opsm-nix": {
       "inputs": {
         "nixpkgs": "nixpkgs_2",
@@ -91,7 +103,8 @@
         "home-manager": "home-manager",
         "impermanence": "impermanence",
         "nixpkgs": "nixpkgs",
-        "opsm-nix": "opsm-nix"
+        "opsm-nix": "opsm-nix",
+        "wirenix": "wirenix"
       }
     },
     "systems": {
@@ -124,6 +137,24 @@
       "original": {
         "owner": "numtide",
         "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "wirenix": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_3"
+      },
+      "locked": {
+        "lastModified": 1711331151,
+        "narHash": "sha256-e7KzhCMvS4Gx9f25U9VFkmHfGCb9WULVfwunhiFt1ZQ=",
+        "owner": "conquerix",
+        "repo": "wirenix",
+        "rev": "84824bf0f6ce409cf12f3752c791e02810095ff8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "conquerix",
+        "repo": "wirenix",
         "type": "github"
       }
     }

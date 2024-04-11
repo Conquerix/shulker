@@ -65,7 +65,7 @@ in
     # Desktop environment
     services.xserver = {
       enable = true;
-      layout = "fr";
+      xkb.layout = "fr";
       libinput = mkIf cfg.laptop {
         enable = true;
         touchpad.tapping = true;

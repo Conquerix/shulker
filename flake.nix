@@ -12,12 +12,14 @@
 
     impermanence.url = "github:nix-community/impermanence";
 
+
     #getchoo = {
     #  url = "github:getchoo/nix-exprs";
     #  inputs.nixpkgs.follows = "nixpkgs";
     #};
 
     opsm-nix.url = "github:conquerix/opsm-nix";
+    wirenix.url = "github:conquerix/wirenix";
 
     # mail-server.url = "gitlab:simple-nixos-mailserver/nixos-mailserver";
 

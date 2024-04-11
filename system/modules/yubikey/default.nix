@@ -26,7 +26,7 @@ in
     programs.gnupg.agent = {
       enable = true;
       enableSSHSupport = false;
-      pinentryFlavor = if cfg.istty then "curses" else "qt";
+      #pinentryPackage = if cfg.istty then "curses" else "qt";
     };
 
     programs.ssh.startAgent = true;
