@@ -24,6 +24,7 @@
       	enable = true;
       	extInterface = "ens3";
       };
+      wirenix.enable = true;
       uptime-kuma = {
       	enable = true;
       	port = 23231;

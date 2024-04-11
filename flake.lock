@@ -149,11 +149,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1712856776,
-        "narHash": "sha256-dz1r/GrjF2N1pDYRRkzux0jBBa5Iug5vXN/lCJezVvY=",
+        "lastModified": 1712862996,
+        "narHash": "sha256-ZR9ULU22+NxtsnvHdtwdnRo9kd6D+BSEysgZmDN/LK4=",
         "owner": "conquerix",
         "repo": "wirenix",
-        "rev": "90af2dc061a4d749a98c9a51ede1afe509d45859",
+        "rev": "9112a7c3d0c28adf604c75d9a4cd2d19268aeff3",
         "type": "github"
       },
       "original": {
