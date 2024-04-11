@@ -17,7 +17,7 @@ in
 
     wirenix = {
       enable = true;
-      configurer = "static" # defaults to "static", could also be "networkd"
+      configurer = "static"; # defaults to "static", could also be "networkd"
       keyProviders = ["acl"]; # could also be ["agenix-rekey"] or ["acl" "agenix-rekey"]
       aclConfig = import ./acl.nix;
     };

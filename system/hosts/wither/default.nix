@@ -69,6 +69,7 @@
         enable = true;
         clientIP = "192.168.10.4";
       };
+      wirenix.enable = true;
       docker.enable = true;
       nvidia  = {
         enable = true;

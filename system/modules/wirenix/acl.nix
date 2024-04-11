@@ -6,7 +6,7 @@ subnets = [
     endpoints = [
         {
         # No match mean match any
-        port = 51820;
+        port = 51821;
         }
     ];
     }
@@ -18,10 +18,11 @@ groups = [
 peers = [
     {
     name = "shulker";
+    groups = [ "public" ];
     subnets = {
         simple = {
-        listenPort = 51820;
-        ipAddresses = [ "10.10.10.1/24" ];
+        listenPort = 51821;
+        ipAddresses = [ "10.10.10.0/24" ];
         # no ipAddresses field will auto generate an IPv6 address
         };
     };
@@ -37,10 +38,11 @@ peers = [
     }
     {
     name = "wither";
+    groups = [ "private" ];
     subnets = {
         simple = {
-        listenPort = 51820;
-        ipAddresses = [ "10.10.10.4/24" ];
+        listenPort = 51821;
+        ipAddresses = [ "10.10.10.0/24" ];
         };
     };
     publicKey = "9JNyydvMlIDGpOCwAW6a8TzPALGvRq2UKBiPFLV8GwM=";
