@@ -7,6 +7,7 @@ let
   devices = [
     {
       name = "shulker";
+      server = true;
       address = "10.10.10.1";
       publicKey = "vLo4XYe84WcCnkLynjO2SjBzHmFuYeuFN0CF5b/CfBc=";
       endpoint = {
@@ -92,12 +93,20 @@ in {
         # Maps the devices list to configured Wireguard peers.
         # It adds an endpoint if that device has a public endpoint, which
         # should be the case for all servers.
-        peers = map (x: {
-          inherit (x) publicKey;
-          allowedIPs = [ "${x.address}/32" ];
-          endpoint = mkIf (x ? endpoint) "${x.endpoint.ip}:${toString x.endpoint.port}";
-          persistentKeepalive = 25;
-        }) devices;
+        peers = if (host ? server && host.server) 
+          then
+            (map (x: {
+              inherit (x) publicKey;
+              allowedIPs = [ "${x.address}/32" ];
+              endpoint = mkIf (x ? endpoint) "${x.endpoint.ip}:${toString x.endpoint.port}";
+            }) devices)
+          else
+            ([{
+              publicKey = hosts.shulker.publicKey;
+              allowedIPs = [ "10.10.10.0/24" ];
+              endpoint = "${hosts.shulker.endpoint.ip}:${toString hosts.shulker.endpoint.port}";
+              persistentKeepalive = 25;
+            }]);
       };
     };
 
