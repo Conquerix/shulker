@@ -5,7 +5,27 @@
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 30080 30443 31443 ];
+    allowedTCPPorts = [ 443 30080 30443 31443 ];
+  };
+
+  virtualisation.oci-containers.containers."kasm" = {
+  	autoStart = true;
+  	image = "lscr.io/linuxserver/kasm:latest";
+  	ports = [
+  	  "3000:3000"
+      "443:443"
+    ];
+    environment = {
+      KASM_PORT = "443";
+    };
+    #volumes = [
+    #  "/:/opt"
+    #  "/:/profiles"
+    #];
+    extraOptions = [
+      "--privileged=true"
+#      "--gpus=all"
+    ];
   };
 
   services.nginx = {
@@ -59,9 +79,12 @@
       impermanence = {
         enable = true;
         home = true;
+        docker = true;
       };
+      docker.enable = true;
       yubikey.enable = true;
       ssh_server.enable = true;
+      wireguard.enable = true;
       wireguard.client = {
       	enable = true;
       	clientIP = "192.168.10.5";
