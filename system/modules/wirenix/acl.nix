@@ -30,6 +30,18 @@ peers = [
     ];
   }
   {
+    name = "warden";
+    groups = [ "private" ];
+    subnets = {
+      simple = {
+        listenPort = 51821;
+        ipAddresses = [ "10.10.10.1" ];
+      };
+    };
+    publicKey = "gfwhPNVOMoBxaCXP+dIcuLv+r2aat127wE+vO20Y/l0=";
+    privateKeyFile = "/secrets/wireguard-private-key";
+  }
+  {
     name = "wither";
     groups = [ "private" ];
     subnets = {
@@ -40,7 +52,6 @@ peers = [
     };
     publicKey = "9JNyydvMlIDGpOCwAW6a8TzPALGvRq2UKBiPFLV8GwM=";
     privateKeyFile = "/secrets/wireguard-private-key";
-    #endpoints = [ ];
   }
 ];
 connections = [

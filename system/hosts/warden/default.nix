@@ -45,6 +45,7 @@
       	enable = true;
       	clientIP = "192.168.10.2";
       };
+      wirenix.enable = true;
       pterodactyl = {
         wings = {
           enable = true;
