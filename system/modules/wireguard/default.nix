@@ -3,7 +3,7 @@
 with lib;
 let 
   cfg = config.shulker.modules.wireguard;
-  wgPort = 51830;
+  wgPort = 51821;
   wgHostInfo = {
     shulker = {
       address = "10.10.10.1";
@@ -64,12 +64,19 @@ in
     services.wgautomesh = {
       enable = true;
       gossipSecretFile = "/secrets/wgautomesh-gossip-secret";
+      enablePersistence = true;
       settings = {
         interface = "wg-shulker";
         peers = pkgs.lib.mapAttrsToList (_: value: value) (
           removeAttrs wgHostInfo [config.networking.hostName]
         );
       };
+    };
+
+    environment.persistence."/nix/persist" = mkIf (config.shulker.modules.impermanence.enable) {
+      files = [
+        {file = "/var/lib/wgautomesh/state"; parentDirectory = { mode = "u=rw,g=,o="; };}
+      ];
     };
 
     opsm.secrets.wireguard-private-key.secretRef = "op://Shulker/${config.networking.hostName}/Wireguard Private Key";
