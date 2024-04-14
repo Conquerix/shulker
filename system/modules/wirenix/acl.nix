@@ -3,14 +3,11 @@ version = "v1";
 subnets = [
   {name = "simple";}
 ];
-groups = [
-  {name = "public";}
-  {name = "private";}
-];
+groups = [];
 peers = [
   {
     name = "shulker";
-    groups = [ "public" ];
+    isPublic = true;
     subnets = {
       simple = {
         listenPort = 51821;
@@ -31,7 +28,6 @@ peers = [
   }
   {
     name = "warden";
-    groups = [ "private" ];
     subnets = {
       simple = {
         listenPort = 51821;
@@ -43,7 +39,6 @@ peers = [
   }
   {
     name = "wither";
-    groups = [ "private" ];
     subnets = {
       simple = {
         listenPort = 51821;
@@ -57,7 +52,7 @@ peers = [
 connections = [
   {
     a = [{type= "subnet"; rule = "is"; value = "simple";}];
-    b = [{type= "group"; rule = "is"; value = "public";}];
+    b = [{type= "subnet"; rule = "is"; value = "simple";}];#[{type= "group"; rule = "is"; value = "public";}];
   }
 ];
 }
