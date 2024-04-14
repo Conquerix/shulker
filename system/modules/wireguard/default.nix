@@ -93,6 +93,15 @@ in {
         ips = [ "${host.address}/24" ];
         listenPort = wgPort;
 
+        postSetup = mkIf (host ? server && host.server) ''
+          ${pkgs.iptables}/bin/iptables -t nat -A POSTROUTING -s 10.10.10.0/24 -o ${host.extInterface} -j MASQUERADE
+        '';
+  
+        # This undoes the above command
+        postShutdown = mkIf (host ? server && host.server) ''
+          ${pkgs.iptables}/bin/iptables -t nat -D POSTROUTING -s 10.10.10.0/24 -o ${host.extInterface} -j MASQUERADE
+        '';
+
         # There is no problem with having a peer device listed for itself, it is ignored.
         # Endpoints are a hint as to were to find the device, but connections can be accepted from anywhere.
 
