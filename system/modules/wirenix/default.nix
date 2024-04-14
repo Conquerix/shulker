@@ -15,6 +15,9 @@ in
 
   config = mkIf cfg.enable {
 
+    networking.firewall.allowedTCPPorts = [ 51821 ];
+    networking.firewall.allowedUDPPorts = [ 51821 ];
+
     wirenix = {
       enable = true;
       configurer = "static"; # defaults to "static", could also be "networkd"

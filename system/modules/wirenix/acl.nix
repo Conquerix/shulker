@@ -56,7 +56,7 @@ peers = [
 ];
 connections = [
   {
-    a = [{type= "group"; rule = "is"; value = "private";}];
+    a = [{type= "subnet"; rule = "is"; value = "simple";}];
     b = [{type= "group"; rule = "is"; value = "public";}];
   }
 ];
