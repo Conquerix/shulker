@@ -8,6 +8,7 @@ let
     {
       name = "shulker";
       server = true;
+      extInterface = "ens3";
       address = "10.10.10.1";
       publicKey = "vLo4XYe84WcCnkLynjO2SjBzHmFuYeuFN0CF5b/CfBc=";
       endpoint = {
@@ -72,6 +73,11 @@ in {
 
   config = mkIf cfg.enable {
     networking = {
+      nat = mkIf (host ? server && host.server) {
+        enable = true;
+        externalInterface = host.extInterface;
+        internalInterfaces = [ "wg-shulker" ];
+      };
       # Map the hostnames for easy addressing, both as "hostname" and "hostname.wg"
       hosts = listToAttrs (map (x: {
         name = x.address;
