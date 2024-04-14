@@ -96,6 +96,7 @@ in {
           inherit (x) publicKey;
           allowedIPs = [ "${x.address}/32" ];
           endpoint = mkIf (x ? endpoint) "${x.endpoint.ip}:${toString x.endpoint.port}";
+          persistentKeepalive = 25;
         }) devices;
       };
     };

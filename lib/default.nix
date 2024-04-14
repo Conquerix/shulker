@@ -179,7 +179,6 @@ rec {
           (inputs.impermanence.nixosModule)
           #(inputs.mail-server.nixosModule)
           (inputs.opsm-nix.nixosModules.default)
-          (inputs.wirenix.nixosModules.default)
           (import ../system/modules)
           (import ../system/profiles)
           (import (strToPath config ../system/hosts))
