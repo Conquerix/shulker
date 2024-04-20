@@ -81,7 +81,7 @@ in {
       # Map the hostnames for easy addressing, both as "hostname" and "hostname.wg"
       hosts = listToAttrs (map (x: {
         name = x.address;
-        value = [ "${x.name}" "${x.name}.wg" ];
+        value = [ "${x.name}" "${x.name}.shulker.fr" ];
       }) devices);
       firewall = {
         allowedUDPPorts = [ wgPort ];
