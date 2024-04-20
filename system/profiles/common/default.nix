@@ -47,18 +47,6 @@ with lib;
       timesyncd.enable = true;
     };
 
-    security.acme = {
-      defaults.email = "pierre@fournier.net";
-      acceptTerms = true;
-    };
-
-    services.nginx = {
-      recommendedGzipSettings = true;
-      recommendedOptimisation = true;
-      recommendedTlsSettings = true;
-      recommendedProxySettings = true;
-    };
-
     # List of bare minimal requirements for a system to have to bootstrap from
     environment.systemPackages = with pkgs; [
       curl
@@ -84,8 +72,7 @@ with lib;
       sshKey = true;
       mode = "0600";
     };
-    
-    
+
     environment.persistence."/nix/persist" = mkIf (config.shulker.modules.impermanence.enable) {
       files = [
         {file = config.opsm.serviceAccountTokenPath; parentDirectory = { mode = "u=rw,g=,o="; };}
