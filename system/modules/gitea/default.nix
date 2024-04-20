@@ -43,12 +43,12 @@ in
 
   	networking.firewall = {
   	  enable = true;
-  	  allowedTCPPorts = [ 80 443 cfg.httpPort ];
+  	  allowedTCPPorts = [ 80 443 ];
   	};
 
     services.gitea = {
       enable = true;
-      useWizard = true;
+      #useWizard = true;
       stateDir = cfg.stateDir;
       lfs.enable = true;
       settings = {
@@ -56,12 +56,14 @@ in
           COOKIE_SECURE = true;
         };
         service = {
-          DISABLE_REGISTRATION = true;
+          #DISABLE_REGISTRATION = true;
         };
         server = {
+          ROOT_URL = "https://${cfg.subDomain}.${cfg.baseUrl}:443";
           DOMAIN = "${cfg.subDomain}.${cfg.baseUrl}";
           HTTP_PORT = cfg.httpPort;
           SSH_PORT = cfg.sshPort;
+          #PROTOCOL = "https";
         };
       };
     };
