@@ -18,7 +18,12 @@ with lib;
 
     hardware.enableRedistributableFirmware = true;
 
-    networking.networkmanager.enable = lib.mkDefault true;
+    networking.networkmanager = {
+      enable = lib.mkDefault true;
+      dns = "none";
+    };
+    networking.nameservers = [ "9.9.9.9" ];
+    
 
     programs.ssh.extraConfig = "IdentityFile /secrets/ssh-ed25519-key";
 

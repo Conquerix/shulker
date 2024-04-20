@@ -65,7 +65,10 @@
         docker = true;
       };
       yubikey.enable = true;
-      wireguard.enable = true;
+      wireguard = {
+        enable = true;
+        #fullVPN = true;
+      };
       wireguard.client = {
         enable = true;
         clientIP = "192.168.10.4";

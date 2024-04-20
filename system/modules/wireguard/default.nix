@@ -69,6 +69,7 @@ in {
 
   options.shulker.modules.wireguard = {
     enable = mkEnableOption "Enable wireguard server";
+    fullVPN = mkEnableOption "Enable Full VPN mode";
   };
 
   config = mkIf cfg.enable {
@@ -118,7 +119,7 @@ in {
           else
             ([{
               publicKey = hosts.shulker.publicKey;
-              allowedIPs = [ "10.10.10.0/24" ];
+              allowedIPs = [ (if cfg.fullVPN then "0.0.0.0/0" else "10.10.10.0/24") ];
               endpoint = "${hosts.shulker.endpoint.ip}:${toString hosts.shulker.endpoint.port}";
               persistentKeepalive = 25;
             }]);
