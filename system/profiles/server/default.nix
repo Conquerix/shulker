@@ -18,7 +18,7 @@ in
         extraDomainNames = [ "*.shulker.fr" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
-        credentialsFile = "/secrets/ovh-shulker-wildcard-ca";
+        credentialsFile = "/secrets/ovh-wildcard-ca";
       };
     };
 
@@ -29,8 +29,10 @@ in
       recommendedProxySettings = true;
     };
 
-    opsm.secrets.ovh-shulker-wildcard-ca = {
-      secretRef = "op://Shulker/OVH wildcard certificate shulker.fr/OVH-shulker-wildcard-ca";
+    users.users.nginx.extraGroups = [ "acme" ];
+
+    opsm.secrets.ovh-wildcard-ca = {
+      secretRef = "op://Shulker/OVH wildcard certificate/OVH-wildcard-ca";
       mode = "0600";
     };
   };

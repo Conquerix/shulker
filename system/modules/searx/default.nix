@@ -7,10 +7,15 @@ in
 {
   options.shulker.modules.searx = {
     enable = mkEnableOption "Enable searx service";
-    url = mkOption {
+    baseUrl = mkOption {
       type = types.str;
-      default = "searx.example.com";
+      default = "example.com";
       description = "Default url where searx will be accessible.";
+    };
+    subDomain = mkOption {
+      type = types.str;
+      default = "searx";
+      description = "Default subdomain where searx will be accessible.";
     };
     port = mkOption {
       type = types.port;
@@ -32,7 +37,7 @@ in
         ports = [ "${toString cfg.port}:8080" ];
         environment = {
           INSTANCE_NAME = "Shulker search";
-          SEARXNG_BASE_URL = "https://${cfg.url}/";
+          SEARXNG_BASE_URL = "https://${cfg.subDomain}.${cfg.baseUrl}/";
         };
       };
     };
@@ -40,9 +45,9 @@ in
     services.nginx = {
       enable = true;
       virtualHosts."searx" = {
-        serverName = cfg.url;
+        serverName = "${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
-        enableACME = true;
+        useACMEHost = cfg.baseUrl;
         locations."/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.port}";
         };
