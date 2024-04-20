@@ -29,7 +29,8 @@
       uptime-kuma = {
       	enable = true;
       	port = 23231;
-      	url = "status.the-inbetween.net";
+      	baseUrl = "the-inbetween.net";
+      	subDomain = "status";
       };
     };
   };
