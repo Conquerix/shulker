@@ -2,44 +2,10 @@
 
 with lib;
 let
-  cfg = config.shulker.modules.zitadel;
-
-  zitadel-config = pkgs.writeText "zitadel-config.yaml" 
-  ''
-  ExternalDomain: '${cfg.subDomain}.${cfg.baseUrl}'
-  ExternalPort: 443
-  Port: ${toString cfg.port}
-  # All possible options and their defaults: https://github.com/zitadel/zitadel/blob/main/cmd/defaults.yaml
-  Log:
-    Level: 'info'
-  
-  # If not using the docker compose example, adjust these values for connecting ZITADEL to your PostgreSQL
-  Database:
-    postgres:
-      Host: 127.0.0.1
-      Port: ${toString cfg.dbPort}
-      Database: zitadel
-      User:
-        SSL:
-          Mode: 'disable'
-      Admin:
-        SSL:
-          Mode: 'disable'
-  '';
-
-  zitadel-init-steps = pkgs.writeText "zitadel-init-steps.yaml" 
-    ''
-    # All possible options and their defaults: https://github.com/zitadel/zitadel/blob/main/cmd/setup/steps.yaml
-    FirstInstance:
-      Org:
-        Human:
-          # use the loginname root@zitadel.localhost
-          Username: 'root'
-          Password: 'RootPassword1!'
-    '';
+  cfg = config.shulker.modules.netbird;
 in
 {
-  options.shulker.modules.zitadel = {
+  options.shulker.modules.netbird = {
     enable = mkEnableOption "Enable zitadel service.";
     baseUrl = mkOption {
       type = types.str;

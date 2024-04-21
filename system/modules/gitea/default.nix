@@ -76,6 +76,7 @@ in
         useACMEHost = cfg.baseUrl;
         locations."/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.httpPort}";
+          extraConfig = "rewrite ^/user/login.*$ /user/oauth2/Zitadel last;";
         };
       };
     };
