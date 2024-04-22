@@ -34,6 +34,7 @@ let
     }
     {
       name = "guardian";
+      extInterface = "enp2s0";
       address = "10.10.10.5";
       publicKey = "J2amctRH90iC1bnd2UnqOp9D9Rpbgmb0w/Xs+caB83U=";
       transfer = [ "192.168.1.0/24" ];
@@ -68,7 +69,7 @@ in {
 
   config = mkIf cfg.enable {
     networking = {
-      nat = mkIf (host ? server && host.server) {
+      nat = mkIf ((host ? server && host.server) || (host ? transfer && host ? extInterface)) {
         enable = true;
         externalInterface = host.extInterface;
         internalInterfaces = [ "wg-shulker" ];
