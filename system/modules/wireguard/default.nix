@@ -30,29 +30,23 @@ let
       name = "wither";
       address = "10.10.10.4";
       publicKey = "9JNyydvMlIDGpOCwAW6a8TzPALGvRq2UKBiPFLV8GwM=";
+      receive = [ "192.168.1.0/24" ];
     }
     {
       name = "guardian";
       address = "10.10.10.5";
       publicKey = "J2amctRH90iC1bnd2UnqOp9D9Rpbgmb0w/Xs+caB83U=";
+      transfer = [ "192.168.1.0/24" ];
     }
     {
       name = "vindicator";
       address = "10.10.10.6";
       publicKey = "2xrdv1hBlJAQx8jo5P6hie6QzWSjbdGC8wP4pvCP6Rs=";
-      endpoint = {
-        ip = "141.94.96.139";
-        port = wgPort;
-      };
     }
     {
       name = "enderdragon";
       address = "10.10.10.7";
       publicKey = "k40E/7Z1DpaiwkTPTnn660N7A/V9jwgwjsL2Lm0OSlU=";
-      endpoint = {
-        ip = "136.243.40.242";
-        port = wgPort;
-      };
     }
     {
       name = "endermite";
@@ -113,13 +107,13 @@ in {
           then
             (map (x: {
               inherit (x) publicKey;
-              allowedIPs = [ "${x.address}/32" ];
+              allowedIPs = [ "${x.address}/32" ] ++ (if (x ? transfer) then x.transfer else []);
               endpoint = mkIf (x ? endpoint) "${x.endpoint.ip}:${toString x.endpoint.port}";
             }) devices)
           else
             ([{
               publicKey = hosts.shulker.publicKey;
-              allowedIPs = [ (if cfg.fullVPN then "0.0.0.0/0" else "10.10.10.0/24") ];
+              allowedIPs = [ (if cfg.fullVPN then "0.0.0.0/0" else "10.10.10.0/24") ] ++ (if (host ? receive) then host.receive else []);
               endpoint = "${hosts.shulker.endpoint.ip}:${toString hosts.shulker.endpoint.port}";
               persistentKeepalive = 25;
             }]);
