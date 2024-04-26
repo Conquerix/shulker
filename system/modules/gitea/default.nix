@@ -24,8 +24,8 @@ in
     };
     sshPort = mkOption {
       type = types.port;
-      default = 2222;
-      description = "Default internal port to open gitea.";
+      default = 22;
+      description = "SSH Port to display in gitea.";
     };
     stateDir = mkOption {
       type = types.str;
