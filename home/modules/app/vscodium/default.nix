@@ -30,8 +30,7 @@ in
         tamasfe.even-better-toml
         ms-python.isort
         alefragnani.project-manager
-        #ms-python.pylint
-        #nlqdev.vscode-python-typehint
+        jnoortheen.nix-ide
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "better-comments";
@@ -39,12 +38,6 @@ in
           version = "3.0.2";
           sha256 = "sha256-hQmA8PWjf2Nd60v5EAuqqD8LIEu7slrNs8luc3ePgZc=";
         }
-        #{
-        #  name = "fauxpilot";
-        #  publisher = "Venthe";
-        #  version = "1.1.4";
-        #  sha256 = "sha256-SoeZpMQlT8vLTh4GS5M89OBGawaOoIYMuQ7vYbQ/lkI=";
-        #}
       ];
     };
   };
