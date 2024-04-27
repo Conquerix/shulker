@@ -38,6 +38,7 @@ in
 
     services.jenkins = {
       enable = true;
+      package = pkgs.jenkins-latest;
       port = cfg.httpPort;
       plugins = import ./plugins.nix { inherit (pkgs) fetchurl stdenv; };
       listenAddress = "127.0.0.1";
