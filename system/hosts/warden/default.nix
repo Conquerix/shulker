@@ -27,6 +27,13 @@
         stateDir = "/storage/fast/gitea";
         backupDir = "/storage/mass/gitea/backup";
       };
+      jenkins = {
+        enable = true;
+        baseUrl = "shulker.fr";
+        subDomain = "ci";
+        httpPort = 23232;
+        stateDir = "/storage/fast/jenkins";
+      };
     };
   };
 }
