@@ -8,7 +8,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "https://get.jenkins.io/war/${version}/jenkins.war";
-    hash = "sha256-gSZijp4vjuL4B9SJ7ApuN/yfXWuoT6jzcY5/PionMS4=";
+    hash = "sha256-dPdnb0syE98ckkgVGzzOEeyNLNhBnX79Lk50sjYbGT0=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
