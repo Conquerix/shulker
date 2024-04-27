@@ -294,13 +294,6 @@
         sha256 = "8c9f7f98d996ade98b7a5dd0cd9d0aba661acea1b99a33f75778bacf39a64659";
         };
       };
-    jjwt-api = mkJenkinsPlugin {
-      name = "jjwt-api";
-      src = fetchurl {
-        url = "https://updates.jenkins-ci.org/download/plugins/jjwt-api/0.11.5-112.ve82dfb_224b_a_d/jjwt-api.hpi";
-        sha256 = "339161525489ce8ab23d252b9399eda3b849a22faa3542be5ae7c559f9936e47";
-        };
-      };
     job-dsl = mkJenkinsPlugin {
       name = "job-dsl";
       src = fetchurl {
@@ -406,11 +399,11 @@
         sha256 = "c9b2d8c7df2091a191f5562a35454ddc2343cfe9c274b1f6b5a83980f52b422f";
         };
       };
-    oidc-provider = mkJenkinsPlugin {
-      name = "oidc-provider";
+    oic-auth = mkJenkinsPlugin {
+      name = "oic-auth";
       src = fetchurl {
-        url = "https://updates.jenkins-ci.org/download/plugins/oidc-provider/62.vd67c19f76766/oidc-provider.hpi";
-        sha256 = "1502ef4849136283eae0e7ac72f8ceb0e6f9c4b89363429ffc8f918ea779d514";
+        url = "https://updates.jenkins-ci.org/download/plugins/oic-auth/4.250.v5a_d993226437/oic-auth.hpi";
+        sha256 = "341fb7b2b3aee26af66fc6db9d07d4c1500756b710fd98dae266e1b795e9168e";
         };
       };
     parameterized-trigger = mkJenkinsPlugin {
