@@ -64,6 +64,9 @@ with lib;
       wl-clipboard
       zip
       bat
+      htop
+      nh
+      devenv
     ];
 
     opsm = {
