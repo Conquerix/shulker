@@ -55,6 +55,12 @@
       neededForBoot = true;
     };
 
+  fileSystems."/secrets" =
+    { device = "/nix/persist/secrets";
+      fsType = "none";
+      options = [ "bind" ];
+    };
+
   swapDevices = [ ];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking

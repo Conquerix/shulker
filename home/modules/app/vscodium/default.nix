@@ -16,12 +16,21 @@ in
       package = pkgs.vscodium;
       mutableExtensionsDir = true;
       extensions = with pkgs.vscode-extensions; [
+        njpwerner.autodocstring
+        ms-python.black-formatter
         yzhang.markdown-all-in-one
         eamodio.gitlens
         donjayamanne.githistory
         streetsidesoftware.code-spell-checker
         vscode-icons-team.vscode-icons
         oderwat.indent-rainbow
+        naumovs.color-highlight
+        alexdima.copy-relative-path
+        usernamehw.errorlens
+        tamasfe.even-better-toml
+        ms-python.isort
+        alefragnani.project-manager
+        jnoortheen.nix-ide
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "better-comments";
@@ -29,12 +38,6 @@ in
           version = "3.0.2";
           sha256 = "sha256-hQmA8PWjf2Nd60v5EAuqqD8LIEu7slrNs8luc3ePgZc=";
         }
-        #{
-        #  name = "fauxpilot";
-        #  publisher = "Venthe";
-        #  version = "1.1.4";
-        #  sha256 = "sha256-SoeZpMQlT8vLTh4GS5M89OBGawaOoIYMuQ7vYbQ/lkI=";
-        #}
       ];
     };
   };

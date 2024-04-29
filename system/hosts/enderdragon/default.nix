@@ -94,12 +94,6 @@
           proxy_pass         "http://127.0.0.1:25700";
         '';
       };
-      #"website-the-inbetween" = {
-      #	serverName = "the-inbetween.net";
-      #	forceSSL = true;
-      #  useACMEHost = "the-inbetween.net";
-      #  root = "/srv/the-inbetween-website";
-      #};
     };
   };
 
@@ -123,6 +117,7 @@
       	dataDir = "/srv/ghost";
       };
       ssh_server.enable = true;
+      wireguard.enable = true;
       wireguard.client = {
       	enable = true;
       	clientIP = "192.168.10.7";

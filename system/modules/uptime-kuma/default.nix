@@ -7,10 +7,15 @@ in
 {
   options.shulker.modules.uptime-kuma = {
     enable = mkEnableOption "Enable uptime-kuma service.";
-    url = mkOption {
+    baseUrl = mkOption {
       type = types.str;
       default = "status.example.com";
-      description = "Url where uptime-kuma will be accessible.";
+      description = "Base url where uptime-kuma will be accessible.";
+    };
+    subDomain = mkOption {
+      type = types.str;
+      default = "status.example.com";
+      description = "sub domain where uptime-kuma will be accessible.";
     };
     port = mkOption {
       type = types.port;
@@ -44,9 +49,9 @@ in
       enable = true;
       virtualHosts = {
         "uptime-kuma" = {
-	      serverName = cfg.url;
+	      serverName = "${cfg.subDomain}.${cfg.baseUrl}";
 	      forceSSL = true;
-	      enableACME = true;
+	      useACMEHost = cfg.baseUrl;
 	      locations."/" = {
 	        proxyPass = "http://${cfg.address}:${toString cfg.port}";
 	        extraConfig = ''

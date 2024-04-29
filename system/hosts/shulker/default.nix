@@ -11,15 +11,12 @@
   };
 
   shulker = {
+    profiles.server.enable = true;
     modules = {
       user.home = ./home.nix;
       ssh_server.enable = true;
       docker.enable = true;
-      searx = {
-        enable = true;
-        port = 23234;
-        url = "searx.shulker.fr";
-      };
+      wireguard.enable = true;
       wireguard.server = {
       	enable = true;
       	extInterface = "ens3";
@@ -27,7 +24,20 @@
       uptime-kuma = {
       	enable = true;
       	port = 23231;
-      	url = "status.the-inbetween.net";
+      	baseUrl = "the-inbetween.net";
+      	subDomain = "status";
+      };
+      zitadel = {
+        enable = true;
+        baseUrl = "shulker.fr";
+        subDomain = "auth";
+        port = 23232;
+        dbPort = 23233;
+      };
+      searx = {
+        enable = true;
+        port = 23234;
+        baseUrl = "shulker.fr";
       };
     };
   };

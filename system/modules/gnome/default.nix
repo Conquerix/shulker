@@ -14,7 +14,6 @@ in
       just-perfection # Many options
       appindicator # Systray icons
       gsconnect
-      dynamic-panel-transparency
       vitals
       burn-my-windows # Cool animations
       dash-to-dock # Dock on dekstop

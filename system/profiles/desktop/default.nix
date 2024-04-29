@@ -19,26 +19,17 @@ in
             fonts = [ "JetBrainsMono" "Hack" "Meslo" "UbuntuMono" ];
           }
         )
+        jetbrains-mono
       ];
     };
 
     services.printing.enable = true;
 
     # Sound setting
-    sound.enable = lib.mkForce false;
     security.rtkit.enable = true;
-    services.pipewire = {
-      enable = true;
-      alsa.enable = true;
-      alsa.support32Bit = true;
-      pulse.enable = true;
-      jack.enable = true;
-    };
-    
     hardware = {
       pulseaudio = {
-        #enable = true;
-        enable = false;
+        enable = true;
         package = pkgs.pulseaudioFull;
       };
       bluetooth = {
