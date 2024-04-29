@@ -37,7 +37,7 @@ in
       gnome.gnome-settings-daemon 
     ];
 
-    services.gnome.gnome-keyring.enable = lib.mkForce false;
+    services.gnome.gnome-keyring.enable = true; #lib.mkForce false;
 
     programs.kdeconnect = {
     	enable = true;

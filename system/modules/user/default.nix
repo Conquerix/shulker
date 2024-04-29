@@ -22,7 +22,7 @@ let
     "docker"
     "games"
     "locate"
-    "networmanager"
+    "networkmanager"
     "wheel"
     "plugdev"
   ];
