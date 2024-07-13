@@ -67,15 +67,25 @@ in
         host = "127.0.0.1";
         port = cfg.port;
         theme = "dark";
+        log.file_path = "${cfg.stateDir}/log/log.log";
         default_redirection_url = "https://${cfg.subDomain}.${cfg.baseUrl}";
         authentication_backend.file.path = "${cfg.stateDir}/config/users_database.yml";
         storage.local.path = "${cfg.stateDir}/config/db.sqlite3";
+      };
+      secrets = {
+        jwtSecretFile = "/secrets/authelia-jwt-secret";
+        storageEncryptionKeyFile = "/secrets/authelia-storage-encryption-key";
       };
     };
 
     opsm.secrets = {
       authelia-jwt-secret = {
-        secretRef = "op://Shulker/${config.networking.hostName}/Authela JWT Secret";
+        secretRef = "op://Shulker/${config.networking.hostName}/Authelia JWT Secret";
+        user = "authelia-${cfg.instanceName}";
+        mode = "0500";
+      };
+      authelia-storage-encryption-key = {
+        secretRef = "op://Shulker/${config.networking.hostName}/Authelia Storage Encryption Key";
         user = "authelia-${cfg.instanceName}";
         mode = "0500";
       };
