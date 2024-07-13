@@ -8,7 +8,7 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.initrd.availableKernelModules = [ "ahci" "ehci_pci" "megaraid_sas" "nvme" "usb_storage" "sd_mod" "sr_mod" ];
+  boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "ehci_pci" "megaraid_sas" "nvme" "usbhid" "usb_storage" "sd_mod" "sr_mod" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
@@ -16,52 +16,84 @@
   fileSystems."/" =
     { device = "none";
       fsType = "tmpfs";
-      options = [ "defaults" "size=8G" "mode=755" ];
-    };
-
-  fileSystems."/nix" =
-    { device = "store_pool/nix";
-      fsType = "zfs";
-    };
-
-  fileSystems."/nix/persist/var/log" =
-    { device = "store_pool/log";
-      fsType = "zfs";
-    };
-
-  fileSystems."/home" =
-    { device = "store_pool/home";
-      fsType = "zfs";
+      options = [ "defaults" "size=16G" "mode=755" ];
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/706B-6BB6";
+    { device = "/dev/disk/by-uuid/A716-0EF6";
       fsType = "vfat";
-    };
-
-  fileSystems."/storage/fast" =
-    { device = "fast_pool/fast";
-      fsType = "zfs";
-    };
-
-  fileSystems."/storage/mass" =
-    { device = "mass_pool/mass";
-      fsType = "zfs";
-    };
-
-  fileSystems."/nix/persist" =
-    { device = "cfg_pool/persist";
-      fsType = "zfs";
-      neededForBoot = true;
+      options = ["umask=0077"];
     };
 
   fileSystems."/secrets" =
-    { device = "/nix/persist/secrets";
+    { device = "/dev/disk/by-uuid/5c7e91bc-90a8-4990-b791-768c109cf769";
+      fsType = "ext4";
+    };
+
+  fileSystems."/nix" =
+    { device = "flash_pool/flash/nix";
+      fsType = "zfs";
+      options = [ "zfsutil" ];
+      neededForBoot = true;
+    };
+
+  fileSystems."/nix/persist" =
+    { device = "sd_pool/persist";
+      fsType = "zfs";
+      options = [ "zfsutil" ];
+      neededForBoot = true;
+    };
+
+  fileSystems."/home" =
+    { device = "flash_pool/flash/home";
+      fsType = "zfs";
+      options = [ "zfsutil" ];
+      neededForBoot = true;
+    };
+
+  fileSystems."/storage/flash" =
+    { device = "flash_pool/flash/storage";
+      fsType = "zfs";
+      options = [ "zfsutil" ];
+      neededForBoot = true;
+    };
+
+  fileSystems."/storage/hdd" =
+    { device = "hdd_pool/hdd";
+      fsType = "zfs";
+      options = [ "zfsutil" ];
+      neededForBoot = true;
+    };
+
+  fileSystems."/storage/nvme" =
+    { device = "nvme_pool/nvme";
+      fsType = "zfs";
+      options = [ "zfsutil" ];
+      neededForBoot = true;
+    };
+
+  fileSystems."/storage/sata" =
+    { device = "sata_pool/sata";
+      fsType = "zfs";
+      options = [ "zfsutil" ];
+      neededForBoot = true;
+    };
+
+  fileSystems."/etc/nixos" =
+    { device = "/nix/persist/etc/nixos";
+      fsType = "none";
+      options = [ "bind" ];
+    };
+
+  fileSystems."/var/log" =
+    { device = "/nix/persist/var/log";
       fsType = "none";
       options = [ "bind" ];
     };
 
   swapDevices = [ ];
+  zramSwap.enable = true;
+  
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
   # (the default) this is the recommended approach. When using systemd-networkd it's
