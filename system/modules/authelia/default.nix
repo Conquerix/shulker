@@ -74,7 +74,7 @@ in
         default_redirection_url = "https://${cfg.subDomain}.${cfg.baseUrl}";
         authentication_backend.file.path = "${cfg.stateDir}/config/users_database.yml";
         storage.local.path = "${cfg.stateDir}/config/db.sqlite3";
-        session.cookies.domain = cfg.baseUrl;
+        session.domain = cfg.baseUrl;
         notifier.filesystem.filename = "${cfg.stateDir}/config/notifications.txt";
       };
       secrets = {
