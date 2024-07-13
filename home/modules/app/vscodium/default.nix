@@ -31,6 +31,7 @@ in
         ms-python.isort
         alefragnani.project-manager
         jnoortheen.nix-ide
+        ms-vscode-remote.remote-ssh
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "better-comments";

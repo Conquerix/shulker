@@ -43,7 +43,9 @@
   environment.systemPackages = with pkgs; [
   	chromium
   	keymapp
-  ];
+  ] ++ (with inputs.getchoo.packages.${pkgs.system}; [
+  	modrinth-app
+  ]);
 
   shulker = {
     modules = {

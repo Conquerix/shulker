@@ -13,10 +13,10 @@
     impermanence.url = "github:nix-community/impermanence";
 
 
-    #getchoo = {
-    #  url = "github:getchoo/nix-exprs";
-    #  inputs.nixpkgs.follows = "nixpkgs";
-    #};
+    getchoo = {
+      url = "github:getchoo/nix-exprs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     opsm-nix.url = "github:conquerix/opsm-nix";
 
