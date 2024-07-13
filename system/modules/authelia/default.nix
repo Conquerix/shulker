@@ -69,7 +69,7 @@ in
           port = cfg.port;
         };
         theme = "dark";
-        log.file_path = "${cfg.stateDir}/log/log.log";
+        log.file_path = "${cfg.stateDir}/config/authelia.log";
         access_control.default_policy = "one_factor";
         default_redirection_url = "https://${cfg.subDomain}.${cfg.baseUrl}";
         authentication_backend.file.path = "${cfg.stateDir}/config/users_database.yml";
