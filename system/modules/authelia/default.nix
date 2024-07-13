@@ -1,0 +1,81 @@
+{ config, lib, pkgs, ... }:
+
+with lib;
+let
+  cfg = config.shulker.modules.authelia;
+in
+{
+  options.shulker.modules.authelia = {
+    enable = mkEnableOption "Enable authelia service.";
+    baseUrl = mkOption {
+      type = types.str;
+      default = "example.com";
+      description = "Default url where authelia will be accessible.";
+    };
+    subDomain = mkOption {
+      type = types.str;
+      default = "authelia";
+      description = "Default subdomain where authelia will be accessible.";
+    };
+    port = mkOption {
+      type = types.port;
+      default = 8080;
+      description = "Default internal port to open authelia.";
+    };
+    bindAddresses = mkOption {
+      type = types.listOf types.str;
+      default = [ "0.0.0.0" ];
+      description = "IP addresses to listen to for the nginx hosts.";
+    };
+    instanceName = mkOption {
+      type = types.str;
+      default = "shulker";
+      description = "Default intance name to use.";
+    };
+    dbDataDir = mkOption {
+      type = types.str;
+      default = "/var/lib/authelia";
+      description = "Default path to store authelia data.";
+    };
+  };
+
+  config = mkIf cfg.enable {
+
+    networking.firewall = {
+      enable = true;
+      allowedTCPPorts = [ 80 443 ];
+    };
+
+    services.nginx = {
+      enable = true;
+      virtualHosts = {
+        "authelia" = {
+          serverName = "${cfg.subDomain}.${cfg.baseUrl}";
+          forceSSL = true;
+          useACMEHost = cfg.baseUrl;
+          listenAddresses = cfg.bindAddresses;
+          locations."/" = {
+            proxyPass = "http://127.0.0.1:${toString cfg.port}";
+          };
+        };
+      };
+    };
+
+    services.authelia.instances."${cfg.instanceName}" = {
+      host = "127.0.0.1";
+      port = cfg.port;
+      theme = "dark";
+      default_redirection_url = "https://${cfg.subDomain}.${cfg.baseUrl}";
+      authentication_backend.file.path = "${cfg.data}/config/users_database.yml";
+      storage.local.path = "${cfg.data}/config/db.sqlite3";
+    };
+
+    opsm.secrets = {
+      authelia-jwt-secret = {
+        secretRef = "op://Shulker/${config.networking.hostName}/Authela JWT Secret";
+        user = "authelia-${cfg.instanceName}";
+        mode = "0500";
+      };
+    };
+  };
+}

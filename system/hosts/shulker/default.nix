@@ -18,14 +18,14 @@
       docker.enable = true;
       wireguard.enable = true;
       wireguard.server = {
-      	enable = true;
-      	extInterface = "ens3";
+        enable = true;
+        extInterface = "ens3";
       };
       uptime-kuma = {
-      	enable = true;
-      	port = 23231;
-      	baseUrl = "the-inbetween.net";
-      	subDomain = "status";
+        enable = true;
+        port = 23231;
+        baseUrl = "the-inbetween.net";
+        subDomain = "status";
       };
       zitadel = {
         enable = true;

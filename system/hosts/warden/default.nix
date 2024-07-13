@@ -19,21 +19,28 @@
       impermanence.enable = true;
       ssh_server.enable = true;
       wireguard.enable = true;
-      #gitea = {
-      #  enable = true;
-      #  baseUrl = "shulker.fr";
-      #  subDomain = "git";
-      #  httpPort = 23231;
-      #  stateDir = "/storage/fast/gitea";
-      #  backupDir = "/storage/mass/gitea/backup";
-      #};
-      #jenkins = {
-      #  enable = true;
-      #  baseUrl = "shulker.fr";
-      #  subDomain = "ci";
-      #  httpPort = 23232;
-      #  stateDir = "/storage/fast/jenkins";
-      #};
+      authelia = {
+        enable = true;
+        baseUrl = "shulker.fr";
+        subDomain = "auth";
+        port = 23233;
+        stateDir = "/storage/flash/authelia";
+      };
+      gitea = {
+        enable = true;
+        baseUrl = "shulker.fr";
+        subDomain = "git";
+        httpPort = 23231;
+        stateDir = "/storage/flash/gitea";
+        backupDir = "/storage/hdd/gitea/backup";
+      };
+      jenkins = {
+        enable = true;
+        baseUrl = "shulker.fr";
+        subDomain = "ci";
+        httpPort = 23232;
+        stateDir = "/storage/flash/jenkins";
+      };
     };
   };
 }
