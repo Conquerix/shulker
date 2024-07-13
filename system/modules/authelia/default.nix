@@ -62,12 +62,15 @@ in
     };
 
     services.authelia.instances."${cfg.instanceName}" = {
-      host = "127.0.0.1";
-      port = cfg.port;
-      theme = "dark";
-      default_redirection_url = "https://${cfg.subDomain}.${cfg.baseUrl}";
-      authentication_backend.file.path = "${cfg.stateDir}/config/users_database.yml";
-      storage.local.path = "${cfg.stateDir}/config/db.sqlite3";
+      enable = true;
+      settings = {
+        host = "127.0.0.1";
+        port = cfg.port;
+        theme = "dark";
+        default_redirection_url = "https://${cfg.subDomain}.${cfg.baseUrl}";
+        authentication_backend.file.path = "${cfg.stateDir}/config/users_database.yml";
+        storage.local.path = "${cfg.stateDir}/config/db.sqlite3";
+      };
     };
 
     opsm.secrets = {
