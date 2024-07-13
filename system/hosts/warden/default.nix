@@ -11,6 +11,11 @@
   # For zfs.
   networking.hostId = "2118dc3b";
 
+  # Disable this to try and solve the nework manager wait online failed after each rebuild.
+  # Only on warden for now, but may go on common profile.
+  systemd.network.wait-online.enable = false;
+  boot.initrd.systemd.network.wait-online.enable = false;
+
   shulker = {
     profiles.server.enable = true;
     modules = {
