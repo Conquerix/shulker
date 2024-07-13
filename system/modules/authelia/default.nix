@@ -64,13 +64,18 @@ in
     services.authelia.instances."${cfg.instanceName}" = {
       enable = true;
       settings = {
-        host = "127.0.0.1";
-        port = cfg.port;
+        server = {
+          host = "127.0.0.1";
+          port = cfg.port;
+        };
         theme = "dark";
         log.file_path = "${cfg.stateDir}/log/log.log";
+        access_control.default_policy = "one_factor";
         default_redirection_url = "https://${cfg.subDomain}.${cfg.baseUrl}";
         authentication_backend.file.path = "${cfg.stateDir}/config/users_database.yml";
         storage.local.path = "${cfg.stateDir}/config/db.sqlite3";
+        session.cookies.domain = cfg.baseUrl;
+        notifier.filesystem.filename = "${cfg.stateDir}/config/notifications.txt";
       };
       secrets = {
         jwtSecretFile = "/secrets/authelia-jwt-secret";

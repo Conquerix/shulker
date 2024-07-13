@@ -27,13 +27,6 @@
         baseUrl = "the-inbetween.net";
         subDomain = "status";
       };
-      zitadel = {
-        enable = true;
-        baseUrl = "shulker.fr";
-        subDomain = "auth";
-        port = 23232;
-        dbPort = 23233;
-      };
       searx = {
         enable = true;
         port = 23234;
