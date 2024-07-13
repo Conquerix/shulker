@@ -32,7 +32,7 @@ in
       default = "shulker";
       description = "Default intance name to use.";
     };
-    dbDataDir = mkOption {
+    stateDir = mkOption {
       type = types.str;
       default = "/var/lib/authelia";
       description = "Default path to store authelia data.";
@@ -66,8 +66,8 @@ in
       port = cfg.port;
       theme = "dark";
       default_redirection_url = "https://${cfg.subDomain}.${cfg.baseUrl}";
-      authentication_backend.file.path = "${cfg.data}/config/users_database.yml";
-      storage.local.path = "${cfg.data}/config/db.sqlite3";
+      authentication_backend.file.path = "${cfg.stateDir}/config/users_database.yml";
+      storage.local.path = "${cfg.stateDir}/config/db.sqlite3";
     };
 
     opsm.secrets = {
