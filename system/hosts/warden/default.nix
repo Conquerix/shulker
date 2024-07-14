@@ -24,13 +24,6 @@
       impermanence.enable = true;
       ssh_server.enable = true;
       wireguard.enable = true;
-      authelia = {
-        enable = true;
-        baseUrl = "shulker.fr";
-        subDomain = "auth";
-        port = 23233;
-        stateDir = "/storage/flash/authelia";
-      };
       gitea = {
         enable = true;
         baseUrl = "shulker.fr";
