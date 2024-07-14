@@ -14,7 +14,7 @@ in
     };
     name = mkOption {
       type = types.str;
-      default = "${config.networking.hostName}-gitea-runner-0";
+      default = "${config.networking.hostName}0";
       description = "Name of the runner instance";
     };
     labels = mkOption {
