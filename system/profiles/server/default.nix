@@ -11,7 +11,7 @@ in
 
   config = mkIf cfg.enable {
     security.acme = {
-      defaults.email = "pierre@fournier.net";
+      defaults.email = "${config.networking.hostName}@shulker.fr";
       acceptTerms = true;
       certs."shulker.fr" = {
         domain = "shulker.fr";
