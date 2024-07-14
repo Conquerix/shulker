@@ -32,12 +32,9 @@
         stateDir = "/storage/flash/gitea";
         backupDir = "/storage/hdd/gitea/backup";
       };
-      jenkins = {
+      gitea-actions-runner = {
         enable = true;
-        baseUrl = "shulker.fr";
-        subDomain = "ci";
-        httpPort = 23232;
-        stateDir = "/storage/flash/jenkins";
+        url = "git.shulker.fr";
       };
     };
   };
