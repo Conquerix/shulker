@@ -27,13 +27,13 @@ in
         dnsPropagationCheck = true;
         credentialsFile = "/secrets/ovh-wildcard-ca";
       };
-      certs."fournier.ltd" = {
-        domain = "fournier.ltd";
-        extraDomainNames = [ "*.fournier.ltd" ];
-        dnsProvider = "ovh";
-        dnsPropagationCheck = true;
-        credentialsFile = "/secrets/ovh-wildcard-ca";
-      };
+      #certs."fournier.ltd" = {
+      #  domain = "fournier.ltd";
+      #  extraDomainNames = [ "*.fournier.ltd" ];
+      #  dnsProvider = "ovh";
+      #  dnsPropagationCheck = true;
+      #  credentialsFile = "/secrets/ovh-wildcard-ca";
+      #};
     };
 
     services.nginx = {
