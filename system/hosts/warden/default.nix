@@ -34,7 +34,7 @@
       };
       gitea-actions-runner = {
         enable = true;
-        url = "git.shulker.fr";
+        url = "https://git.shulker.fr";
       };
     };
   };
