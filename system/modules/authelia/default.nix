@@ -70,6 +70,7 @@ in
         };
         theme = "dark";
         log.file_path = "${cfg.stateDir}/config/authelia.log";
+        log.format = "text";
         access_control.default_policy = "one_factor";
         default_redirection_url = "https://${cfg.subDomain}.${cfg.baseUrl}";
         authentication_backend.file.path = "${cfg.stateDir}/config/users_database.yml";
@@ -87,12 +88,12 @@ in
       authelia-jwt-secret = {
         secretRef = "op://Shulker/${config.networking.hostName}/Authelia JWT Secret";
         user = "authelia-${cfg.instanceName}";
-        mode = "0500";
+        mode = "0600";
       };
       authelia-storage-encryption-key = {
         secretRef = "op://Shulker/${config.networking.hostName}/Authelia Storage Encryption Key";
         user = "authelia-${cfg.instanceName}";
-        mode = "0500";
+        mode = "0600";
       };
     };
   };
