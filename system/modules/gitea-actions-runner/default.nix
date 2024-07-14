@@ -18,7 +18,7 @@ in
       description = "Name of the runner instance";
     };
     labels = mkOption {
-      type = lib.listOf types.str;
+      type = listOf types.str;
       default = [ 
         "ubuntu-latest:docker://gitea/runner-images:ubuntu-latest"
         "ubuntu-22.04:docker://gitea/runner-images:ubuntu-22.04"
