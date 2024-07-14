@@ -45,6 +45,8 @@ in
 
     opsm.secrets = {
       gitea-runner-registration-token.secretRef = "op://Shulker/${cfg.giteaHost}/Gitea Runner Registration Token";
+      user = "gitea-runner";
+      mode = "0400";
     };
   };
 }
