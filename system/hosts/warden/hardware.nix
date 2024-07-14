@@ -33,49 +33,42 @@
   fileSystems."/nix" =
     { device = "flash_pool/flash/nix";
       fsType = "zfs";
-      options = [ "zfsutil" ];
       neededForBoot = true;
     };
 
   fileSystems."/nix/persist" =
     { device = "sd_pool/persist";
       fsType = "zfs";
-      options = [ "zfsutil" ];
       neededForBoot = true;
     };
 
   fileSystems."/home" =
     { device = "flash_pool/flash/home";
       fsType = "zfs";
-      options = [ "zfsutil" ];
       neededForBoot = true;
     };
 
   fileSystems."/storage/flash" =
     { device = "flash_pool/flash/storage";
       fsType = "zfs";
-      options = [ "zfsutil" ];
       neededForBoot = true;
     };
 
   fileSystems."/storage/hdd" =
     { device = "hdd_pool/hdd";
       fsType = "zfs";
-      options = [ "zfsutil" ];
       neededForBoot = true;
     };
 
   fileSystems."/storage/nvme" =
     { device = "nvme_pool/nvme";
       fsType = "zfs";
-      options = [ "zfsutil" ];
       neededForBoot = true;
     };
 
   fileSystems."/storage/sata" =
     { device = "sata_pool/sata";
       fsType = "zfs";
-      options = [ "zfsutil" ];
       neededForBoot = true;
     };
 

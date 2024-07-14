@@ -29,7 +29,7 @@
         baseUrl = "shulker.fr";
         subDomain = "auth";
         port = 23233;
-        stateDir = "/storage/flash/authelia";
+        stateDir = "/storage/hdd/authelia";
       };
       gitea = {
         enable = true;
