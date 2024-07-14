@@ -32,9 +32,10 @@
         stateDir = "/storage/flash/gitea";
         backupDir = "/storage/hdd/gitea/backup";
       };
-      gitea-actions-runner = {
+      github-runner = {
         enable = true;
-        url = "https://git.shulker.fr";
+        owner = "The-InBetween";
+        workDir = "/storage/nvme/github-runner";
       };
     };
   };
