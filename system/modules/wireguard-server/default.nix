@@ -59,12 +59,12 @@ in
             allowedIPs = [ "192.168.10.3/32" ];
           }
           { # Wither
-          	publicKey = "9JNyydvMlIDGpOCwAW6a8TzPALGvRq2UKBiPFLV8GwM=";
-          	allowedIPs = [ "192.168.10.4/32" ];
+            publicKey = "9JNyydvMlIDGpOCwAW6a8TzPALGvRq2UKBiPFLV8GwM=";
+            allowedIPs = [ "192.168.10.4/32" ];
           }
           { # Guardian
-          	publicKey = "J2amctRH90iC1bnd2UnqOp9D9Rpbgmb0w/Xs+caB83U=";
-          	allowedIPs = [ "192.168.10.5/32" ];
+            publicKey = "J2amctRH90iC1bnd2UnqOp9D9Rpbgmb0w/Xs+caB83U=";
+            allowedIPs = [ "192.168.10.5/32" ];
           }
           { # Vindicator
             publicKey = "2xrdv1hBlJAQx8jo5P6hie6QzWSjbdGC8wP4pvCP6Rs=";

@@ -56,7 +56,7 @@ in
       '';
     };
 
-     publicSSHKeys = mkOption {
+    publicSSHKeys = mkOption {
       type = types.listOf types.str;
       default = defaultPublicSSHKeys;
       description = "User's list of authorized keys for ssh login";

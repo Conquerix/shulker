@@ -39,9 +39,9 @@ in
     services.uptime-kuma = {
       enable = cfg.enable;
       settings = {
-      	HOST = cfg.address;
-      	PORT = "${toString cfg.port}";
-      	DATA_DIR = cfg.dataDir;
+        HOST = cfg.address;
+        PORT = "${toString cfg.port}";
+        DATA_DIR = cfg.dataDir;
       };
     };
     
@@ -49,18 +49,18 @@ in
       enable = true;
       virtualHosts = {
         "uptime-kuma" = {
-	      serverName = "${cfg.subDomain}.${cfg.baseUrl}";
-	      forceSSL = true;
-	      useACMEHost = cfg.baseUrl;
-	      locations."/" = {
-	        proxyPass = "http://${cfg.address}:${toString cfg.port}";
-	        extraConfig = ''
-	          proxy_set_header Upgrade $http_upgrade;    
-	          proxy_set_header Connection "upgrade";
-	        '';
-	      };
-	    };
-	  };
+        serverName = "${cfg.subDomain}.${cfg.baseUrl}";
+        forceSSL = true;
+        useACMEHost = cfg.baseUrl;
+        locations."/" = {
+          proxyPass = "http://${cfg.address}:${toString cfg.port}";
+          extraConfig = ''
+            proxy_set_header Upgrade $http_upgrade;    
+            proxy_set_header Connection "upgrade";
+          '';
+        };
+      };
+    };
     };
 
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {

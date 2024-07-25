@@ -62,14 +62,14 @@ in
     
 
 	virtualisation.oci-containers.containers = {
-	  crafty-controller = {
-	    image = "arcadiatechnology/crafty-4:latest";
-	    ports = [ 
-	      "${toString cfg.webPort}:8080"
-	      "${toString cfg.httpsPort}:8443"
-		  "25600-25999:25600-25999"
-	      "25600-25999:25600-25999/udp"
-	    ];
+    crafty-controller = {
+      image = "arcadiatechnology/crafty-4:latest";
+      ports = [ 
+        "${toString cfg.webPort}:8080"
+        "${toString cfg.httpsPort}:8443"
+      "25600-25999:25600-25999"
+        "25600-25999:25600-25999/udp"
+      ];
         volumes = [
           "${cfg.storagePath}/backups:/crafty/backups"
           "${cfg.storagePath}/logs:/crafty/logs"
@@ -77,11 +77,11 @@ in
           "${cfg.storagePath}/config:/crafty/app/config"
           "${cfg.storagePath}/import:/crafty/import"
         ];
-	  };
+    };
 	};
 
 	environment = mkIf (config.shulker.modules.impermanence.enable) {
-	  persistence."/nix/persist".directories = [ "/var/lib/crafty-controller" ];
+    persistence."/nix/persist".directories = [ "/var/lib/crafty-controller" ];
 	};
   };
 }

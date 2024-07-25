@@ -72,22 +72,22 @@ in
   };
 
   virtualisation.oci-containers.containers = {
-  	minecraft-velocity = {
+    minecraft-velocity = {
       image = "itzg/bungeecord";
       ports = [ "25565:25577" ];
       environment = {
-      	TYPE = "VELOCITY";
-      	debug = ''"false"'';
-      	ENABLE_RCON = ''"true"'';
-      	JVM_XX_OPTS = "-XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled -XX:+AlwaysPreTouch -XX:MaxInlineLevel=15";
-      	#MEMORY = "2048m";
-      	PLUGINS = "${asl_url},${vv_url},${vr_url},${ev_url},${mtn_url},${sgui_url},${ptcl_url},${vver_url},${vb_url},${lp_url},${cmib_url}";
+        TYPE = "VELOCITY";
+        debug = ''"false"'';
+        ENABLE_RCON = ''"true"'';
+        JVM_XX_OPTS = "-XX:+UseG1GC -XX:G1HeapRegionSize=4M -XX:+UnlockExperimentalVMOptions -XX:+ParallelRefProcEnabled -XX:+AlwaysPreTouch -XX:MaxInlineLevel=15";
+        #MEMORY = "2048m";
+        PLUGINS = "${asl_url},${vv_url},${vr_url},${ev_url},${mtn_url},${sgui_url},${ptcl_url},${vver_url},${vb_url},${lp_url},${cmib_url}";
       };
       volumes = [
-      	"/docker/minecraft-velocity/server:/server"
-      	"/docker/minecraft-velocity/config:/config"
-      	"/docker/minecraft-velocity/plugins:/plugins"
+        "/docker/minecraft-velocity/server:/server"
+        "/docker/minecraft-velocity/config:/config"
+        "/docker/minecraft-velocity/plugins:/plugins"
       ];
-  	};
+    };
   };
 }

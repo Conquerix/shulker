@@ -61,22 +61,22 @@ in
     #  };
     #};
 
-	virtualisation.oci-containers.containers = {
-	  onedev = {
-	    image = "1dev/server";
-	    ports = [ 
-	      "${toString cfg.webPort}:6610"
-	      "${toString cfg.nodePort}:6611"
-	    ];
-        volumes = [
-          "${cfg.storagePath}:/opt/onedev"
-          "/run/docker.sock:/var/run/docker.sock"
+    virtualisation.oci-containers.containers = {
+      onedev = {
+        image = "1dev/server";
+        ports = [ 
+          "${toString cfg.webPort}:6610"
+          "${toString cfg.nodePort}:6611"
         ];
-	  };
-	};
+          volumes = [
+            "${cfg.storagePath}:/opt/onedev"
+            "/run/docker.sock:/var/run/docker.sock"
+          ];
+      };
+    };
 
-	environment = mkIf (config.shulker.modules.impermanence.enable) {
-	  persistence."/storage/mass/persist".directories = [ "${cfg.storagePath}" ];
-	};
+    environment = mkIf (config.shulker.modules.impermanence.enable) {
+      persistence."/storage/mass/persist".directories = [ "${cfg.storagePath}" ];
+    };
   };
 }

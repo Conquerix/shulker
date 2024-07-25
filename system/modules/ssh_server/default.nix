@@ -12,20 +12,20 @@ in
       enable = mkEnableOption "Enable tor service for reliable ssh access";
 
       port = mkOption {
-      	type = types.port;
-      	default = 22;
-      	description = "Default port to open to tor. Changing it is highly recommended !";
+        type = types.port;
+        default = 22;
+        description = "Default port to open to tor. Changing it is highly recommended !";
       };
     };
   };
 
   config = mkIf cfg.ssh_server.enable {
 
-     opsm.secrets.ssh-ed25519-key = {
-       secretRef = "op://Shulker/${config.networking.hostName} ssh ed25519/private_key";
-       sshKey = true;
-       mode = "0600";
-     };
+    opsm.secrets.ssh-ed25519-key = {
+      secretRef = "op://Shulker/${config.networking.hostName} ssh ed25519/private_key";
+      sshKey = true;
+      mode = "0600";
+    };
 
     services.openssh = {
       enable = true;
@@ -46,15 +46,15 @@ in
         (mkIf (cfg.ssh_server.tor.enable){
           file = "/run/keys/tor/ssh_access/hs_ed25519_secret_key";
           parentDirectory = {
-          	user = "tor";
-          	group = "tor";
-          	mode = "u=rw,g=,o=";
+            user = "tor";
+            group = "tor";
+            mode = "u=rw,g=,o=";
           };
         })
       ];
     };
 
-  	services.tor = mkIf (cfg.ssh_server.tor.enable) {
+    services.tor = mkIf (cfg.ssh_server.tor.enable) {
       enable = true;
       enableGeoIP = false;
       relay.onionServices = {

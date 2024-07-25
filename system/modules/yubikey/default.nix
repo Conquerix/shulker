@@ -18,9 +18,9 @@ in
     ];
 
     security.pam.yubico = {
-       enable = true;
-       debug = false;
-       mode = "challenge-response";
+        enable = true;
+        debug = false;
+        mode = "challenge-response";
     };
 
     programs.gnupg.agent = {

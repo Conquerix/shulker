@@ -2,9 +2,9 @@
 
 {
   manual = {
-  	html.enable = false;
-  	manpages.enable = lib.mkForce false;
-  	json.enable = false;
+    html.enable = false;
+    manpages.enable = lib.mkForce false;
+    json.enable = false;
   };
   shulker = {
     modules = {

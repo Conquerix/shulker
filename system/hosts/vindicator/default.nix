@@ -9,7 +9,7 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "zfs" ];
   networking.hostId =   "f58f5990";
-  
+
   networking.hostName = "vindicator";
 
   boot = {
@@ -39,7 +39,7 @@
       };
     };
   };
-    
+
 
   zramSwap.enable = true;
 
@@ -54,28 +54,28 @@
       allowedUDPPortRanges = [
         {from = 25600; to = 26001;} #Minecraft Servers (voice chats, etc.)
       ];
-      
+
     };
-  
+
     networkmanager.enable = false;
     useDHCP = false;
 
     nameservers = [ "9.9.9.9" ];
-  
+
     interfaces.enp1s0f0 = {
       useDHCP = false;
-  
+
       ipv4.addresses = [{
         address = "141.94.96.139";
         prefixLength = 32;
       }];
-  
+
       ipv6.addresses = [{
         address = "2001:41d0:403:478b::";
         prefixLength = 64;
       }];
     };
- 
+
     defaultGateway = {
       address = "141.94.96.254";
       interface = "enp1s0f0";
@@ -98,8 +98,8 @@
         enable = true;
       };
       wireguard.client = {
-      	enable = true;
-      	clientIP = "192.168.10.6";
+        enable = true;
+        clientIP = "192.168.10.6";
       };
       pterodactyl = {
         wings = {

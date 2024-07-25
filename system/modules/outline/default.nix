@@ -54,18 +54,18 @@ in
       enable = true;
       virtualHosts = {
         "outline" = {
-	      serverName = cfg.url;
-	      forceSSL = true;
-	      useACMEHost = "the-inbetween.net";
-	      locations."/" = {
-	        proxyPass = "http://${cfg.address}:${toString cfg.port}";
-	        extraConfig = ''
-	          proxy_set_header Upgrade $http_upgrade;    
-	          proxy_set_header Connection "upgrade";
-	        '';
-	      };
-	    };
-	  };
+        serverName = cfg.url;
+        forceSSL = true;
+        useACMEHost = "the-inbetween.net";
+        locations."/" = {
+          proxyPass = "http://${cfg.address}:${toString cfg.port}";
+          extraConfig = ''
+            proxy_set_header Upgrade $http_upgrade;    
+            proxy_set_header Connection "upgrade";
+          '';
+        };
+      };
+    };
     };
 
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {

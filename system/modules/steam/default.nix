@@ -34,9 +34,9 @@ in
         };
       systemPackages = with pkgs; [
         steamtinkerlaunch
-      	protonup
-      	protontricks
-      	steam-tui
+        protonup
+        protontricks
+        steam-tui
       ];
     };
   };

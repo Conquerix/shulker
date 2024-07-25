@@ -7,7 +7,7 @@
   ];
 
   environment.systemPackages = with pkgs; [
-  	mc-monitor
+    mc-monitor
   ];
 
   zramSwap.enable = true;
@@ -25,7 +25,7 @@
   
   networking = {
     firewall = {
-	  trustedInterfaces = [ "docker0" "pterodactyl0" ];
+    trustedInterfaces = [ "docker0" "pterodactyl0" ];
       enable = true;
       allowedTCPPorts = [ 80 443 4443 27000 2022 25565 26600 ];
       allowedUDPPorts = [ 25565 26600 ];
@@ -106,21 +106,21 @@
         docker = true;
       };
       outline = {
-      	enable = true;
-      	port = 23231;
-      	url = "wiki.the-inbetween.net";
+        enable = true;
+        port = 23231;
+        url = "wiki.the-inbetween.net";
       };
       ghost = {
-      	enable = true;
-      	port = 23232;
-      	url = "the-inbetween.net";
-      	dataDir = "/srv/ghost";
+        enable = true;
+        port = 23232;
+        url = "the-inbetween.net";
+        dataDir = "/srv/ghost";
       };
       ssh_server.enable = true;
       wireguard.enable = true;
       wireguard.client = {
-      	enable = true;
-      	clientIP = "192.168.10.7";
+        enable = true;
+        clientIP = "192.168.10.7";
       };
       pterodactyl = {
         panel.enable = true;

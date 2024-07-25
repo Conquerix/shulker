@@ -7,9 +7,9 @@ in
   options.shulker.modules.wireguard.client = {
     enable = mkEnableOption "Enable wireguard client";
     clientIP = mkOption {
-    	description = ''Address of the client in the server's subnet'';
-    	type = types.str;
-    	default = "192.160.10.0";
+      description = ''Address of the client in the server's subnet'';
+      type = types.str;
+      default = "192.160.10.0";
     };
     vpn = mkEnableOption "Enable vpn mode";
   };

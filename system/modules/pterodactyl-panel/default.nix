@@ -146,12 +146,12 @@ in
       package = pkgs.mariadb;
       ensureDatabases = [ "panel" ];
       ensureUsers = [
-      	{
-      	  name = "pterodactyl";
-      	  ensurePermissions = {
-      	  	"panel.*" = "ALL PRIVILEGES";
-      	  };
-      	}
+        {
+          name = "pterodactyl";
+          ensurePermissions = {
+          "panel.*" = "ALL PRIVILEGES";
+          };
+        }
       ];
     };
 

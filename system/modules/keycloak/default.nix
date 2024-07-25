@@ -48,7 +48,7 @@ in
       plugins = with pkgs; [ keycloak-discord ];
   
       database = {
-      	type = "mariadb";
+        type = "mariadb";
         createLocally = true;
   
         username = "keycloak";

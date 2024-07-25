@@ -39,8 +39,8 @@ in
     services.gnome.gnome-keyring.enable = lib.mkForce false;
 
     programs.kdeconnect = {
-    	enable = true;
-    	package = pkgs.gnomeExtensions.gsconnect;
+      enable = true;
+      package = pkgs.gnomeExtensions.gsconnect;
     };
   };
 }
