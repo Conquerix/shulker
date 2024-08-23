@@ -36,7 +36,7 @@ in
 
   config = mkIf cfg.enable {
 
-    services.transimission = {
+    services.transmission = {
       enable = true;
       openFirewall = true;
       openRPCPort = true;
