@@ -44,7 +44,7 @@ in
         download-dir = cfg.stateDir;
         incomplete-dir ="${cfg.stateDir}/.incomplete";
         rpc-port = cfg.port;
-        rpc-whitelist = ["127.0.0.1" "${cfg.subDomain}.${cfg.baseUrl}"];
+        rpc-host-whitelist = "${cfg.subDomain}.${cfg.baseUrl}";
       };
     };
 
