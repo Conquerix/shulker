@@ -67,6 +67,7 @@ with lib;
       htop
       nh
       devenv
+      devbox
     ];
 
     opsm = {

@@ -32,12 +32,19 @@ in
         alefragnani.project-manager
         jnoortheen.nix-ide
         ms-vscode-remote.remote-ssh
+        rust-lang.rust-analyzer
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "better-comments";
           publisher = "aaron-bond";
           version = "3.0.2";
           sha256 = "sha256-hQmA8PWjf2Nd60v5EAuqqD8LIEu7slrNs8luc3ePgZc=";
+        }
+        {
+          name = "devbox";
+          publisher = "jetpack-io";
+          version = "0.1.5";
+          sha256 = "sha256-+nIeDaz1NPYFoxFVC8GQxtU1MU/sbdFETAQWzVX6LGQ=";
         }
       ];
     };

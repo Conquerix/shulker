@@ -24,8 +24,8 @@ in
       pop-shell # Better than forge right above ?
       spotify-tray
     ] ++ [
-      pkgs.gnome.gnome-themes-extra
-      pkgs.gnome.gnome-tweaks
+      pkgs.gnome-themes-extra
+      pkgs.gnome-tweaks
       pkgs.gtk-engine-murrine
       pkgs.sassc
       pkgs.okular

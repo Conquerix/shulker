@@ -37,6 +37,13 @@
         owner = "The-InBetween";
         workDir = "/storage/nvme/github-runner";
       };
+      transimission = {
+        enable = true;
+        baseUrl = "shulker.fr";
+        subDomain = "torrent";
+        port = "23232";
+        stateDir = "/storage/flash/transmission";
+      };
     };
   };
 }
