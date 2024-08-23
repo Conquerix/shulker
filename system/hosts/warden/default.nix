@@ -41,7 +41,7 @@
         enable = true;
         baseUrl = "shulker.fr";
         subDomain = "torrent";
-        port = "23232";
+        port = 23232;
         stateDir = "/storage/flash/transmission";
       };
     };
