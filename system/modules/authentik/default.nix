@@ -40,7 +40,7 @@ in
         disable_startup_analytics = true;
         avatars = "initials";
       };
-  };
+    };
 
     services.nginx = {
       enable = true;
