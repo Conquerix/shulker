@@ -100,7 +100,7 @@ in
               Audience = cfg.clientID;
               ClientID = cfg.clientID;
               Domain = "";
-              AuthorizationEndpoint = "${authBaseUrl}/authorize/";
+              AuthorizationEndpoint = "${cfg.authBaseUrl}/authorize/";
               TokenEndpoint = "${cfg.authBaseUrl}/token/";
               Scope = "openid profile email offline_access api";
             };
