@@ -17,6 +17,16 @@ in
       default = "netbird";
       description = "Default subdomain where netbird will be accessible.";
     };
+    mgmtPort = mkOption {
+      type = types.port;
+      default = 8011;
+      description = "Default internal port to open netbird management.";
+    };
+    signalPort = mkOption {
+      type = types.port;
+      default = 8012;
+      description = "Default internal port to open netbird signal.";
+    };
     clientID = mkOption {
       type = types.str;
       description = "Auth client ID of netbird";
@@ -54,8 +64,11 @@ in
         AUTH_AUTHORITY = cfg.authAuthority;
       };
 
+      signal.port = cfg.signalPort;
+
       management = {
         oidcConfigEndpoint = cfg.oidcConfigEndpoint;
+        port = cfg.mgmtPort;
 
         settings = {
           TURNConfig = {
@@ -88,7 +101,7 @@ in
             internal;
           '';
 
-          "/api".proxyPass = "http://localhost:${builtins.toString cfg.port}";
+          "/api".proxyPass = "http://localhost:${builtins.toString cfg.mgmtPort}";
 
           "/management.ManagementService/".extraConfig = ''
             # This is necessary so that grpc connections do not get closed early
@@ -97,7 +110,7 @@ in
 
             grpc_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
-            grpc_pass grpc://localhost:${builtins.toString cfg.port};
+            grpc_pass grpc://localhost:${builtins.toString cfg.mgmtPort};
             grpc_read_timeout 1d;
             grpc_send_timeout 1d;
             grpc_socket_keepalive on;
@@ -110,7 +123,7 @@ in
 
             grpc_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
-            grpc_pass grpc://localhost:${builtins.toString cfg.port};
+            grpc_pass grpc://localhost:${builtins.toString cfg.signalPort};
             grpc_read_timeout 1d;
             grpc_send_timeout 1d;
             grpc_socket_keepalive on;
