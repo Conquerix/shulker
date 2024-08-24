@@ -72,7 +72,7 @@ in
 
         settings = {
           HttpConfig = {
-            Address = "0.0.0.0:${cfg.mgmtPort}";
+            Address = "0.0.0.0:${builtins.toString cfg.mgmtPort}";
             AuthIssuer = "${cfg.authBaseUrl}/netbird/";
             AuthAudience = cfg.clientID;
           };
