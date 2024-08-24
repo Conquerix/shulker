@@ -75,6 +75,7 @@ in
             Address = "0.0.0.0:${builtins.toString cfg.mgmtPort}";
             AuthIssuer = "${cfg.authBaseUrl}/netbird/";
             AuthAudience = cfg.clientID;
+            AuthKeysLocation = "${cfg.authBaseUrl}/netbird/jwks/";
           };
           TURNConfig = {
             Turns = [
@@ -87,22 +88,29 @@ in
             ];
           };
           DeviceAuthorizationFlow = {
+            Provider = "hosted";
             ProviderConfig = {
               Audience = cfg.clientID;
               Domain = "${cfg.subDomain}.${cfg.baseUrl}";
               ClientID = cfg.clientID;
               TokenEndpoint = "${cfg.authBaseUrl}/token/";
               DeviceAuthEndpoint = "${cfg.authBaseUrl}/device/";
+              Scope = "openid";
+              UseIDToken = false;
+
             };
           };
           PKCEAuthorizationFlow = {
             ProviderConfig = {
               Audience = cfg.clientID;
               ClientID = cfg.clientID;
+              ClientSecret = "";
               Domain = "";
               AuthorizationEndpoint = "${cfg.authBaseUrl}/authorize/";
               TokenEndpoint = "${cfg.authBaseUrl}/token/";
               Scope = "openid profile email offline_access api";
+              RedirectURLs = ["http://localhost:53000"];
+              UseIDToken = false;
             };
           };
           DataStoreEncryptionKey._secret = "/secrets/netbird-datastore-key";
@@ -115,7 +123,7 @@ in
               GrantType = "client_credentials";
             };
             ExtraConfig = {
-              Username = "netbird";
+              Username = "Netbird";
               Password._secret = "/secrets/authentik-netbird-svc-password";
             };
           };
