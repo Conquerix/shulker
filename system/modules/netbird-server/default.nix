@@ -90,6 +90,10 @@ in
               ClientID = cfg.clientID;
               GrantType = "client_credentials";
             };
+            ExtraConfig = {
+              username = "netbird";
+              password._secret = "/secrets/authentik-netbird-svc-password";
+            };
           };
         };
       };
@@ -144,7 +148,7 @@ in
 
     opsm.secrets = {
       authentik-netbird-client-id.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Netbird Client ID";
-      authentik-netbird-svc-password.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Nebird svc password | ID: Netbird";
+      authentik-netbird-svc-password.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Nebird svc password";
       netbird-coturn-secret = {
         secretRef = "op://Shulker/${config.networking.hostName}/Netbird Coturn Secret";
         user = "turnserver";
