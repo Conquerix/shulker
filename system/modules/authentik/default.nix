@@ -40,7 +40,7 @@ in
       enable = true;
       # The environmentFile needs to be on the target host!
       # Best use something like sops-nix or agenix to manage it
-      environmentFile = "/run/secrets/authentik/authentik-env";
+      environmentFile = "/secrets/authentik-env-file";
       settings = {
         listen.port = cfg.port;
         disable_startup_analytics = true;
