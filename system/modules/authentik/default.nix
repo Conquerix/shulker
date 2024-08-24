@@ -17,7 +17,7 @@ in
       default = "authentik";
       description = "Default subdomain where authentik will be accessible.";
     };
-    httpPort = mkOption {
+    port = mkOption {
       type = types.port;
       default = 8080;
       description = "Default internal port to open authentik.";
@@ -42,7 +42,7 @@ in
       # Best use something like sops-nix or agenix to manage it
       environmentFile = "/run/secrets/authentik/authentik-env";
       settings = {
-        listen.port = cfg.httpPort;
+        listen.port = cfg.port;
         disable_startup_analytics = true;
         avatars = "initials";
       };
@@ -56,7 +56,7 @@ in
         useACMEHost = cfg.baseUrl;
         locations."/" = {
           proxyWebsockets = true;
-          proxyPass = "http://127.0.0.1:${toString cfg.httpPort}";
+          proxyPass = "http://127.0.0.1:${toString cfg.port}";
         };
       };
     };
