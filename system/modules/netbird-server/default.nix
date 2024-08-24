@@ -86,6 +86,25 @@ in
               }
             ];
           };
+          DeviceAuthorizationFlow = {
+            ProviderConfig = {
+              Audience = cfg.clientID;
+              Domain = "${cfg.subDomain}.${cfg.baseUrl}";
+              ClientID = cfg.clientID;
+              TokenEndpoint = "${cfg.authBaseUrl}/token/";
+              DeviceAuthEndpoint = "${cfg.authBaseUrl}/device/";
+            };
+          };
+          PKCEAuthorizationFlow = {
+            ProviderConfig = {
+              Audience = cfg.clientID;
+              ClientID = cfg.clientID;
+              Domain = "";
+              AuthorizationEndpoint = "${authBaseUrl}/authorize/";
+              TokenEndpoint = "${cfg.authBaseUrl}/token/";
+              Scope = "openid profile email offline_access api";
+            };
+          };
           DataStoreEncryptionKey._secret = "/secrets/netbird-datastore-key";
           IdpManagerConfig = {
             ManagerType = "authentik";
