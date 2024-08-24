@@ -81,6 +81,7 @@ in
       intelBusId = cfg.hybrid.intelBusId;
       amdgpuBusId = cfg.hybrid.amdgpuBusId;
       nvidiaBusId = cfg.hybrid.nvidiaBusId;
-      };
     };
-  }
+    hardware.nvidia-container-toolkit.enable = true;
+  };
+}
