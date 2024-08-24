@@ -21,6 +21,7 @@ in
 
       directories = [
         "/var/log"
+        "/var/lib/nixos"
         "/var/lib/bluetooth"
         "/var/lib/systemd/coredump"
         "/etc/NetworkManager/system-connections"
