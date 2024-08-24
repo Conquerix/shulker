@@ -69,6 +69,7 @@
       yubikey.enable = true;
       wireguard.enable = true;
       docker.enable = true;
+      netbird.client.enable = true;
       nvidia  = {
         enable = true;
         hybrid = {

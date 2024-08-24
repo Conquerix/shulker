@@ -85,6 +85,7 @@
       yubikey.enable = true;
       ssh_server.enable = true;
       wireguard.enable = true;
+      netbird.client.enable = true;
     };
   };
 }
