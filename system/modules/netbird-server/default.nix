@@ -63,7 +63,7 @@ in
         useACMEHost = cfg.baseUrl;
         locations = {
           "/" = {
-            root = services.netbird.server.dashboard.finalDrv;
+            root = config.services.netbird.server.dashboard.finalDrv;
             tryFiles = "$uri $uri.html $uri/ =404";
           };
 
