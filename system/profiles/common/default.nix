@@ -27,7 +27,8 @@ with lib;
     # Disable this to try and solve the nework manager wait online failed after each rebuild.
     systemd.network.wait-online.enable = false;
     boot.initrd.systemd.network.wait-online.enable = false;
-    
+
+    systemd.extraConfig = "DefaultLimitNOFILE=4096";
 
     programs.ssh.extraConfig = "IdentityFile /secrets/ssh-ed25519-key";
 
