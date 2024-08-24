@@ -148,7 +148,7 @@ in
 
     opsm.secrets = {
       authentik-netbird-client-id.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Netbird Client ID";
-      authentik-netbird-svc-password.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Nebird svc password";
+      authentik-netbird-svc-password.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Netbird svc password";
       netbird-coturn-secret = {
         secretRef = "op://Shulker/${config.networking.hostName}/Netbird Coturn Secret";
         user = "turnserver";
