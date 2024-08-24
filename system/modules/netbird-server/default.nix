@@ -47,7 +47,7 @@ in
 
       dashboard.settings = {
         AUTH_CLIENT_ID._secret = "/secret/authentik-netbird-client-id";
-        AUTH_AUTHORITY = cft.authAuthority;
+        AUTH_AUTHORITY = cfg.authAuthority;
       };
 
       management = {
