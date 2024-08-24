@@ -30,7 +30,6 @@
       };
       authentik = {
         enable = true;
-        httpsPort = 23235;
         baseUrl = "shulker.fr";
         subDomain = "auth";
       };
