@@ -52,7 +52,6 @@ in
       enable = true;
 
       domain = "${cfg.subDomain}.${cfg.baseUrl}";
-      DataStoreEncryptionKey._secret = "/secrets/netbird-datastore-key";
 
       coturn = {
         enable = true;
@@ -82,6 +81,7 @@ in
               }
             ];
           };
+          DataStoreEncryptionKey._secret = "/secrets/netbird-datastore-key";
         };
       };
     };
