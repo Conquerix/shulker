@@ -85,10 +85,6 @@
       yubikey.enable = true;
       ssh_server.enable = true;
       wireguard.enable = true;
-      wireguard.client = {
-      	enable = true;
-      	clientIP = "192.168.10.5";
-      };
     };
   };
 }

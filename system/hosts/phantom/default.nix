@@ -40,10 +40,7 @@
         docker = true;
       };
       yubikey.enable = true;
-      wireguard.client = {
-        enable = true;
-        clientIP = "192.168.10.3";
-      };
+      wireguard.enable = true;
       docker.enable = true;
     };
     profiles = {

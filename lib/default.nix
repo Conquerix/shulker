@@ -176,6 +176,7 @@ rec {
               };
             }
           )
+          (inputs.authentik-nix.nixosModules.default)
           (inputs.impermanence.nixosModule)
           #(inputs.mail-server.nixosModule)
           (inputs.opsm-nix.nixosModules.default)

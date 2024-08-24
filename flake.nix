@@ -20,6 +20,8 @@
 
     opsm-nix.url = "github:conquerix/opsm-nix";
 
+    inputs.authentik-nix.url = "github:nix-community/authentik-nix";
+
     # mail-server.url = "gitlab:simple-nixos-mailserver/nixos-mailserver";
 
     # agenix.url = "github:ryantm/agenix";

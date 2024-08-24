@@ -118,10 +118,6 @@
       };
       ssh_server.enable = true;
       wireguard.enable = true;
-      wireguard.client = {
-        enable = true;
-        clientIP = "192.168.10.7";
-      };
       pterodactyl = {
         panel.enable = true;
         manage.enable = true;

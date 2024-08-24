@@ -51,7 +51,7 @@ in
 
     services.nginx = {
       enable = true;
-      virtualHosts."searx" = {
+      virtualHosts."transmission" = {
         serverName = "${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
         useACMEHost = cfg.baseUrl;

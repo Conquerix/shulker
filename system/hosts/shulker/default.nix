@@ -17,10 +17,6 @@
       ssh_server.enable = true;
       docker.enable = true;
       wireguard.enable = true;
-      wireguard.server = {
-        enable = true;
-        extInterface = "ens3";
-      };
       uptime-kuma = {
         enable = true;
         port = 23231;
@@ -31,6 +27,12 @@
         enable = true;
         port = 23234;
         baseUrl = "shulker.fr";
+      };
+      authentik = {
+        enable = true;
+        port = 23235;
+        baseUrl = "shulker.fr";
+        subDomain = "auth"
       };
     };
   };
