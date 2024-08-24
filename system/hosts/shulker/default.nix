@@ -32,7 +32,7 @@
         enable = true;
         port = 23235;
         baseUrl = "shulker.fr";
-        subDomain = "auth"
+        subDomain = "auth";
       };
     };
   };
