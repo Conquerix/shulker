@@ -138,6 +138,7 @@ in
       netbird-coturn-secret = {
         secretRef = "op://Shulker/${config.networking.hostName}/Netbird Coturn Secret";
         user = "turnserver";
+        mode = "600";
       };
       netbird-turn-secret.secretRef = "op://Shulker/${config.networking.hostName}/Netbird Turn Secret";
     };
