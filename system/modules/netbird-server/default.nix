@@ -71,6 +71,11 @@ in
         port = cfg.mgmtPort;
 
         settings = {
+          HttpConfig = {
+            Address = "0.0.0.0:${cfg.mgmtPort}";
+            AuthIssuer = "${cfg.authBaseUrl}/netbird/";
+            AuthAudience = cfg.clientID;
+          };
           TURNConfig = {
             Turns = [
               {
