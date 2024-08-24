@@ -37,7 +37,8 @@
         enable = true;
         baseUrl = "shulker.fr";
         subDomain = "vpn";
-        mgmtPort = 
+        mgmtPort = 23235;
+        signalPort = 23236;
         clientID = "tNb6JtW0UOEBHJ3SYpYPZEoVYEets45YYQP2qQSE";
         authAuthority = "https://auth.shulker.fr/application/o/netbird/";
         oidcConfigEndpoint = "https://auth.shulker.fr/application/o/netbird/.well-known/openid-configuration";
