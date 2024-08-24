@@ -37,6 +37,8 @@
         enable = true;
         baseUrl = "shulker.fr";
         subDomain = "vpn";
+        authAuthority = "https://auth.shulker.fr/application/o/netbird/";
+        oidcConfigEndpoint = "https://auth.shulker.fr/application/o/netbird/.well-known/openid-configuration";
       };
     };
   };

@@ -17,6 +17,14 @@ in
       default = "netbird";
       description = "Default subdomain where netbird will be accessible.";
     };
+    authAuthority = mkOption {
+      type = types.str;
+      description = "Auth authority of netbird";
+    };
+    oidcConfigEndpoint = mkOption {
+      type = types.str;
+      description = "OIDC Config endpoint for netbird";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -37,8 +45,13 @@ in
         passwordFile = "/secret/netbird-coturn-secret";
       };
 
+      dashboard.settings = {
+        AUTH_CLIENT_ID._secret = "/secret/authentik-netbird-client-id";
+        AUTH_AUTHORITY = cft.authAuthority;
+      };
+
       management = {
-        oidcConfigEndpoint = "https://auth.shulker.fr/application/o/netbird/.well-known/openid-configuration";
+        oidcConfigEndpoint = cfg.oidcConfigEndpoint;
 
         settings = {
           TURNConfig = {
