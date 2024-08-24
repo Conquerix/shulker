@@ -31,9 +31,9 @@ in
       type = types.str;
       description = "Auth client ID of netbird";
     };
-    authAuthority = mkOption {
+    authBaseUrl = mkOption {
       type = types.str;
-      description = "Auth authority of netbird";
+      description = "Auth BaseUrl of netbird";
     };
     oidcConfigEndpoint = mkOption {
       type = types.str;
