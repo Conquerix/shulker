@@ -52,6 +52,7 @@ in
       enable = true;
 
       domain = "${cfg.subDomain}.${cfg.baseUrl}";
+      DataStoreEncryptionKey._secret = "/secrets/netbird-datastore-key";
 
       coturn = {
         enable = true;
@@ -140,7 +141,7 @@ in
         user = "turnserver";
         mode = "600";
       };
-      netbird-turn-secret.secretRef = "op://Shulker/${config.networking.hostName}/Netbird Turn Secret";
+      netbird-datastore-key.secretRef = "op://Shulker/${config.networking.hostName}/Netbird Datastore Key";
     };
   };
 }
