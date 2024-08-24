@@ -86,6 +86,7 @@ in
                 Password._secret = "/secrets/netbird-coturn-secret";
               }
             ];
+            Secret._secret = "/secrets/netbird-turn-secret";
           };
           DeviceAuthorizationFlow = {
             Provider = "hosted";
@@ -183,6 +184,11 @@ in
       authentik-netbird-svc-password.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Netbird svc password";
       netbird-coturn-secret = {
         secretRef = "op://Shulker/${config.networking.hostName}/Netbird Coturn Secret";
+        user = "turnserver";
+        mode = "600";
+      };
+      netbird-turn-secret = {
+        secretRef = "op://Shulker/${config.networking.hostName}/Netbird Turn Secret";
         user = "turnserver";
         mode = "600";
       };
