@@ -91,8 +91,8 @@ in
               GrantType = "client_credentials";
             };
             ExtraConfig = {
-              username = "netbird";
-              password._secret = "/secrets/authentik-netbird-svc-password";
+              Username = "netbird";
+              Password._secret = "/secrets/authentik-netbird-svc-password";
             };
           };
         };
