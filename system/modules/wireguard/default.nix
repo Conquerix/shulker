@@ -30,14 +30,12 @@ let
       name = "wither";
       address = "10.10.10.4";
       publicKey = "9JNyydvMlIDGpOCwAW6a8TzPALGvRq2UKBiPFLV8GwM=";
-      receive = [ "192.168.1.0/24" ];
     }
     {
       name = "guardian";
       extInterface = "enp2s0";
       address = "10.10.10.5";
       publicKey = "J2amctRH90iC1bnd2UnqOp9D9Rpbgmb0w/Xs+caB83U=";
-      transfer = [ "192.168.1.0/24" ];
     }
     {
       name = "vindicator";
