@@ -56,7 +56,7 @@ in
       coturn = {
         enable = true;
 
-        passwordFile = "/secret/netbird-coturn-secret";
+        passwordFile = "/secrets/netbird-coturn-secret";
       };
 
       dashboard.settings = {
@@ -77,7 +77,7 @@ in
                 Proto = "udp";
                 URI = "turn:${cfg.subDomain}.${cfg.baseUrl}:3478";
                 Username = "netbird";
-                Password._secret = "/secret/netbird-coturn-secret";
+                Password._secret = "/secrets/netbird-coturn-secret";
               }
             ];
           };
