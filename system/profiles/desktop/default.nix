@@ -43,6 +43,7 @@ in
     };
 
     environment.systemPackages = with pkgs; [
+      anytype
       pamixer
       pavucontrol
       firefox-wayland
