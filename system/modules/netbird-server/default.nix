@@ -61,7 +61,7 @@ in
 
       dashboard.settings = {
         AUTH_CLIENT_ID = cfg.clientID;
-        AUTH_AUTHORITY = cfg.authAuthority;
+        AUTH_AUTHORITY = "${cfg.authBaseUrl}/netbird/";
       };
 
       signal.port = cfg.signalPort;
@@ -82,6 +82,15 @@ in
             ];
           };
           DataStoreEncryptionKey._secret = "/secrets/netbird-datastore-key";
+          IdpManagerConfig = {
+            ManagerType = "authentik";
+            ClientConfig = {
+              Issuer = "${cfg.authBaseUrl}/netbird/";
+              TokenEndpoint = "${cfg.authBaseUrl}/token/";
+              ClientID = cfg.clientID;
+              GrantType = "client_credentials";
+            };
+          };
         };
       };
     };
