@@ -33,6 +33,11 @@
         baseUrl = "shulker.fr";
         subDomain = "auth";
       };
+      netbird.server = {
+        enable = true;
+        baseUrl = "shulker.fr";
+        subDomain = "vpn";
+      };
     };
   };
 }

@@ -17,11 +17,6 @@ in
       default = "netbird";
       description = "Default subdomain where netbird will be accessible.";
     };
-    stateDir = mkOption {
-      type = types.str;
-      default = "/var/lib/netbird";
-      description = "State Directory.";
-    };
   };
 
   config = mkIf cfg.enable {
@@ -52,7 +47,7 @@ in
                 Proto = "udp";
                 URI = "turn:${cfg.subDomain}.${cfg.baseUrl}:3478";
                 Username = "netbird";
-                Password._secret = "/secret/netbird-turn-secret";
+                Password._secret = "/secret/netbird-coturn-secret";
               }
             ];
           };
