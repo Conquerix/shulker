@@ -17,6 +17,10 @@ in
       default = "netbird";
       description = "Default subdomain where netbird will be accessible.";
     };
+    clientID = mkOption {
+      type = types.str;
+      description = "Auth client ID of netbird";
+    };
     authAuthority = mkOption {
       type = types.str;
       description = "Auth authority of netbird";
@@ -46,7 +50,7 @@ in
       };
 
       dashboard.settings = {
-        AUTH_CLIENT_ID._secret = "/secret/authentik-netbird-client-id";
+        AUTH_CLIENT_ID = cfg.clientID;
         AUTH_AUTHORITY = cfg.authAuthority;
       };
 
