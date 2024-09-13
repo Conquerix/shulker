@@ -122,7 +122,7 @@
         port = 23233;
         baseUrl = "the-inbetween.net";
         subDomain = "library";
-        stateDir = "/srv/bookstack";
+        stateDir = lib.mkForce "/srv/bookstack";
       };
       ssh_server.enable = true;
       wireguard.enable = true;
