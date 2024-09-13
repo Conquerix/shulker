@@ -18,7 +18,7 @@ in
         extraDomainNames = [ "*.shulker.fr" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
-        listenHTTP = ":80";
+        webroot = null;
         credentialsFile = "/secrets/ovh-wildcard-ca";
       };
       certs."the-inbetween.net" = {
@@ -26,7 +26,7 @@ in
         extraDomainNames = [ "*.the-inbetween.net" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
-        listenHTTP = ":80";
+        webroot = null;
         credentialsFile = "/secrets/ovh-wildcard-ca";
       };
       #certs."fournier.ltd" = {
@@ -34,6 +34,7 @@ in
       #  extraDomainNames = [ "*.fournier.ltd" ];
       #  dnsProvider = "ovh";
       #  dnsPropagationCheck = true;
+      #  webroot = null;
       #  credentialsFile = "/secrets/ovh-wildcard-ca";
       #};
     };
@@ -46,7 +47,13 @@ in
       recommendedProxySettings = true;
     };
 
-    users.users.nginx.extraGroups = [ "acme" ];
+    users.users.nginx = {
+      isSystemUser = true;
+      group = "nginx";
+      extraGroups = [ "acme" ];
+    };
+
+    users.groups.nginx = {};
 
     opsm.secrets.ovh-wildcard-ca = {
       secretRef = "op://Shulker/OVH wildcard certificate/OVH-wildcard-ca";
