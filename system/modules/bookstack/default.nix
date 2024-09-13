@@ -44,7 +44,7 @@ in
 
     services.bookstack = {
       enable = true;
-      hostName = "${cfg.subDomain}.${cfg.baseUrl}";
+      hostname = "${cfg.subDomain}.${cfg.baseUrl}";
       dataDir = cfg.stateDir;
       database.createLocally = true;
       config = {
