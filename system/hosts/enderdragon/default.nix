@@ -116,6 +116,13 @@
         url = "the-inbetween.net";
         dataDir = "/srv/ghost";
       };
+      bookstack = {
+        enable = true;
+        port = 23233;
+        baseUrl = "the-inbetween.net";
+        subDomain = "library";
+        stateDir = "/srv/bookstack";
+      };
       ssh_server.enable = true;
       wireguard.enable = true;
       pterodactyl = {
