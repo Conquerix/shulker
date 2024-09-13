@@ -76,8 +76,8 @@ in
       "/nix/persist".directories = [ 
         {
           directory = cfg.stateDir;
-          user = services.bookstack.user;
-          group = services.bookstack.group;
+          user = config.services.bookstack.user;
+          group = config.services.bookstack.group;
           mode = "u=rwx,g=rx,o=";
         }
       ];
