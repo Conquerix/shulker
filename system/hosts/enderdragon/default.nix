@@ -98,6 +98,7 @@
   };
 
   shulker = {
+    profiles.server.enable = true;
     modules = {
       user.home = ./home.nix;
       docker.enable = true;
