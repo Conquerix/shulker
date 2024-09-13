@@ -42,11 +42,18 @@ in
       group = config.services.bookstack.group;
     };
 
+    opsm.secrets.bookstack-app-secret = {
+      secretRef = "op://Shulker/${config.networking.hostName}/Bookstack App Secret";
+      user = config.services.bookstack.user;
+      group = config.services.bookstack.group;
+    };
+
     services.bookstack = {
       enable = true;
       hostname = "${cfg.subDomain}.${cfg.baseUrl}";
       dataDir = cfg.stateDir;
       database.createLocally = true;
+      appKeyFile = "/secrets/bookstack-app-secret";
       config = {
         AUTH_METHOD = "oidc";
         OIDC_NAME = "Discord";
