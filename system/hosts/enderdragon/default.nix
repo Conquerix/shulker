@@ -17,11 +17,11 @@
   };
   
 
-  security.acme.certs."the-inbetween.net" = {
-    webroot = "/var/lib/acme/acme-challenge/";
-    email = "admin@the-inbetween.net";
-    extraDomainNames = [ "the-inbetween.net" "panel.the-inbetween.net" "wiki.the-inbetween.net" "enderdragon.the-inbetween.net" "map.the-inbetween.net"];
-  };
+  #security.acme.certs."the-inbetween.net" = {
+  #  webroot = "/var/lib/acme/acme-challenge/";
+  #  email = "admin@the-inbetween.net";
+  #  extraDomainNames = [ "the-inbetween.net" "panel.the-inbetween.net" "wiki.the-inbetween.net" "enderdragon.the-inbetween.net" "map.the-inbetween.net"];
+  #};
   
   networking = {
     firewall = {

@@ -18,6 +18,7 @@ in
         extraDomainNames = [ "*.shulker.fr" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
+        listenHTTP = ":80";
         credentialsFile = "/secrets/ovh-wildcard-ca";
       };
       certs."the-inbetween.net" = {
@@ -25,6 +26,7 @@ in
         extraDomainNames = [ "*.the-inbetween.net" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
+        listenHTTP = ":80";
         credentialsFile = "/secrets/ovh-wildcard-ca";
       };
       #certs."fournier.ltd" = {
