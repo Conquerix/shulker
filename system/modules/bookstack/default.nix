@@ -55,15 +55,8 @@ in
       database.createLocally = true;
       appKeyFile = "/secrets/bookstack-app-secret";
       config = {
-        AUTH_METHOD = "oidc";
-        OIDC_NAME = "Discord";
-        OIDC_DISPLAY_NAME_CLAIMS = "preferred_username";
-        OIDC_CLIENT_ID = "1170421650861334618";
-        OIDC_CLIENT_SECRET = {_secret = "/secrets/bookstack-client-secret-key";};
-        OIDC_ISSUER_DISCOVER = false;
-        OIDC_AUTH_ENDPOINT = "https://discordapp.com/api/oauth2/authorize";
-        OIDC_TOKEN_ENDPOINT = "https://discordapp.com/api/oauth2/token";
-        OIDC_USERINFO_ENDPOINT = "https://discordapp.com/api/users/@me";
+        DISCORD_APP_ID = 1170421650861334618;
+        DISCORD_APP_SECRET = {_secret = "/secrets/bookstack-client-secret-key";};
       };
       nginx = {
         forceSSL = true;
