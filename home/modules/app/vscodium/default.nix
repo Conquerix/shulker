@@ -33,6 +33,7 @@ in
         jnoortheen.nix-ide
         ms-vscode-remote.remote-ssh
         rust-lang.rust-analyzer
+        github.github-vscode-theme
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "better-comments";
@@ -45,6 +46,12 @@ in
           publisher = "jetpack-io";
           version = "0.1.5";
           sha256 = "sha256-+nIeDaz1NPYFoxFVC8GQxtU1MU/sbdFETAQWzVX6LGQ=";
+        }
+        {
+          name = "python-environment-manager";
+          publisher = "donjayamanne";
+          version = "1.2.4";
+          sha256 = "sha256-1jvuoaP+bn8uR7O7kIDZiBKuG3VwMTQMjCJbSlnC7Qo=";
         }
       ];
     };
