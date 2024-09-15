@@ -9,9 +9,12 @@ in
   config = mkIf cfg.enable {
     home.packages = with pkgs;
       [
-        # This is required to be from unstable as discord will sometimes soft-lock
-        # on "there is an update" screen.
-        discord-canary
+        (pkgs.discord.override {
+          # remove any overrides that you don't want
+          withOpenASAR = true;
+          withVencord = true;
+        })
+        vesktop # For screen sharing with audio
       ];
   };
 }

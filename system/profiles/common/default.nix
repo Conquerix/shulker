@@ -72,8 +72,17 @@ with lib;
       htop
       nh
       devenv
-      devbox
+      devbox # portable dev environments
+      gping # better ping
+      eza # better ls
     ];
+
+    environment.shellAliases = {
+      ping = "gping";
+      l = "eza -oluag --git";
+      ls = "eza";
+      ll = "eza -olug --git";
+    };
 
     opsm = {
       enable = true;
