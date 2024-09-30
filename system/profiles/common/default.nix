@@ -1,10 +1,28 @@
 { config, inputs, lib, pkgs, ... }:
 
+let
+  isUnstable = config.boot.zfs.package == pkgs.zfsUnstable;
+  zfsCompatibleKernelPackages = lib.filterAttrs (
+    name: kernelPackages:
+    (builtins.match "linux_[0-9]+_[0-9]+" name) != null
+    && (builtins.tryEval kernelPackages).success
+    && (
+      (!isUnstable && !kernelPackages.zfs.meta.broken)
+      || (isUnstable && !kernelPackages.zfs_unstable.meta.broken)
+    )
+  ) pkgs.linuxKernel.packages;
+  latestKernelPackage = lib.last (
+    lib.sort (a: b: (lib.versionOlder a.kernel.version b.kernel.version)) (
+      builtins.attrValues zfsCompatibleKernelPackages
+    )
+  );
+in
+
 with lib;
 {
   config = {
     boot = {
-      kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+      kernelPackages = latestKernelPackage;
       
       # Enable running aarch64 binaries using qemu.
       binfmt.emulatedSystems = [ "aarch64-linux" ];
@@ -84,6 +102,11 @@ with lib;
       ll = "eza -olug --git";
     };
 
+    programs = {
+      direnv.enable = true;
+      starship.enable = true;
+    };
+
     opsm = {
       enable = true;
       refreshInterval = null;
@@ -101,6 +124,5 @@ with lib;
         {file = config.opsm.serviceAccountTokenPath; parentDirectory = { mode = "u=rw,g=,o="; };}
       ];
     };
-
   };
 }

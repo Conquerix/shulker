@@ -34,6 +34,7 @@ in
         ms-vscode-remote.remote-ssh
         rust-lang.rust-analyzer
         github.github-vscode-theme
+        mkhl.direnv
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
         {
           name = "better-comments";

@@ -26,10 +26,19 @@ in
     services.printing.enable = true;
 
     # Sound setting
+    #sound.enable = lib.mkForce false;
     security.rtkit.enable = true;
+    services.pipewire = {
+      enable = true;
+      alsa.enable = true;
+      alsa.support32Bit = true;
+      pulse.enable = true;
+      jack.enable = true;
+    };
+
     hardware = {
       pulseaudio = {
-        enable = true;
+        #enable = true;
         package = pkgs.pulseaudioFull;
       };
       bluetooth = {
@@ -65,23 +74,22 @@ in
       displayManager.gdm.wayland = true;
       desktopManager.gnome.enable = true;
     };
-    environment.gnome.excludePackages = (with pkgs; [
+    environment.gnome.excludePackages = with pkgs; [
       gnome-photos
       gnome-tour
-      gedit # text editor
+      gedit # text editor 
       cheese # webcam tool
       gnome-terminal
       epiphany # web browser
       geary # email reader
       evince # document viewer
       totem # video player
-    ]) ++ (with pkgs.gnome; [
       gnome-music
       gnome-characters
       tali # poker game
       iagno # go game
       hitori # sudoku game
       atomix # puzzle game
-    ]);
+    ];
   };
 }
