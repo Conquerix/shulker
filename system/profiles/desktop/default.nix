@@ -63,13 +63,13 @@ in
     
 
     # Desktop environment
+    services.libinput = mkIf cfg.laptop {
+      enable = true;
+      touchpad.tapping = true;
+    };
     services.xserver = {
       enable = true;
       xkb.layout = "fr";
-      libinput = mkIf cfg.laptop {
-        enable = true;
-        touchpad.tapping = true;
-      };
       displayManager.gdm.enable = true;
       displayManager.gdm.wayland = true;
       desktopManager.gnome.enable = true;

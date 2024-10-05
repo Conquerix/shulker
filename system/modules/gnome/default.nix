@@ -33,7 +33,7 @@ in
     ];
 
     services.udev.packages = with pkgs; [ 
-      gnome.gnome-settings-daemon 
+      gnome-settings-daemon 
     ];
 
     services.gnome.gnome-keyring.enable = lib.mkForce false;

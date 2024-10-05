@@ -4,7 +4,11 @@
   imports = [ ./hardware.nix ];
 
   hardware = {
-    tuxedo-keyboard.enable = true;
+    #tuxedo-keyboard.enable = true;
+    tuxedo-rs = {
+    	enable = true;
+    	tailor-gui.enable = true;
+    };
   };
 
   boot.kernel.sysctl = { "vm.max_map_count" = 1048576; };
