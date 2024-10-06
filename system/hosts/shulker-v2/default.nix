@@ -8,7 +8,7 @@
   zramSwap.enable = true;
   
   environment.persistence = lib.mkIf (config.shulker.modules.impermanence.enable) {
-    "/nix/persist".directories = [ "/var/lib/acme/" ];
+    "/nix/persist".directories = [ "/var/lib/acme/" "/secrets" ];
   };
 
   networking = {
@@ -26,6 +26,10 @@
       user.home = ./home.nix;
       ssh_server.enable = true;
       docker.enable = true;
+      impermanence = {
+        enable = true;
+        docker = true;
+      };
       #wireguard.enable = true;
     };
   };
@@ -37,7 +41,7 @@
 
   boot.loader.grub.mirroredBoots = [
     {
-      devices = [ "/dev/disk/by-uuid/TODO" ];
+      devices = [ "/dev/disk/by-uuid/CBA2-80CB" ];
       path = "/boot-fallback";
     }
   ];

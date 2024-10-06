@@ -63,14 +63,15 @@
       };
 
       nixosConfigurations = mapAttrs' mkSystem {
-        shulker    = { };
-        phantom    = { };
-        warden     = { };
-        guardian   = { };
-        vindicator = { };
-        wither     = { };
-        enderdragon= { };
-        endermite  = { };
+        shulker     = { };
+        shulker-v2  = { };
+        phantom     = { };
+        warden      = { };
+        guardian    = { };
+        vindicator  = { };
+        wither      = { };
+        enderdragon = { };
+        endermite   = { };
       };
 
       # Convenience output that aggregates the output configurations.
