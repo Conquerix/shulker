@@ -26,6 +26,7 @@
     { device = "rpool/safe/persist";
       fsType = "zfs";
       options = [ "zfsutil" ];
+      neededForBoot = true;
     };
 
   fileSystems."/boot" =
