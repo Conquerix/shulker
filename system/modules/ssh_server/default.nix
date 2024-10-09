@@ -21,11 +21,12 @@ in
 
   config = mkIf cfg.ssh_server.enable {
 
-    opsm.secrets.ssh-ed25519-key = {
-      secretRef = "op://Shulker/${config.networking.hostName} ssh ed25519/private_key";
-      sshKey = true;
+    opnix.secrets.ssh-ed25519-host-key = {
+      source = "{{ op://Shulker/${config.networking.hostName} ssh ed25519/private_key }}";
       mode = "0600";
     };
+
+    opnix.systemdWantedBy = [ "sshd" ];
 
     services.openssh = {
       enable = true;
@@ -34,7 +35,7 @@ in
       openFirewall = true;
       hostKeys = [
         {
-          path = "/secrets/ssh-ed25519-key";
+          path = opnix.secrets.ssh-ed25519-host-key.path;
           type = "ed25519";
         }
       ];

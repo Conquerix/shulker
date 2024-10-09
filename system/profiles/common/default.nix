@@ -48,8 +48,6 @@ with lib;
 
     systemd.extraConfig = "DefaultLimitNOFILE=4096";
 
-    programs.ssh.extraConfig = "IdentityFile /secrets/ssh-ed25519-key";
-
     nix = {
       settings = {
 
@@ -107,21 +105,11 @@ with lib;
       starship.enable = true;
     };
 
-    opsm = {
-      enable = true;
-      refreshInterval = null;
-      secretDir = "/secrets";
-    };
-
-    opsm.secrets.ssh-ed25519-key = {
-      secretRef = "op://Shulker/${config.networking.hostName} ssh ed25519/private_key";
-      sshKey = true;
-      mode = "0600";
-    };
+    opnix.environmentFile = "/etc/opnix.env";
 
     environment.persistence."/nix/persist" = mkIf (config.shulker.modules.impermanence.enable) {
       files = [
-        {file = config.opsm.serviceAccountTokenPath; parentDirectory = { mode = "u=rw,g=,o="; };}
+        {file = config.opnix.environmentFile; parentDirectory = { mode = "u=rw,g=,o="; };}
       ];
     };
   };

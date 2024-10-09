@@ -19,7 +19,7 @@ in
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
-        credentialsFile = "/secrets/ovh-wildcard-ca";
+        credentialsFile = opnix.secrets.ovh-wildcard-ca.path;
       };
       certs."the-inbetween.net" = {
         domain = "the-inbetween.net";
@@ -27,7 +27,7 @@ in
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
-        credentialsFile = "/secrets/ovh-wildcard-ca";
+        credentialsFile = opnix.secrets.ovh-wildcard-ca.path;
       };
       #certs."fournier.ltd" = {
       #  domain = "fournier.ltd";
@@ -35,7 +35,7 @@ in
       #  dnsProvider = "ovh";
       #  dnsPropagationCheck = true;
       #  webroot = null;
-      #  credentialsFile = "/secrets/ovh-wildcard-ca";
+      #  credentialsFile = opnix.secrets.ovh-wildcard-ca.path;
       #};
     };
 
@@ -55,9 +55,21 @@ in
 
     users.groups.nginx = {};
 
-    opsm.secrets.ovh-wildcard-ca = {
-      secretRef = "op://Shulker/OVH wildcard certificate/OVH-wildcard-ca";
+    opnix.secrets.ovh-wildcard-ca = {
+      source = "{{ op://Shulker/OVH wildcard certificate/OVH-wildcard-ca }}";
       mode = "0600";
     };
+
+    opnix.systemdWantedBy = [
+      "acme-fixperms"
+      "acme-lockfiles"
+      "acme-selfsigned-ca"
+      "acme-shulker.fr"
+      "acme-the-inbetween.net"
+      #"acme-fournier.ltd"
+      "acme-selfsigned-shulker.fr"
+      "acme-selfsigned-the-inbetween.net"
+      #"acme-selfsigned-fournier.ltd"
+    ];
   };
 }

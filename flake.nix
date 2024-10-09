@@ -18,13 +18,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    opsm-nix.url = "github:conquerix/opsm-nix";
+    opnix = {
+      url = "github:conquerix/opnix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     authentik-nix.url = "github:nix-community/authentik-nix";
 
     # mail-server.url = "gitlab:simple-nixos-mailserver/nixos-mailserver";
-
-    # agenix.url = "github:ryantm/agenix";
   };
 
   outputs = { self, ... }@inputs:
