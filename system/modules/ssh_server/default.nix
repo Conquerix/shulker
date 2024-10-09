@@ -35,7 +35,7 @@ in
       openFirewall = true;
       hostKeys = [
         {
-          path = opnix.secrets.ssh-ed25519-host-key.path;
+          path = config.opnix.secrets.ssh-ed25519-host-key.path;
           type = "ed25519";
         }
       ];

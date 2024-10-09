@@ -19,7 +19,7 @@ in
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
-        credentialsFile = opnix.secrets.ovh-wildcard-ca.path;
+        credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
       };
       certs."the-inbetween.net" = {
         domain = "the-inbetween.net";
@@ -27,7 +27,7 @@ in
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
-        credentialsFile = opnix.secrets.ovh-wildcard-ca.path;
+        credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
       };
       #certs."fournier.ltd" = {
       #  domain = "fournier.ltd";
@@ -35,7 +35,7 @@ in
       #  dnsProvider = "ovh";
       #  dnsPropagationCheck = true;
       #  webroot = null;
-      #  credentialsFile = opnix.secrets.ovh-wildcard-ca.path;
+      #  credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
       #};
     };
 
