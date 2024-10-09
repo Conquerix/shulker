@@ -125,18 +125,18 @@ in
       };
     };
 
-    opsm.secrets = {
-      zitadel-master-key = {
-        secretRef = "op://Shulker/${config.networking.hostName}/Zitadel Master Key";
-        user = "conquerix";
-        mode = "0400";
-      };
-      zitadel-secrets = {
-        secretRef = "op://Shulker/${config.networking.hostName}/zitadel-secrets";
-        user = "conquerix";
-        mode = "0400";
-      };
-      zitadel-db-creds.secretRef = "op://Shulker/${config.networking.hostName}/zitadel-db-creds";
-    };
+    #opsm.secrets = {
+    #  zitadel-master-key = {
+    #    secretRef = "op://Shulker/${config.networking.hostName}/Zitadel Master Key";
+    #    user = "conquerix";
+    #    mode = "0400";
+    #  };
+    #  zitadel-secrets = {
+    #    secretRef = "op://Shulker/${config.networking.hostName}/zitadel-secrets";
+    #    user = "conquerix";
+    #    mode = "0400";
+    #  };
+    #  zitadel-db-creds.secretRef = "op://Shulker/${config.networking.hostName}/zitadel-db-creds";
+    #};
   };
 }

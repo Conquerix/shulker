@@ -26,11 +26,11 @@ in
 
   config = mkIf cfg.enable {
 
-    opsm.secrets.outline-client-secret-key = {
-      secretRef = "op://Shulker/${config.networking.hostName}/Outline Client Secret Key";
-      user = config.services.outline.user;
-      group = config.services.outline.group;
-    };
+    #opsm.secrets.outline-client-secret-key = {
+    #  secretRef = "op://Shulker/${config.networking.hostName}/Outline Client Secret Key";
+    #  user = config.services.outline.user;
+    #  group = config.services.outline.group;
+    #};
 
     services.outline = {
       enable = cfg.enable;

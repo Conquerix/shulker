@@ -43,12 +43,12 @@ in
     };
     users.groups."github-runner" = { };
 
-    opsm.secrets = {
-      github-runner-pat-token = {
-        secretRef = "op://Shulker/Github Tokens/Runner PAT";
-        user = "github-runner";
-        mode = "0400";
-      };
-    };
+    #opsm.secrets = {
+    #  github-runner-pat-token = {
+    #    secretRef = "op://Shulker/Github Tokens/Runner PAT";
+    #    user = "github-runner";
+    #    mode = "0400";
+    #  };
+    #};
   };
 }

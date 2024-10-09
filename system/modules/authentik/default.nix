@@ -55,8 +55,8 @@ in
       };
     };
 
-    opsm.secrets = {
-      authentik-env-file.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Environment File";
-    };
+    #opsm.secrets = {
+    #  authentik-env-file.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Environment File";
+    #};
   };
 }

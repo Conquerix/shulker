@@ -179,20 +179,20 @@ in
       };
     };
 
-    opsm.secrets = {
-      authentik-netbird-client-id.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Netbird Client ID";
-      authentik-netbird-svc-password.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Netbird svc password";
-      netbird-coturn-secret = {
-        secretRef = "op://Shulker/${config.networking.hostName}/Netbird Coturn Secret";
-        user = "turnserver";
-        mode = "600";
-      };
-      netbird-turn-secret = {
-        secretRef = "op://Shulker/${config.networking.hostName}/Netbird Turn Secret";
-        user = "turnserver";
-        mode = "600";
-      };
-      netbird-datastore-key.secretRef = "op://Shulker/${config.networking.hostName}/Netbird Datastore Key";
-    };
+    #opsm.secrets = {
+    #  authentik-netbird-client-id.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Netbird Client ID";
+    #  authentik-netbird-svc-password.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Netbird svc password";
+    #  netbird-coturn-secret = {
+    #    secretRef = "op://Shulker/${config.networking.hostName}/Netbird Coturn Secret";
+    #    user = "turnserver";
+    #    mode = "600";
+    #  };
+    #  netbird-turn-secret = {
+    #    secretRef = "op://Shulker/${config.networking.hostName}/Netbird Turn Secret";
+    #    user = "turnserver";
+    #    mode = "600";
+    #  };
+    #  netbird-datastore-key.secretRef = "op://Shulker/${config.networking.hostName}/Netbird Datastore Key";
+    #};
   };
 }

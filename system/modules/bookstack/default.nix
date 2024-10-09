@@ -36,17 +36,17 @@ in
 
   config = mkIf cfg.enable {
 
-    opsm.secrets.bookstack-client-secret-key = {
-      secretRef = "op://Shulker/${config.networking.hostName}/Bookstack Client Secret Key";
-      user = config.services.bookstack.user;
-      group = config.services.bookstack.group;
-    };
+    #opsm.secrets.bookstack-client-secret-key = {
+    #  secretRef = "op://Shulker/${config.networking.hostName}/Bookstack Client Secret Key";
+    #  user = config.services.bookstack.user;
+    #  group = config.services.bookstack.group;
+    #};
 
-    opsm.secrets.bookstack-app-secret = {
-      secretRef = "op://Shulker/${config.networking.hostName}/Bookstack App Secret";
-      user = config.services.bookstack.user;
-      group = config.services.bookstack.group;
-    };
+    #opsm.secrets.bookstack-app-secret = {
+    #  secretRef = "op://Shulker/${config.networking.hostName}/Bookstack App Secret";
+    #  user = config.services.bookstack.user;
+    #  group = config.services.bookstack.group;
+    #};
 
     services.bookstack = {
       enable = true;

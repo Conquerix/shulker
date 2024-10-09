@@ -31,9 +31,9 @@ in
 
   config = mkIf cfg.enable {
 
-    opsm.secrets.ghost-mailgun-smtp-secret-key = {
-      secretRef = "op://Shulker/${config.networking.hostName}/Mailgun SMTP Secret Key";
-    };
+    #opsm.secrets.ghost-mailgun-smtp-secret-key = {
+    #  secretRef = "op://Shulker/${config.networking.hostName}/Mailgun SMTP Secret Key";
+    #};
 
     virtualisation.oci-containers.containers = {
       ghost = {
