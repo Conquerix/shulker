@@ -29,14 +29,14 @@ in
         webroot = null;
         credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
       };
-      #certs."fournier.ltd" = {
-      #  domain = "fournier.ltd";
-      #  extraDomainNames = [ "*.fournier.ltd" ];
-      #  dnsProvider = "ovh";
-      #  dnsPropagationCheck = true;
-      #  webroot = null;
-      #  credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
-      #};
+      certs."fournier.ltd" = {
+        domain = "fournier.ltd";
+        extraDomainNames = [ "*.fournier.ltd" ];
+        dnsProvider = "ovh";
+        dnsPropagationCheck = true;
+        webroot = null;
+        credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
+      };
     };
 
     services.nginx = {
@@ -66,10 +66,10 @@ in
       "acme-selfsigned-ca"
       "acme-shulker.fr"
       "acme-the-inbetween.net"
-      #"acme-fournier.ltd"
+      "acme-fournier.ltd"
       "acme-selfsigned-shulker.fr"
       "acme-selfsigned-the-inbetween.net"
-      #"acme-selfsigned-fournier.ltd"
+      "acme-selfsigned-fournier.ltd"
     ];
   };
 }
