@@ -14,7 +14,7 @@ in
     };
     subDomain = mkOption {
       type = types.str;
-      default = "gitea";
+      default = "stalwart";
       description = "Default subdomain where stalwart will be accessible.";
     };
     port = mkOption {
@@ -26,11 +26,6 @@ in
       type = types.str;
       default = "127.0.0.1";
       description = "Default address to which stalwart will listen.";
-    };
-    stateDir = mkOption {
-      type = types.str;
-      default = "/var/lib/stalwart";
-      description = "State Directory.";
     };
   };
 
@@ -48,31 +43,42 @@ in
     #  group = config.services.bookstack.group;
     #};
 
-
-
-    services.bookstack = {
+    services.stalwart-mail = {
       enable = true;
-      hostname = "${cfg.subDomain}.${cfg.baseUrl}";
-      dataDir = cfg.stateDir;
-      database.createLocally = true;
-      appKeyFile = "/secrets/bookstack-app-secret";
-      config = {
-        DISCORD_APP_ID = 1170421650861334618;
-        DISCORD_APP_SECRET = {_secret = "/secrets/bookstack-client-secret-key";};
+      package = pkgs.stalwart-mail;
+      openFirewall = true;
+      settings = {
+        certificate = {
+          "shulker.fr" = {
+            cert = "%{file:/var/lib/acme/shulker.fr/fullchain.pem}%";
+            private-key = "%{file:/var/lib/acme/shulker.fr/key.pem}%";
+          };
+          "the-inbetween.net" = {
+            cert = "%{file:/var/lib/acme/the-inbetween.net/fullchain.pem}%";
+            private-key = "%{file:/var/lib/acme/the-inbetween.net/key.pem}%";
+          };
+        };
       };
-      nginx = {
+    };
+
+    services.nginx = {
+      enable = true;
+      virtualHosts."stalwart" = {
+        serverName = "${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
         useACMEHost = cfg.baseUrl;
-        serverName = "${cfg.subDomain}.${cfg.baseUrl}";
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:${toString cfg.httpPort}";
+        };
       };
     };
 
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
       "/nix/persist".directories = [ 
         {
-          directory = cfg.stateDir;
-          user = config.services.bookstack.user;
-          group = config.services.bookstack.group;
+          directory = "/var/lib/stalwart-mail";
+          user = "stalwart-mail";
+          group = "stalwart-mail";
           mode = "u=rwx,g=rx,o=";
         }
       ];

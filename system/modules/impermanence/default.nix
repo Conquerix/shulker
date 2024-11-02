@@ -24,6 +24,7 @@ in
         "/var/lib/nixos"
         "/var/lib/bluetooth"
         "/var/lib/systemd/coredump"
+        "/var/lib/acme"
         "/etc/NetworkManager/system-connections"
         "/etc/nixos"
         "/etc/secrets"

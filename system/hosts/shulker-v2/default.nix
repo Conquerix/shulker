@@ -8,7 +8,7 @@
   zramSwap.enable = true;
   
   environment.persistence = lib.mkIf (config.shulker.modules.impermanence.enable) {
-    "/nix/persist".directories = [ "/var/lib/acme/" "/secrets" ];
+    "/nix/persist".directories = [ "/secrets" ];
   };
 
   networking = {

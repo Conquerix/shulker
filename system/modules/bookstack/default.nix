@@ -14,7 +14,7 @@ in
     };
     subDomain = mkOption {
       type = types.str;
-      default = "gitea";
+      default = "bookstack";
       description = "Default subdomain where bookstack will be accessible.";
     };
     port = mkOption {
