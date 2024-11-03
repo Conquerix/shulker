@@ -88,9 +88,6 @@ in
         locations."/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.port}";
           extraConfig = ''
-            proxy_set_header "Access-Control-Allow-Origin" *; 
-            proxy_set_header "Access-Control-Allow-Methods" "GET, POST, OPTIONS"; 
-            proxy_set_header "Access-Control-Allow-Headers" "Authorization";
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
