@@ -173,7 +173,7 @@ in
         QUEUE_DRIVER=redis
         REDIS_HOST=cache
         SESSION_DRIVER=redis
-        TRUSTED_PROXIES=127.0.0.1
+        TRUSTED_PROXIES=*
       '';
       mode = "0600";
     };
