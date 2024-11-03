@@ -31,9 +31,10 @@ in
 
   config = mkIf cfg.enable {
 
-    #opsm.secrets.ghost-mailgun-smtp-secret-key = {
-    #  secretRef = "op://Shulker/${config.networking.hostName}/Mailgun SMTP Secret Key";
-    #};
+    opnix.secrets.ghost-mailgun-smtp-secret-key = {
+      source = "{{ op://Shulker/${config.networking.hostName}/Mailgun SMTP Secret Key }}";
+      mode = "0600";
+    };
 
     virtualisation.oci-containers.containers = {
       ghost = {
@@ -54,7 +55,7 @@ in
           #tls__rejectUnauthorized = "false";
         };
         environmentFiles = [
-          "${config.opsm.secretDir}/ghost-mailgun-smtp-secret-key"
+          config.opnix.secrets.ghost-mailgun-smtp-secret-key.path
         ];
         volumes = [
           "${cfg.dataDir}:/var/lib/ghost/content"

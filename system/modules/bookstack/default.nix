@@ -36,27 +36,31 @@ in
 
   config = mkIf cfg.enable {
 
-    #opsm.secrets.bookstack-client-secret-key = {
-    #  secretRef = "op://Shulker/${config.networking.hostName}/Bookstack Client Secret Key";
-    #  user = config.services.bookstack.user;
-    #  group = config.services.bookstack.group;
-    #};
+    opnix.secrets.bookstack-client-secret-key = {
+      source = "{{ op://Shulker/${config.networking.hostName}/Bookstack Client Secret Key }}";
+      user = config.services.bookstack.user;
+      group = config.services.bookstack.group;
+      mode = "0600";
+    };
 
-    #opsm.secrets.bookstack-app-secret = {
-    #  secretRef = "op://Shulker/${config.networking.hostName}/Bookstack App Secret";
-    #  user = config.services.bookstack.user;
-    #  group = config.services.bookstack.group;
-    #};
+    opnix.secrets.bookstack-app-secret = {
+      source = "{{ op://Shulker/${config.networking.hostName}/Bookstack App Secret }}";
+      user = config.services.bookstack.user;
+      group = config.services.bookstack.group;
+      mode = "0600";
+    };
+
+    opnix.systemdWantedBy = [ "bookstack-setup" ];
 
     services.bookstack = {
       enable = true;
       hostname = "${cfg.subDomain}.${cfg.baseUrl}";
       dataDir = cfg.stateDir;
       database.createLocally = true;
-      appKeyFile = "/secrets/bookstack-app-secret";
+      appKeyFile = config.opnix.secrets.bookstack-client-secret-key.path;
       config = {
         DISCORD_APP_ID = 1170421650861334618;
-        DISCORD_APP_SECRET = {_secret = "/secrets/bookstack-client-secret-key";};
+        DISCORD_APP_SECRET = {_secret = config.opnix.secrets.bookstack-app-secret.path;};
       };
       nginx = {
         forceSSL = true;

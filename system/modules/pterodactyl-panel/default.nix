@@ -103,7 +103,7 @@ in
     
     virtualisation.oci-containers.containers."pterodactyl-database" = {
       image = "mariadb:10.5";
-      environmentFile = config.opnix.secrets.pterodactyl-db-env.path;
+      environmentFiles = [ config.opnix.secrets.pterodactyl-db-env.path ];
       volumes = [
         "${cfg.stateDir}/database:/var/lib/mysql:rw"
       ];
@@ -127,7 +127,7 @@ in
     
     virtualisation.oci-containers.containers."pterodactyl-panel" = {
       image = "ghcr.io/pterodactyl/panel:latest";
-      environmentFile = config.opnix.secrets.pterodactyl-panel-env.path;
+      environmentFiles = [ config.opnix.secrets.pterodactyl-panel-env.path ];
       volumes = [
         "${cfg.stateDir}/certs/:/etc/letsencrypt:rw"
         "${cfg.stateDir}/logs/:/app/storage/logs:rw"

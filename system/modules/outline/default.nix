@@ -26,11 +26,14 @@ in
 
   config = mkIf cfg.enable {
 
-    #opsm.secrets.outline-client-secret-key = {
-    #  secretRef = "op://Shulker/${config.networking.hostName}/Outline Client Secret Key";
-    #  user = config.services.outline.user;
-    #  group = config.services.outline.group;
-    #};
+    opnix.secrets.outline-client-secret-key = {
+      source = "{{ op://Shulker/${config.networking.hostName}/Outline Client Secret Key }}";
+      user = config.services.outline.user;
+      group = config.services.outline.group;
+      mode = "0600";
+    };
+
+    opnix.systemdWantedBy = [ "outline-postgresql" ];
 
     services.outline = {
       enable = cfg.enable;
@@ -43,7 +46,7 @@ in
         tokenUrl = "https://discordapp.com/api/oauth2/token";
         userinfoUrl = "https://discordapp.com/api/users/@me";
         clientId = "1170421650861334618";
-        clientSecretFile = "/secrets/outline-client-secret-key";
+        clientSecretFile = config.pnix.secrets.outline-client-secret-key.path;
         scopes = [ "email" "identify" ];
         usernameClaim = "preferred_username";
         displayName = "Discord";
