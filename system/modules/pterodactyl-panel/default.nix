@@ -91,6 +91,13 @@ in
             proxy_set_header "Access-Control-Allow-Origin" *; 
             proxy_set_header "Access-Control-Allow-Methods" "GET, POST, OPTIONS"; 
             proxy_set_header "Access-Control-Allow-Headers" "Authorization";
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_redirect off;
+            proxy_buffering off;
+            proxy_request_buffering off;
           '';
         };
       };
