@@ -105,7 +105,7 @@
         dataDir = "/srv/ghost";
       };
       bookstack = {
-        enable = true;
+        enable = false;#true;
         port = 23233;
         baseUrl = "the-inbetween.net";
         subDomain = "library";
