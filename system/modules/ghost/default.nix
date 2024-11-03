@@ -33,7 +33,7 @@ in
 
     opnix.secrets.ghost-mailgun-smtp-secret-key = {
       source = "{{ op://Shulker/${config.networking.hostName}/Mailgun SMTP Secret Key }}";
-      mode = "0600";
+      mode = "0640";
     };
 
     virtualisation.oci-containers.containers = {

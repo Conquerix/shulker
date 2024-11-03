@@ -30,7 +30,7 @@ in
       source = "{{ op://Shulker/${config.networking.hostName}/Outline Client Secret Key }}";
       user = config.services.outline.user;
       group = config.services.outline.group;
-      mode = "0600";
+      mode = "0640";
     };
 
     opnix.systemdWantedBy = [ "outline-postgresql" ];

@@ -40,7 +40,7 @@ with lib;
       enable = lib.mkDefault true;
       dns = "none";
     };
-    networking.nameservers = [ "9.9.9.9" ];
+    networking.nameservers = [ "9.9.9.9" "149.112.112.112" ];
 
     # Disable this to try and solve the nework manager wait online failed after each rebuild.
     systemd.network.wait-online.enable = false;
