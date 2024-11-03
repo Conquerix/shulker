@@ -46,7 +46,7 @@ in
         tokenUrl = "https://discordapp.com/api/oauth2/token";
         userinfoUrl = "https://discordapp.com/api/users/@me";
         clientId = "1170421650861334618";
-        clientSecretFile = config.pnix.secrets.outline-client-secret-key.path;
+        clientSecretFile = config.opnix.secrets.outline-client-secret-key.path;
         scopes = [ "email" "identify" ];
         usernameClaim = "preferred_username";
         displayName = "Discord";
