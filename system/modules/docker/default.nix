@@ -14,7 +14,7 @@ in
       lazydocker
     ];
 
-    opnix.systemdWantedBy = [ "docker" ];
+    #opnix.systemdWantedBy = [ "docker" ];
 
     virtualisation.oci-containers.backend = "docker";
 
