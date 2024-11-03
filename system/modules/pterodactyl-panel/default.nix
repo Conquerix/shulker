@@ -133,6 +133,7 @@ in
         "${cfg.stateDir}/logs/:/app/storage/logs:rw"
         "${cfg.stateDir}/nginx/:/etc/nginx/http.d:rw"
         "${cfg.stateDir}/var/:/app/var:rw"
+        "${cfg.stateDir}/extensions/:/blueprint_extensions:rw"
       ];
       ports = [
         "127.0.0.1:${toString cfg.port}:80/tcp"
