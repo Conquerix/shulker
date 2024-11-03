@@ -126,7 +126,7 @@ in
     };
     
     virtualisation.oci-containers.containers."pterodactyl-panel" = {
-      image = "ghcr.io/blueprintframework/blueprint:v1.11.7";
+      image = "ghcr.io/blueprintframework/blueprint:latest";
       environmentFiles = [ config.opnix.secrets.pterodactyl-panel-env.path ];
       volumes = [
         "${cfg.stateDir}/certs/:/etc/letsencrypt/live:rw"
