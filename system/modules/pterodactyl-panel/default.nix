@@ -129,10 +129,11 @@ in
       image = "ghcr.io/blueprintframework/blueprint:latest";
       environmentFiles = [ config.opnix.secrets.pterodactyl-panel-env.path ];
       volumes = [
-        "${cfg.stateDir}/certs/:/etc/letsencrypt:rw"
+        "${cfg.stateDir}/certs/:/etc/letsencrypt/live:rw"
         "${cfg.stateDir}/logs/:/app/storage/logs:rw"
         "${cfg.stateDir}/nginx/:/etc/nginx/http.d:rw"
         "${cfg.stateDir}/var/:/app/var:rw"
+        "${cfg.stateDir}/app/:/app:rw"
         "${cfg.stateDir}/extensions/:/blueprint_extensions:rw"
       ];
       ports = [
