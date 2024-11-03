@@ -32,8 +32,6 @@
   
     networkmanager.enable = false;
     useDHCP = true;
-
-    nameservers = [ "9.9.9.9" ];
   };
 
   services.nginx = {
