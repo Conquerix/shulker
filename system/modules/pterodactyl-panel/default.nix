@@ -135,7 +135,7 @@ in
         "${cfg.stateDir}/var/:/app/var:rw"
       ];
       ports = [
-        "127.0.0.1:${cfg.port}:80/tcp"
+        "127.0.0.1:${toString cfg.port}:80/tcp"
       ];
       dependsOn = [
         "pterodactyl-cache"

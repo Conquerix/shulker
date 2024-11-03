@@ -116,7 +116,13 @@
       ssh_server.enable = true;
       wireguard.enable = true;
       pterodactyl = {
-        panel.enable = true;
+        panel = {
+          enable = true;
+          baseUrl = "the-inbetween.net";
+          subDomain = "panel";
+          port = 23234;
+          stateDir = "/srv/pterodactyl";
+        };
         manage.enable = true;
         wings = {
           enable = true;
