@@ -33,7 +33,7 @@ in
       mode = "0640";
     };
 
-    opnix.systemdWantedBy = [ "outline-postgresql" ];
+    opnix.systemdWantedBy = [ "outline-postgresql" "outline" ];
 
     services.outline = {
       enable = cfg.enable;
