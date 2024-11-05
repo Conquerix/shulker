@@ -35,7 +35,7 @@ in
       enable = true;
       # The environmentFile needs to be on the target host!
       # Best use something like sops-nix or agenix to manage it
-      environmentFile = "/secrets/authentik-env-file";
+      environmentFile = config.opnix.secrets.authentik-secret-key.path;
       settings = {
         disable_startup_analytics = true;
         avatars = "initials";
@@ -55,8 +55,10 @@ in
       };
     };
 
-    #opsm.secrets = {
-    #  authentik-env-file.secretRef = "op://Shulker/${config.networking.hostName}/Authentik Environment File";
-    #};
+    opnix.secrets.authentik-secret-key = {
+      source = "AUTHENTIK_SECRET_KEY={{ op://Shulker/${config.networking.hostName}/Authentik Secret Key }}";
+      user = "authentik";
+      group = "authentik";
+    };
   };
 }

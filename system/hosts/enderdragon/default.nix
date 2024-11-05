@@ -93,6 +93,11 @@
         enable = true;
         docker = true;
       };
+      authentik = {
+        enable = true;
+        baseUrl = "the-inbetween.net";
+        subDomain = "sso";
+      };
       outline = {
         enable = true;
         port = 23231;
