@@ -57,8 +57,6 @@ in
 
     opnix.secrets.authentik-secret-key = {
       source = "AUTHENTIK_SECRET_KEY={{ op://Shulker/${config.networking.hostName}/Authentik Secret Key }}";
-      user = "authentik";
-      group = "authentik";
     };
   };
 }
