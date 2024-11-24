@@ -40,6 +40,7 @@
         port = 23232;
         stateDir = "/storage/flash/transmission";
       };
+      tailscale.enable = true;
     };
   };
 }
