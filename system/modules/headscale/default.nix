@@ -50,6 +50,12 @@ in
           client_id = cfg.oidcClientID;
           client_secret_path = config.opnix.secrets.headscale-oidc-client-secret.path;
         };
+        dns = {
+          base_domain = "internal.${cfg.baseUrl}";
+        };
+        noise.private_key_path = "${cfg.stateDir}/noise_private.key";
+        derp.server.private_key_path = "${cfg.stateDir}/derp_server_private.key";
+        database.sqlite.path = "${cfg.stateDir}/db.sqlite";
       };
     };
 
@@ -63,6 +69,17 @@ in
           proxyPass = "http://127.0.0.1:${toString cfg.port}";
         };
       };
+    };
+
+    environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
+      "/nix/persist".directories = [ 
+        {
+          directory = cfg.stateDir;
+          user = "headscale";
+          group = "headscale";
+          mode = "u=rwx,g=rx,o=";
+        }
+      ];
     };
 
     opnix.secrets.headscale-oidc-client-secret = {

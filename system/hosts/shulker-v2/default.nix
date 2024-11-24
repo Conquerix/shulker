@@ -32,12 +32,12 @@
       };
       #wireguard.enable = true;
       authentik = {
-        enable = true;
+        #enable = true;
         baseUrl = "shulker.link";
         subDomain = "sso";
       };
       headscale = {
-        enable = true;
+        #enable = true;
         port = 23230;
         baseUrl = "shulker.link";
         subDomain = "vpn";
