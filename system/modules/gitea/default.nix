@@ -41,11 +41,6 @@ in
 
   config = mkIf cfg.enable {
 
-    networking.firewall = {
-      enable = true;
-      allowedTCPPorts = [ 80 443 ];
-    };
-
     services.gitea = {
       enable = true;
       #useWizard = true;

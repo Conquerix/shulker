@@ -36,6 +36,14 @@
         baseUrl = "shulker.link";
         subDomain = "sso";
       };
+      headscale = {
+        enable = true;
+        port = 23230;
+        baseUrl = "shulker.link";
+        subDomain = "vpn";
+        oidcIssuer = "https://sso.shulker.link";
+        oidcClientID = "egw9vkYuXa8FxmIXNaIqaUdUMAGxgcNA86FrJdDW";
+      }
     };
   };
 

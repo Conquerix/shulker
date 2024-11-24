@@ -31,11 +31,6 @@ in
 
   config = mkIf cfg.enable {
 
-    networking.firewall = {
-      enable = true;
-      allowedTCPPorts = [ 80 443 ];
-    };
-
     services.jenkins = {
       enable = true;
       package = pkgs.jenkins-latest;

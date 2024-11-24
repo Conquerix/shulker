@@ -26,11 +26,6 @@ in
 
   config = mkIf cfg.enable {
 
-    networking.firewall = {
-      enable = true;
-      allowedTCPPorts = [ 80 443 ];
-    };
-
     services.authentik = {
       enable = true;
       # The environmentFile needs to be on the target host!
