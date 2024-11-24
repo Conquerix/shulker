@@ -84,8 +84,8 @@ in
           proxyWebsockets = true;
         };
       };
-      virtualHosts."headscale-adming" = {
-        serverName = "admin.${cfg.subDomain}.${cfg.baseUrl}";
+      virtualHosts."headscale-admin" = {
+        serverName = "admin_${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
         useACMEHost = cfg.baseUrl;
         locations."/" = {
