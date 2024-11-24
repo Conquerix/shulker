@@ -45,6 +45,7 @@
         oidcIssuer = "https://sso.shulker.link/application/o/headscale/";
         oidcClientID = "egw9vkYuXa8FxmIXNaIqaUdUMAGxgcNA86FrJdDW";
       };
+      tailscale.enable = true;
     };
   };
 
