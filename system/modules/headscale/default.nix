@@ -77,6 +77,8 @@ in
         environment = {
           HEADSCALE_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
           HEADSCALE_INTEGRATION = "proc";
+          OIDC_ISSUER = cfg.oidcIssuer;
+          OIDC_CLIENT_ID = cfg.oidcClientID;
         };
         environmentFiles = [
           config.opnix.secrets.headplane-env-secrets.path
@@ -125,7 +127,8 @@ in
     opnix.secrets.headplane-env-secrets = {
       source = ''
         COOKIE_SECRET="{{ op://Shulker/${config.networking.hostName}/Headplane Cookie Secret }}"
-        ROOT_API_KEY=""{{ op://Shulker/${config.networking.hostName}/Headplane API Key }}"
+        ROOT_API_KEY="{{ op://Shulker/${config.networking.hostName}/Headplane API Key }}"
+        OIDC_CLIENT_SECRET="{{ op://Shulker/${config.networking.hostName}/Headscale OIDC Client Secret }}"
       '';
     };
 
