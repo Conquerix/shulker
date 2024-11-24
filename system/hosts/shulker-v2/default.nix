@@ -43,7 +43,7 @@
         subDomain = "vpn";
         oidcIssuer = "https://sso.shulker.link";
         oidcClientID = "egw9vkYuXa8FxmIXNaIqaUdUMAGxgcNA86FrJdDW";
-      }
+      };
     };
   };
 
