@@ -56,11 +56,25 @@ in
           directory = cfg.stateDir;
           mode = "u=rwx,g=rx,o=";
         }
+        {
+          directory = "/var/lib/private/authentik";
+          mode = "u=rwx,g=rx,o=";
+        }
+        {
+          directory = "/var/lib/redis-authentik";
+          mode = "u=rwx,g=rx,o=";
+        }
+        {
+          directory = "/var/lib/postgresql";
+          mode = "u=rwx,g=rx,o=";
+        }
       ];
     };
 
     opnix.secrets.authentik-secret-key = {
       source = "AUTHENTIK_SECRET_KEY={{ op://Shulker/${config.networking.hostName}/Authentik Secret Key }}";
     };
+
+    opnix.systemdWantedBy = [ "authentik" "authentik-migrate" "authentik-worker" ];
   };
 }

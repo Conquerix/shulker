@@ -87,5 +87,7 @@ in
       user = "headscale";
       group = "headscale";
     };
+
+    opnix.systemdWantedBy = [ "headscale" ];
   };
 }
