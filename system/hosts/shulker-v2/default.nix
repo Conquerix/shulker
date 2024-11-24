@@ -31,6 +31,11 @@
         docker = true;
       };
       #wireguard.enable = true;
+      authentik = {
+        enable = true;
+        baseUrl = "shulker.link";
+        subDomain = "sso";
+      };
     };
   };
 

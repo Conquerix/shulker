@@ -41,10 +41,11 @@
   #services.xserver.displayManager.gdm.wayland = lib.mkForce false;
 
   environment.systemPackages = with pkgs; [
-  	chromium
-  	keymapp
+    chromium
+    netflix
+    keymapp
   ] ++ (with inputs.getchoo.packages.${pkgs.system}; [
-  	modrinth-app
+    modrinth-app
   ]);
 
   shulker = {

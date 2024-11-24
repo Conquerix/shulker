@@ -18,7 +18,6 @@ in
       burn-my-windows # Cool animations
       dash-to-dock # Dock on dekstop
       alttab-mod # Better Alt+Tab
-      aylurs-widgets # Beatiful widgets
       vitals # CPU temp, etc
       forge # Better windows tiling.
       pop-shell # Better than forge right above ?

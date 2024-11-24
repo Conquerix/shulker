@@ -11,11 +11,19 @@ in
 
   config = mkIf cfg.enable {
     security.acme = {
-      defaults.email = "${config.networking.hostName}@shulker.fr";
+      defaults.email = "${config.networking.hostName}@shulker.link";
       acceptTerms = true;
       certs."shulker.fr" = {
         domain = "shulker.fr";
         extraDomainNames = [ "*.shulker.fr" ];
+        dnsProvider = "ovh";
+        dnsPropagationCheck = true;
+        webroot = null;
+        credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
+      };
+      certs."shulker.link" = {
+        domain = "shulker.link";
+        extraDomainNames = [ "*.shulker.link" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
