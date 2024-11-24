@@ -66,9 +66,16 @@ in
 
     virtualisation.oci-containers.containers = {
       headscale-admin = {
-        image = "goodieshq/headscale-admin:latest";
+        image = "ghcr.io/tale/headplane:latest";
         ports = [ 
-          "${toString cfg.adminPort}:80"
+          "${toString cfg.adminPort}:3000"
+        ];
+        volumes = [
+          "${cfg.stateDir}:/var/lib/headscale"
+          "/etc/headscale:/etc/headscale"
+        ];
+        environmentFiles = [
+          config.opnix.secrets.headplane-env-secrets.path
         ];
       };
     };
@@ -84,8 +91,8 @@ in
           proxyWebsockets = true;
         };
       };
-      virtualHosts."headscale-admin" = {
-        serverName = "admin${cfg.subDomain}.${cfg.baseUrl}";
+      virtualHosts."headplane" = {
+        serverName = "admin.${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
         useACMEHost = cfg.baseUrl;
         locations."/" = {
@@ -109,6 +116,10 @@ in
       source = "{{ op://Shulker/${config.networking.hostName}/Headscale OIDC Client Secret }}";
       user = "headscale";
       group = "headscale";
+    };
+
+    opnix.secrets.headplane-env-secrets = {
+      source = ''COOKIE_SECRET="{{ op://Shulker/${config.networking.hostName}/Headplane Cookie Secret }}"'';
     };
 
     opnix.systemdWantedBy = [ "headscale" ];
