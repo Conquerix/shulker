@@ -71,6 +71,7 @@
       wireguard.enable = true;
       docker.enable = true;
       netbird.client.enable = true;
+      tailscale.enable = true;
       nvidia  = {
         enable = true;
         hybrid = {

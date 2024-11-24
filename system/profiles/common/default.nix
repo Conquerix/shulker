@@ -38,7 +38,7 @@ with lib;
 
     networking.networkmanager = {
       enable = lib.mkDefault true;
-      dns = "none";
+      dns = "systemd-resolved";
     };
 
     networking.nameservers = [ "9.9.9.9" "149.112.112.112" ];

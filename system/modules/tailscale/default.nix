@@ -15,9 +15,12 @@ in
       authKeyFile = config.opnix.secrets.tailscale-auth-key.path;
       extraUpFlags = [
         "--login-server" "https://vpn.shulker.link"
+        "--advertise-exit-node"
       ];
       useRoutingFeatures = "both";
     };
+
+    services.resolved.enable = true;
 
     opnix.secrets.tailscale-auth-key = {
       source = "{{ op://Shulker/Headscale Preauth Key/key }}";
