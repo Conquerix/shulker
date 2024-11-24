@@ -65,13 +65,13 @@ in
     };
 
     virtualisation.oci-containers.containers = {
-    headscale-admin = {
-      image = "goodieshq/headscale-admin:latest";
-      ports = [ 
-        "127.0.0.1:${toString cfg.adminPort}:80"
-      ];
+      headscale-admin = {
+        image = "goodieshq/headscale-admin:latest";
+        ports = [ 
+          "${toString cfg.adminPort}:80"
+        ];
+      };
     };
-	};
 
     services.nginx = {
       enable = true;
@@ -85,7 +85,7 @@ in
         };
       };
       virtualHosts."headscale-admin" = {
-        serverName = "admin_${cfg.subDomain}.${cfg.baseUrl}";
+        serverName = "admin${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
         useACMEHost = cfg.baseUrl;
         locations."/" = {
