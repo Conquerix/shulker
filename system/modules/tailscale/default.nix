@@ -16,6 +16,7 @@ in
       extraUpFlags = [
         "--login-server" "https://vpn.shulker.link"
       ];
+      useRoutingFeatures = "both";
     };
 
     opnix.secrets.tailscale-auth-key = {
