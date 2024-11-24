@@ -22,6 +22,11 @@ in
       default = 8080;
       description = "Default internal port to open headscale.";
     };
+    adminPort = mkOption {
+      type = types.port;
+      default = 8081;
+      description = "Default internal port to open headscale-admin panel.";
+    };
     stateDir = mkOption {
       type = types.str;
       default = "/var/lib/headscale";
@@ -59,6 +64,15 @@ in
       };
     };
 
+    virtualisation.oci-containers.containers = {
+    headscale-admin = {
+      image = "goodieshq/headscale-admin:latest";
+      ports = [ 
+        "127.0.0.1:${toString cfg.adminPort}:80"
+      ];
+    };
+	};
+
     services.nginx = {
       enable = true;
       virtualHosts."headscale" = {
@@ -68,6 +82,14 @@ in
         locations."/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.port}";
           proxyWebsockets = true;
+        };
+      };
+      virtualHosts."headscale-adming" = {
+        serverName = "admin.${cfg.subDomain}.${cfg.baseUrl}";
+        forceSSL = true;
+        useACMEHost = cfg.baseUrl;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:${toString cfg.adminPort}";
         };
       };
     };

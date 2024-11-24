@@ -39,6 +39,7 @@
       headscale = {
         enable = true;
         port = 23230;
+        adminPort = 23231;
         baseUrl = "shulker.link";
         subDomain = "vpn";
         oidcIssuer = "https://sso.shulker.link/application/o/headscale/";
