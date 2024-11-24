@@ -74,6 +74,9 @@ in
           "${cfg.stateDir}:/var/lib/headscale"
           "/etc/headscale:/etc/headscale"
         ];
+        environment = {
+          HEADSCALE_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
+        };
         environmentFiles = [
           config.opnix.secrets.headplane-env-secrets.path
         ];
