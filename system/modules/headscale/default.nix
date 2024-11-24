@@ -76,6 +76,7 @@ in
         ];
         environment = {
           HEADSCALE_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
+          HEADSCALE_INTEGRATION = "proc";
         };
         environmentFiles = [
           config.opnix.secrets.headplane-env-secrets.path
