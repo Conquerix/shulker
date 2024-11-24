@@ -122,7 +122,10 @@ in
     };
 
     opnix.secrets.headplane-env-secrets = {
-      source = ''COOKIE_SECRET="{{ op://Shulker/${config.networking.hostName}/Headplane Cookie Secret }}"'';
+      source = ''
+        COOKIE_SECRET="{{ op://Shulker/${config.networking.hostName}/Headplane Cookie Secret }}"
+        ROOT_API_KEY=""{{ op://Shulker/${config.networking.hostName}/Headplane API Key }}"
+      '';
     };
 
     opnix.systemdWantedBy = [ "headscale" ];
