@@ -14,7 +14,7 @@ in
       enable = true;
       authKeyFile = config.opnix.secrets.tailscale-auth-key.path;
       extraUpFlags = [
-        "--login-server https://vpn.shulker.link"
+        "--login-server" "https://vpn.shulker.link"
       ];
     };
 
