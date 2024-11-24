@@ -56,7 +56,7 @@ in
           client_secret_path = config.opnix.secrets.headscale-oidc-client-secret.path;
         };
         dns = {
-          base_domain = "shulker";
+          base_domain = "shulker.sh";
         };
         noise.private_key_path = "${cfg.stateDir}/noise_private.key";
         derp.server.private_key_path = "${cfg.stateDir}/derp_server_private.key";
