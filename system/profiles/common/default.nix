@@ -41,10 +41,18 @@ with lib;
       dns = "systemd-resolved";
     };
 
-    networking.nameservers = [ "9.9.9.9" "149.112.112.112" ];
+    networking.nameservers = [ "9.9.9.9" "149.112.112.112" ];f
+
+    services.resolved = {
+      enable = true;
+      dnssec = "true";
+      domains = [ "~." ];
+      fallbackDns = [ "1.1.1.1#one.one.one.one" "1.0.0.1#one.one.one.one" ];
+      dnsovertls = "true";
+    };
 
     #Fix dns lookups at boot time when wireguard is enabled
-    networking.dhcpcd.denyInterfaces = [ "wg*" ];
+    networking.dhcpcd.denyInterfaces = [ "wg*" "tailscale*" ];
 
     # Disable this to try and solve the network manager wait online failed after each rebuild.
     systemd.network.wait-online.enable = false;

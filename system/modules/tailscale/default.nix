@@ -20,8 +20,6 @@ in
       useRoutingFeatures = "both";
     };
 
-    services.resolved.enable = true;
-
     opnix.secrets.tailscale-auth-key = {
       source = "{{ op://Shulker/Headscale Preauth Key/key }}";
     };

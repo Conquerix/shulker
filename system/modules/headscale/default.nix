@@ -57,32 +57,11 @@ in
         };
         dns = {
           base_domain = "shulker.sh";
+          search_domains = [ "shulker.sh" ];
         };
         noise.private_key_path = "${cfg.stateDir}/noise_private.key";
         derp.server.private_key_path = "${cfg.stateDir}/derp_server_private.key";
         database.sqlite.path = "${cfg.stateDir}/db.sqlite";
-      };
-    };
-
-    virtualisation.oci-containers.containers = {
-      headscale-admin = {
-        image = "ghcr.io/tale/headplane:latest";
-        ports = [ 
-          "${toString cfg.adminPort}:3000"
-        ];
-        volumes = [
-          "${cfg.stateDir}:/var/lib/headscale"
-          "/etc/headscale:/etc/headscale"
-        ];
-        environment = {
-          HEADSCALE_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
-          HEADSCALE_INTEGRATION = "proc";
-          OIDC_ISSUER = cfg.oidcIssuer;
-          OIDC_CLIENT_ID = cfg.oidcClientID;
-        };
-        environmentFiles = [
-          config.opnix.secrets.headplane-env-secrets.path
-        ];
       };
     };
 
@@ -95,14 +74,6 @@ in
         locations."/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.port}";
           proxyWebsockets = true;
-        };
-      };
-      virtualHosts."headplane" = {
-        serverName = "admin.${cfg.subDomain}.${cfg.baseUrl}";
-        forceSSL = true;
-        useACMEHost = cfg.baseUrl;
-        locations."/" = {
-          proxyPass = "http://127.0.0.1:${toString cfg.adminPort}";
         };
       };
     };
@@ -122,14 +93,6 @@ in
       source = "{{ op://Shulker/${config.networking.hostName}/Headscale OIDC Client Secret }}";
       user = "headscale";
       group = "headscale";
-    };
-
-    opnix.secrets.headplane-env-secrets = {
-      source = ''
-        COOKIE_SECRET="{{ op://Shulker/${config.networking.hostName}/Headplane Cookie Secret }}"
-        ROOT_API_KEY="{{ op://Shulker/${config.networking.hostName}/Headplane API Key }}"
-        OIDC_CLIENT_SECRET="{{ op://Shulker/${config.networking.hostName}/Headscale OIDC Client Secret }}"
-      '';
     };
 
     opnix.systemdWantedBy = [ "headscale" ];
