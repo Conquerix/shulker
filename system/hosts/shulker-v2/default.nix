@@ -17,7 +17,7 @@
       allowedTCPPorts = [ 80 443 ];
     };
     networkmanager.enable = false;
-    #useDHCP = true;
+    useDHCP = true;
   };
 
   shulker = {
