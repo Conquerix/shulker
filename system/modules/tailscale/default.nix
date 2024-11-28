@@ -24,4 +24,6 @@ in
       source = "{{ op://Shulker/Headscale Preauth Key/key }}";
     };
   };
+
+  opnix.systemdWantedBy = [ "tailscaled" "tailscaled-autoconnect" ];
 }
