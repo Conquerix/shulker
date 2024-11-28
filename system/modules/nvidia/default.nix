@@ -72,7 +72,7 @@ in
     hardware.nvidia.open = true;
     services.xserver.videoDrivers = [ "nvidia" ];
     hardware.nvidia.modesetting.enable = true;
-    hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
+    hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
     hardware.nvidia.prime = mkIf cfg.hybrid.enable {
       offload.enable = cfg.hybrid.offload;
       offload.enableOffloadCmd = cfg.hybrid.offload;
