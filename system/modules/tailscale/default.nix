@@ -23,7 +23,7 @@ in
     opnix.secrets.tailscale-auth-key = {
       source = "{{ op://Shulker/Headscale Preauth Key/key }}";
     };
-  };
 
-  opnix.systemdWantedBy = [ "tailscaled" "tailscaled-autoconnect" ];
+    opnix.systemdWantedBy = [ "tailscaled" "tailscaled-autoconnect" ];
+  };
 }
