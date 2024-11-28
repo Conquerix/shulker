@@ -44,6 +44,11 @@ in
       allowedTCPPorts = [ 80 443 ];
     };
 
+    networking = {
+      dhcpcd.enable = false;
+      useNetworkd = true;
+    };
+
     services.nginx = {
       enable = true;
       recommendedGzipSettings = true;

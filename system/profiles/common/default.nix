@@ -51,6 +51,12 @@ with lib;
       dnsovertls = "true";
     };
 
+    security.sudo.enable = false;
+    security.sudo-rs = {
+      enable = true;
+      wheelNeedsPassword = false;
+    };
+
     #Fix dns lookups at boot time when wireguard is enabled
     networking.dhcpcd.denyInterfaces = [ "wg*" "tailscale*" ];
 
