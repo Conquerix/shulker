@@ -270,11 +270,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1732915452,
-        "narHash": "sha256-1NfNBu+fj+j2UHZJhvDIzcZSSGk+Ab4nrAAmcMLirdU=",
+        "lastModified": 1732920147,
+        "narHash": "sha256-8gkSK3jJwJmWhvXKeYf7VG97Jlp8RsaiNABm9WYOK1w=",
         "owner": "conquerix",
         "repo": "opnix",
-        "rev": "ffc165fe4aac937c836a11cc9c0ff81b5c7758e5",
+        "rev": "5a2a6fdf230cc8c034cd559b6de7976b8d8cfe2b",
         "type": "github"
       },
       "original": {

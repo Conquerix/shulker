@@ -32,7 +32,12 @@
         docker = true;
       };
       #wireguard.enable = true;
-      authentik = {
+      #authentik = {
+      #  enable = true;
+      #  baseUrl = "shulker.link";
+      #  subDomain = "sso";
+      #};
+      pocket-id = {
         enable = true;
         baseUrl = "shulker.link";
         subDomain = "sso";
