@@ -38,7 +38,7 @@ in
         forceSSL = true;
         useACMEHost = cfg.baseUrl;
         locations."/" = {
-          proxyWebsockets = true;
+          #proxyWebsockets = true;
           proxyPass = "https://127.0.0.1:${toString cfg.port}";
           extraConfig = ''
             proxy_busy_buffers_size   512k;
