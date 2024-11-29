@@ -22,6 +22,11 @@ in
       default = "/var/lib/pocket-id";
       description = "State Directory.";
     };
+    port = mkOption {
+      type = types.port;
+      default = 8080;
+      description = "Default internal port to open pocket-id.";
+    };
   };
 
   config = mkIf cfg.enable {
