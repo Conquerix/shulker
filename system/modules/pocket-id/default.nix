@@ -63,7 +63,7 @@ in
       environmentFiles = [ config.opnix.secrets.pocket-id-env.path ];
       environment = {
         PUBLIC_APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
-        TRUST_PROXY = true;
+        TRUST_PROXY = "true";
         PUID = "${toString config.users.users."pocket-id".uid}";
         PGID = "${toString config.users.groups."pocket-id".gid}";
       };
