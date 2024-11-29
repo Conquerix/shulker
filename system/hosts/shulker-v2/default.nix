@@ -37,15 +37,15 @@
       #  baseUrl = "shulker.link";
       #  subDomain = "sso";
       #};
-      headscale = {
-        enable = true;
-        port = 23230;
-        adminPort = 23231;
-        baseUrl = "shulker.link";
-        subDomain = "vpn";
-        oidcIssuer = "https://sso.shulker.link/application/o/headscale/";
-        oidcClientID = "egw9vkYuXa8FxmIXNaIqaUdUMAGxgcNA86FrJdDW";
-      };
+      #headscale = {
+      #  enable = true;
+      #  port = 23230;
+      #  adminPort = 23231;
+      #  baseUrl = "shulker.link";
+      #  subDomain = "vpn";
+      #  oidcIssuer = "https://sso.shulker.link/application/o/headscale/";
+      #  oidcClientID = "egw9vkYuXa8FxmIXNaIqaUdUMAGxgcNA86FrJdDW";
+      #};
       pocket-id = {
         enable = true;
         baseUrl = "shulker.link";
