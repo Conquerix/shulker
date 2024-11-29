@@ -37,11 +37,6 @@
       #  baseUrl = "shulker.link";
       #  subDomain = "sso";
       #};
-      pocket-id = {
-        enable = true;
-        baseUrl = "shulker.link";
-        subDomain = "sso";
-      };
       headscale = {
         enable = true;
         port = 23230;
@@ -50,6 +45,12 @@
         subDomain = "vpn";
         oidcIssuer = "https://sso.shulker.link/application/o/headscale/";
         oidcClientID = "egw9vkYuXa8FxmIXNaIqaUdUMAGxgcNA86FrJdDW";
+      };
+      pocket-id = {
+        enable = true;
+        baseUrl = "shulker.link";
+        subDomain = "sso";
+        port = 23232;
       };
       tailscale.enable = true;
     };

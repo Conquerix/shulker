@@ -34,7 +34,7 @@ in
         useACMEHost = cfg.baseUrl;
         locations."/" = {
           proxyWebsockets = true;
-          proxyPass = "https://127.0.0.1:${toString}";
+          proxyPass = "https://127.0.0.1:${toString cfg.port}";
         };
       };
     };
