@@ -40,6 +40,11 @@ in
         locations."/" = {
           proxyWebsockets = true;
           proxyPass = "https://127.0.0.1:${toString cfg.port}";
+          extraConfig = ''
+            proxy_busy_buffers_size   512k;
+            proxy_buffers   4 512k;
+            proxy_buffer_size   256k;
+          '';
         };
       };
     };
@@ -58,7 +63,7 @@ in
 
     virtualisation.oci-containers.containers."pocket-id" = {
       image = "stonith404/pocket-id:latest";
-      ports = [ "${toString cfg.port}:80" ];
+      ports = [ "127.0.0.1:${toString cfg.port}:80" ];
       volumes = [ "${cfg.stateDir}:/app/backed/data" ];
       environmentFiles = [ config.opnix.secrets.pocket-id-env.path ];
       environment = {
