@@ -64,8 +64,8 @@ in
       environment = {
         PUBLIC_APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
         TRUST_PROXY = true;
-        PUID = config.users.users."pocket-id".uid;
-        PGID = config.users.groups."pocket-id".gid;
+        PUID = "${toString config.users.users."pocket-id".uid}";
+        PGID = "${toString config.users.groups."pocket-id".gid}";
       };
     };
 
