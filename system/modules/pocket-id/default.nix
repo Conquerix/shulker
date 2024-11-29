@@ -39,7 +39,7 @@ in
         useACMEHost = cfg.baseUrl;
         locations."/" = {
           #proxyWebsockets = true;
-          proxyPass = "https://127.0.0.1:${toString cfg.port}";
+          proxyPass = "http://127.0.0.1:${toString cfg.port}";
           extraConfig = ''
             proxy_busy_buffers_size   512k;
             proxy_buffers   4 512k;
