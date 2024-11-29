@@ -38,8 +38,6 @@
     SUBSYSTEMS=="usb", ATTRS{idVendor}=="3297", MODE:="0666", SYMLINK+="ignition_dfu"
   '';
 
-  #services.xserver.displayManager.gdm.wayland = lib.mkForce false;
-
   environment.systemPackages = with pkgs; [
     chromium
     netflix

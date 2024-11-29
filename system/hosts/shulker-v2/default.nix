@@ -52,6 +52,14 @@
         subDomain = "sso";
         port = 23232;
       };
+      coder = {
+        enable = true;
+        baseUrl = "shulker.link";
+        subDomain = "coder";
+        port = 23234;
+        oidcIssuer = "https://sso.shulker.link";
+        oidcClientID = "04adfe9b-5974-44cd-96ce-f4f315cb5357";
+      };
       tailscale.enable = true;
     };
   };
