@@ -71,14 +71,18 @@ in
       ];
     };
 
+    users.users.coder.extraGroups = [ "docker" ];
+
     opnix.secrets.coder-env = {
       source = ''
         CODER_OIDC_ISSUER_URL="${cfg.oidcIssuer}"
         CODER_OIDC_EMAIL_DOMAIN="shulker.link"
         CODER_OIDC_CLIENT_ID="${cfg.oidcClientID}"
         CODER_OIDC_CLIENT_SECRET="{{ op://Shulker/${config.networking.hostName}/Coder OIDC Client Secret }}"
+        CODER_DISABLE_PASSWORD_AUTH=true
       '';
-        #CODER_DISABLE_PASSWORD_AUTH=true
     };
+
+    opnix.systemdWantedBy = [ "coder" ];
   };
 }
