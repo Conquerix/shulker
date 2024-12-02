@@ -5,12 +5,7 @@
     ./hardware.nix
   ];
 
-  environment.systemPackages = with pkgs; [
-    mc-monitor
-  ];
-
   zramSwap.enable = true;
-
 
   networking = {
     firewall = {
