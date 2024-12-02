@@ -6,37 +6,15 @@
   ];
 
   zramSwap.enable = true;
-  
-  environment.persistence = lib.mkIf (config.shulker.modules.impermanence.enable) {
-    "/nix/persist".directories = [ "/secrets" ];
-  };
 
-  networking = {
-    firewall = {
-      enable = true;
-      allowedTCPPorts = [ 80 443 ];
-    };
-    networkmanager.enable = false;
-    #useDHCP = true;
-    interfaces.enp5s0.useDHCP = true;
-  };
+  networking.interfaces.enp5s0.useDHCP = true;
 
   shulker = {
     profiles.server.enable = true;
     modules = {
       user.home = ./home.nix;
-      ssh_server.enable = true;
-      docker.enable = true;
-      impermanence = {
-        enable = true;
-        docker = true;
-      };
+      impermanence.enable = true;
       #wireguard.enable = true;
-      #authentik = {
-      #  enable = true;
-      #  baseUrl = "shulker.link";
-      #  subDomain = "sso";
-      #};
       headscale = {
         enable = true;
         port = 23230;
@@ -56,11 +34,11 @@
         enable = true;
         baseUrl = "shulker.link";
         subDomain = "coder";
+        listenAddresses = [ "100.64.0.5" ];
         port = 23234;
         oidcIssuer = "https://sso.shulker.link";
         oidcClientID = "04adfe9b-5974-44cd-96ce-f4f315cb5357";
       };
-      tailscale.enable = true;
     };
   };
 

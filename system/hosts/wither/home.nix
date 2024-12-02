@@ -12,7 +12,6 @@
     libvlc
     easyeffects
     packwiz
-    mcman
   ];
   
   shulker = {

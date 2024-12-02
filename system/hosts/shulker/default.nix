@@ -14,8 +14,6 @@
     profiles.server.enable = true;
     modules = {
       user.home = ./home.nix;
-      ssh_server.enable = true;
-      docker.enable = true;
       wireguard.enable = true;
       uptime-kuma = {
         enable = true;

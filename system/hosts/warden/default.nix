@@ -15,11 +15,8 @@
     profiles.server.enable = true;
     modules = {
       user.home = ./home.nix;
-      docker.enable = true;
       impermanence.enable = true;
-      ssh_server.enable = true;
       wireguard.enable = true;
-      netbird.client.enable = true;
       gitea = {
         enable = true;
         baseUrl = "shulker.fr";
@@ -40,7 +37,6 @@
         port = 23232;
         stateDir = "/storage/flash/transmission";
       };
-      tailscale.enable = true;
     };
   };
 }

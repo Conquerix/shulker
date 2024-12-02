@@ -22,11 +22,6 @@ in
       default = 3000;
       description = "Default internal port to open bookstack.";
     };
-    address = mkOption {
-      type = types.str;
-      default = "127.0.0.1";
-      description = "Default address to which bookstack will listen.";
-    };
     stateDir = mkOption {
       type = types.str;
       default = "/var/lib/bookstack";

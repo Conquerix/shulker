@@ -22,11 +22,6 @@ in
       default = 3001;
       description = "Internal port to open uptime-kuma.";
     };
-    address = mkOption {
-      type = types.str;
-      default = "127.0.0.1";
-      description = "Address to which uptime-kuma will listen.";
-    };
     dataDir = mkOption {
       type = types.str;
       default = "/var/lib/uptime-kuma/";

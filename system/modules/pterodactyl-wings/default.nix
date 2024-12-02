@@ -26,7 +26,6 @@ in
 
     users.groups."pterodactyl" = { };
 
-    shulker.modules.docker.enable = true;
     environment.systemPackages = [ wings ];
     systemd.services.wings = {
       enable = cfg.enable;

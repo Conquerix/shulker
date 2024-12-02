@@ -12,21 +12,14 @@ in
 
   config = mkIf cfg.enable {
 
-    fonts = {
-      packages = with pkgs; [
-        (
-          nerdfonts.override {
-            fonts = [ "JetBrainsMono" "Hack" "Meslo" "UbuntuMono" ];
-          }
-        )
-        jetbrains-mono
-      ];
-    };
+    fonts.packages = with pkgs; [
+      ( nerdfonts.override { fonts = [ "JetBrainsMono" "Hack" "Meslo" "UbuntuMono" ]; } )
+      jetbrains-mono
+    ];
 
     services.printing.enable = true;
 
     # Sound setting
-    #sound.enable = lib.mkForce false;
     security.rtkit.enable = true;
     services.pipewire = {
       enable = true;
@@ -36,30 +29,47 @@ in
       jack.enable = true;
     };
 
-    hardware = {
-      pulseaudio = {
-        #enable = true;
-        package = pkgs.pulseaudioFull;
-      };
-      bluetooth = {
-        enable = true;
-        settings = {
-          General = {
-            Enable = "Source,Sink,Media,Socket";
-          };
-        };
-      };
+    hardware.bluetooth = {
+      enable = true;
+      settings.General.Enable = "Source,Sink,Media,Socket";
     };
 
-    environment.systemPackages = with pkgs; [
+    environment.systemPackages = with pkgs.gnomeExtensions; [
+      lock-keys # Numlock & Capslock status on the panel
+      just-perfection # Many options
+      appindicator # Systray icons
+      gsconnect
+      vitals
+      burn-my-windows # Cool animations
+      dash-to-dock # Dock on dekstop
+      alttab-mod # Better Alt+Tab
+      vitals # CPU temp, etc
+      forge # Better windows tiling.
+      pop-shell # Better than forge right above ?
+      spotify-tray
+    ] ++ (with pkgs; [
       pamixer
       pavucontrol
       firefox-wayland
       qt6.qtwayland
       vlc
-    ];
+      gnome-themes-extra
+      gnome-tweaks
+      gtk-engine-murrine
+      sassc
+      okular
+      pop-launcher
+    ]);
 
-    
+    programs._1password-gui = {
+      enable = true;
+      polkitPolicyOwners = [ "conquerix" ];
+    };
+
+    programs.kdeconnect = {
+      enable = true;
+      package = pkgs.gnomeExtensions.gsconnect;
+    };
 
     # Desktop environment
     services.libinput = mkIf cfg.laptop {
@@ -73,6 +83,8 @@ in
       displayManager.gdm.wayland = true;
       desktopManager.gnome.enable = true;
     };
+    services.gnome.gnome-keyring.enable = lib.mkForce false;
+    services.udev.packages = with pkgs; [ gnome-settings-daemon ];
     environment.gnome.excludePackages = with pkgs; [
       gnome-photos
       gnome-tour

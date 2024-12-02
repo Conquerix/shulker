@@ -17,15 +17,15 @@ in
       default = "searx";
       description = "Default subdomain where transmission will be accessible.";
     };
+    listenAddresses = mkOption {
+      type = types.listOf types.str;
+      default = [ "0.0.0.0" ];
+      description = "Addresses that the nginx virtual host will listen to. (Useful for only opening access internally)";
+    };
     port = mkOption {
       type = types.port;
       default = 8080;
       description = "Default internal port to open transmission.";
-    };
-    address = mkOption {
-      type = types.str;
-      default = "127.0.0.1";
-      description = "Default address to which transimission will listen.";
     };
     stateDir = mkOption {
       type = types.str;
@@ -55,6 +55,7 @@ in
         serverName = "${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
         useACMEHost = cfg.baseUrl;
+        listenAddresses = cfg.listenAddresses;
         locations."/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.port}";
         };

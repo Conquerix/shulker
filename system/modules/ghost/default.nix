@@ -17,11 +17,6 @@ in
       default = 2368;
       description = "Default internal port to open searx.";
     };
-    address = mkOption {
-      type = types.str;
-      default = "127.0.0.1";
-      description = "Default address to which searx will listen.";
-    };
     dataDir = mkOption {
       type = types.str;
       default = "/var/lib/ghost";

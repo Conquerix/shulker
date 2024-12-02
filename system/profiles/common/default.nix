@@ -60,6 +60,13 @@ with lib;
       wheelNeedsPassword = false;
     };
 
+    programs._1password.enable = true;
+    virtualisation.oci-containers.backend = "docker";
+    virtualisation.docker = {
+      enable = true;
+      enableOnBoot = true;
+    };
+
     #Fix dns lookups at boot time when wireguard is enabled
     networking.dhcpcd.denyInterfaces = [ "wg*" "tailscale*" ];
 
@@ -92,6 +99,17 @@ with lib;
       cron.enable = true;
       locate.enable = true;
       timesyncd.enable = true;
+      openssh = {
+        enable = true;
+        openFirewall = true;
+        hostKeys = [ { type = "ed25519"; path = config.opnix.secrets.ssh-ed25519-host-key.path; } ];
+      };
+      tailscale = {
+        enable = true;
+        authKeyFile = config.opnix.secrets.tailscale-auth-key.path;
+        extraUpFlags = [ "--login-server" "https://vpn.shulker.link" "--advertise-exit-node" ];
+        useRoutingFeatures = "both";
+      };
     };
 
     # List of bare minimal requirements for a system to have to bootstrap from
@@ -112,6 +130,8 @@ with lib;
       devbox # portable dev environments
       gping # better ping
       eza # better ls
+      docker-compose
+      lazydocker
     ];
 
     environment.shellAliases = {
@@ -119,6 +139,7 @@ with lib;
       l = "eza -oluag --git";
       ls = "eza";
       ll = "eza -olug --git";
+      ".." = "cd ..";
     };
 
     programs = {
@@ -126,12 +147,16 @@ with lib;
       starship.enable = true;
     };
 
-    opnix.environmentFile = "/etc/opnix.env";
-
-    environment.persistence."/nix/persist" = mkIf (config.shulker.modules.impermanence.enable) {
-      files = [
-        {file = config.opnix.environmentFile; parentDirectory = { mode = "u=rw,g=,o="; };}
-      ];
+    opnix = {
+      environmentFile = "/etc/opnix.env";
+      systemdWantedBy = [ "docker" "tailscaled" "tailscaled-autoconnect" "sshd" ];
+      secrets = {
+        tailscale-auth-key.source = "{{ op://Shulker/Headscale Preauth Key/key }}";
+        ssh-ed25519-host-key = {
+          source = "{{ op://Shulker/${config.networking.hostName} ssh ed25519/private_key }}";
+          mode = "0600";
+        };
+      };
     };
   };
 }

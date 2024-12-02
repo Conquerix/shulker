@@ -17,11 +17,6 @@ in
       default = 3000;
       description = "Default internal port to open outline.";
     };
-    address = mkOption {
-      type = types.str;
-      default = "127.0.0.1";
-      description = "Default address to which outline will listen.";
-    };
   };
 
   config = mkIf cfg.enable {
@@ -61,7 +56,7 @@ in
         forceSSL = true;
         useACMEHost = "the-inbetween.net";
         locations."/" = {
-          proxyPass = "http://${cfg.address}:${toString cfg.port}";
+          proxyPass = "http://127.0.0.1:${toString cfg.port}";
           extraConfig = ''
             proxy_set_header Upgrade $http_upgrade;    
             proxy_set_header Connection "upgrade";

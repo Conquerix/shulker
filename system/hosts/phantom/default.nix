@@ -26,13 +26,11 @@
   };
 
   shulker = {
+    profiles.desktop = {
+      enable = true;
+      laptop = true;
+    };
     modules = {
-      _1password = {
-        enable = true;
-        users = [ "conquerix" ];
-      };
-      gnome.enable = true;
-      ssh_server.enable = true;
       steam = {
         enable = true;
         protonGE = true;
@@ -41,17 +39,9 @@
       impermanence = {
         enable = true;
         home = true;
-        docker = true;
       };
       yubikey.enable = true;
       wireguard.enable = true;
-      docker.enable = true;
-    };
-    profiles = {
-      desktop = {
-        enable = true;
-        laptop = true;
-      };
     };
   };
 }

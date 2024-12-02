@@ -88,11 +88,7 @@
     profiles.server.enable = true;
     modules = {
       user.home = ./home.nix;
-      docker.enable = true;
-      impermanence = {
-        enable = true;
-        docker = true;
-      };
+      impermanence.enable = true;
       authentik = {
         enable = true;
         baseUrl = "the-inbetween.net";
@@ -116,7 +112,6 @@
         subDomain = "library";
         stateDir = lib.mkForce "/srv/bookstack";
       };
-      ssh_server.enable = true;
       wireguard.enable = true;
       pterodactyl = {
         panel = {
@@ -126,7 +121,6 @@
           port = 23234;
           stateDir = "/srv/pterodactyl";
         };
-        manage.enable = true;
         wings = {
           enable = true;
           pkg = (builtins.getFlake "github:TeamMatest/nix-wings/2de9ee5f2bf8b8d2eeb214ba272a1e7e2cbe7ae0").packages.x86_64-linux.default;

@@ -46,6 +46,7 @@ in
 
     networking = {
       dhcpcd.enable = false;
+      networkmanager.enable = false;
       useNetworkd = true;
     };
 

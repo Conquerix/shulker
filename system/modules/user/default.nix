@@ -80,19 +80,13 @@ in
           # configured for the user and SSH will not allow logins!
           shell = pkgs.bash;
           uid = 1000;
+          openssh.authorizedKeys.keys = publicSSHKeys;
         };
-
         # Do not allow users to be added or modified except through Nix configuration.
         mutableUsers = false;
       };
 
       nix.settings.trusted-users = [ "${cfg.name}" ];
     }
-
-    (
-      mkIf (config.shulker.modules.ssh_server.enable) {
-        users.users."${cfg.name}".openssh.authorizedKeys.keys = cfg.publicSSHKeys;
-      }
-    )
   ];
 }

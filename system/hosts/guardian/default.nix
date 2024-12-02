@@ -74,16 +74,14 @@
   };
 
   shulker = {
+    profiles.server.enable = true;
     modules = {
       user.home = ./home.nix;
       impermanence = {
         enable = true;
         home = true;
-        docker = true;
       };
-      docker.enable = true;
       yubikey.enable = true;
-      ssh_server.enable = true;
       wireguard.enable = true;
       netbird.client.enable = true;
     };

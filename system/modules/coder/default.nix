@@ -22,6 +22,11 @@ in
       default = "/var/lib/coder";
       description = "State Directory.";
     };
+    listenAddresses = mkOption {
+      type = types.listOf types.str;
+      default = [ "0.0.0.0" ];
+      description = "Addresses that the nginx virtual host will listen to. (Useful for only opening access internally)";
+    };
     port = mkOption {
       type = types.port;
       default = 8080;
@@ -46,6 +51,7 @@ in
         serverName = "${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
         useACMEHost = cfg.baseUrl;
+        listenAddresses = cfg.listenAddresses;
         locations."/" = {
           proxyWebsockets = true;
           proxyPass = "http://127.0.0.1:${toString cfg.port}";

@@ -47,14 +47,8 @@
   ]);
 
   shulker = {
+    profiles.desktop.enable = true;
     modules = {
-      _1password = {
-        enable = true;
-        users = [ "conquerix" ];
-      };
-      gnome = {
-        enable = true;
-      };
       steam = {
         enable = true;
         protonGE = true;
@@ -63,13 +57,9 @@
       impermanence = {
         enable = true;
         home = true;
-        docker = true;
       };
       yubikey.enable = true;
       wireguard.enable = true;
-      docker.enable = true;
-      netbird.client.enable = true;
-      tailscale.enable = true;
       nvidia  = {
         enable = true;
         hybrid = {
@@ -78,11 +68,6 @@
           amdgpuBusId = "PCI:12:0:0";
           nvidiaBusId = "PCI:1:0:0";
         };
-      };
-    };
-    profiles = {
-      desktop = {
-        enable = true;
       };
     };
   };

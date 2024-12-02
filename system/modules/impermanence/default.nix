@@ -9,8 +9,6 @@ in
     enable = mkEnableOption "Ephemeral root (& home) support";
 
     home = mkEnableOption "Link /home to /nix/persist/home";
-
-    docker = mkEnableOption "Link /var/lib/docker to /nix/persist/var/lib/docker";
   };
 
   config = mkIf cfg.enable {
@@ -29,12 +27,13 @@ in
         "/etc/nixos"
         "/etc/secrets"
         "/root/.ssh"
+        "/var/lib/docker"
         (mkIf (cfg.home) "/home")
-        (mkIf (cfg.docker) "/var/lib/docker")
       ];
 
       files = [
         "/etc/machine-id"
+        {file = config.opnix.environmentFile; parentDirectory = { mode = "u=rw,g=,o="; };}
       ];
     };
   };
