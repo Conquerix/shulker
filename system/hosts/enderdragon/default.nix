@@ -84,11 +84,6 @@
     modules = {
       user.home = ./home.nix;
       impermanence.enable = true;
-      authentik = {
-        enable = true;
-        baseUrl = "the-inbetween.net";
-        subDomain = "sso";
-      };
       outline = {
         enable = true;
         port = 23231;
