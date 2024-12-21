@@ -17,26 +17,6 @@
       user.home = ./home.nix;
       impermanence.enable = true;
       wireguard.enable = true;
-      gitea = {
-        enable = true;
-        baseUrl = "shulker.fr";
-        subDomain = "git";
-        httpPort = 23231;
-        stateDir = "/storage/flash/gitea";
-        backupDir = "/storage/hdd/gitea/backup";
-      };
-      github-runner = {
-        enable = true;
-        owner = "The-InBetween";
-        workDir = "/storage/nvme/github-runner";
-      };
-      transmission = {
-        enable = true;
-        baseUrl = "shulker.fr";
-        subDomain = "torrent";
-        port = 23232;
-        stateDir = "/storage/flash/transmission";
-      };
     };
   };
 }

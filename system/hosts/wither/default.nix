@@ -42,9 +42,7 @@
     chromium
     netflix
     keymapp
-  ] ++ (with inputs.getchoo.packages.${pkgs.system}; [
-    modrinth-app
-  ]);
+  ];
 
   shulker = {
     profiles.desktop.enable = true;

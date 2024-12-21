@@ -28,6 +28,7 @@ in
         "/etc/secrets"
         "/root/.ssh"
         "/var/lib/docker"
+        "/var/lib/tailscale"
         (mkIf (cfg.home) "/home")
       ];
 

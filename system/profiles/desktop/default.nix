@@ -13,7 +13,10 @@ in
   config = mkIf cfg.enable {
 
     fonts.packages = with pkgs; [
-      ( nerdfonts.override { fonts = [ "JetBrainsMono" "Hack" "Meslo" "UbuntuMono" ]; } )
+      nerd-fonts.jetbrains-mono
+      nerd-fonts.ubuntu-mono
+      nerd-fonts.meslo-lg
+      nerd-fonts.hack
       jetbrains-mono
     ];
 
@@ -47,6 +50,7 @@ in
       forge # Better windows tiling.
       pop-shell # Better than forge right above ?
       spotify-tray
+      tailscale-qs
     ] ++ (with pkgs; [
       pamixer
       pavucontrol
