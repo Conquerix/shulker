@@ -55,19 +55,6 @@ in
       };
     };
 
-    users.users."jellyfin" = {
-      uid = 2001;
-      isSystemUser = true;
-      createHome = false;
-      group = "jellyfin";
-    };
-
-    users.groups."jellyfin" = {
-      gid = 2001;
-    };
-
-
-
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
       "/nix/persist".directories = [ 
         {
