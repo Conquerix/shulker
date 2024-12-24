@@ -61,6 +61,8 @@ in
         {
           directory = cfg.stateDir;
           mode = "u=rwx,g=rx,o=";
+          user = config.services.jellyfin.user;
+          group = config.services.jellyfin.group;
         }
       ];
     };
