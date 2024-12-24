@@ -21,8 +21,6 @@
     allowedUDPPorts = [ 5900 5901 ];
   };
 
-  services.gnome.gnome-remote-desktop.enable = true;
-
   environment.systemPackages = with pkgs; [
     spotify
     spotify-tray
@@ -31,7 +29,6 @@
     hunspell
     hunspellDicts.en_US
     hunspellDicts.fr-any
-    gnome.gnome-remote-desktop
   ];
 
   users.extraUsers.camelia = {

@@ -27,11 +27,6 @@ in
       default = [ "0.0.0.0" ];
       description = "Addresses that the nginx virtual host will listen to. (Useful for only opening access internally)";
     };
-    port = mkOption {
-      type = types.port;
-      default = 8080;
-      description = "Default internal port to open jellyfin.";
-    };
   };
 
   config = mkIf cfg.enable {
@@ -45,7 +40,7 @@ in
         listenAddresses = cfg.listenAddresses;
         locations."/" = {
           proxyWebsockets = true;
-          proxyPass = "http://127.0.0.1:${toString cfg.port}";
+          proxyPass = "http://127.0.0.1:8096";
           extraConfig = ''
             proxy_busy_buffers_size   512k;
             proxy_buffers   4 512k;
@@ -55,6 +50,12 @@ in
       };
     };
 
+    services.jellyfin = {
+      enable = true;
+      dataDir = cfg.stateDir;
+      cacheDir = "${cfg.stateDir}/cache";
+    };
+
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
       "/nix/persist".directories = [ 
         {
@@ -62,10 +63,6 @@ in
           mode = "u=rwx,g=rx,o=";
         }
       ];
-    };
-
-    opnix.secrets.jellyfin-env = {
-      source = "MAXMIND_LICENSE_KEY={{ op://Shulker/${config.networking.hostName}/jellyfin Maxmind License Key }}";
     };
   };
 }
