@@ -54,17 +54,9 @@ in
       enable = true;
       dataDir = cfg.stateDir;
       cacheDir = "${cfg.stateDir}/cache";
+      group = "vod";
     };
 
-    environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
-      "/nix/persist".directories = [ 
-        {
-          directory = cfg.stateDir;
-          mode = "u=rwx,g=rx,o=";
-          user = config.services.jellyfin.user;
-          group = config.services.jellyfin.group;
-        }
-      ];
-    };
+    users.groups.vod = { };
   };
 }

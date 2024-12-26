@@ -29,6 +29,20 @@
         subDomain = "vod";
         stateDir = "/storage/flash/jellyfin";
       };
+      jellyseerr = {
+        enable = true;
+        baseUrl = "shulker.link";
+      };
+      sonarr = {
+        enable = true;
+        baseUrl = "shulker.link";
+        stateDir = "/storage/flash/sonarr";
+      };
+      radarr = {
+        enable = true;
+        baseUrl = "shulker.link";
+        stateDir = "/storage/flash/radarr";
+      };
     };
   };
 }
