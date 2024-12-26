@@ -15,7 +15,7 @@ in
       acceptTerms = true;
       certs."shulker.fr" = {
         domain = "shulker.fr";
-        extraDomainNames = [ "*.shulker.fr" ];
+        extraDomainNames = [ "*.shulker.fr" "*.internal.shulker.fr" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
@@ -23,7 +23,7 @@ in
       };
       certs."shulker.link" = {
         domain = "shulker.link";
-        extraDomainNames = [ "*.shulker.link" ];
+        extraDomainNames = [ "*.shulker.link" "*.internal.shulker.link" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
@@ -31,7 +31,7 @@ in
       };
       certs."the-inbetween.net" = {
         domain = "the-inbetween.net";
-        extraDomainNames = [ "*.the-inbetween.net" ];
+        extraDomainNames = [ "*.the-inbetween.net" "*.internal.the-inbetween.net" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
