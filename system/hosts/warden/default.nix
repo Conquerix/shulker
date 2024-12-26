@@ -17,6 +17,8 @@
     allowedUDPPorts = [ 8096 1900 ];
   };
 
+  services.flaresolverr.enable = true;
+
   shulker = {
     profiles.server.enable = true;
     modules = {
@@ -46,11 +48,6 @@
       prowlarr = {
         enable = true;
         baseUrl = "shulker.link";
-      };
-      flaresolverr = {
-        enable = true;
-        baseUrl = "shulker.link";
-        port = 23231;
       };
     };
   };
