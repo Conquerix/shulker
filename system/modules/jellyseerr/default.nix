@@ -58,7 +58,7 @@ in
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
       "/nix/persist".directories = [ 
         {
-          directory = "/var/lib/jellyseerr";
+          directory = "/var/lib/private/jellyseerr";
           mode = "u=rwx,g=rx,o=";
         }
       ];
