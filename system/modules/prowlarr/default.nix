@@ -50,10 +50,8 @@ in
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
       "/nix/persist".directories = [
         {
-          directory = "/var/lib/prowlarr";
-          mode = "u=rwx,g=rx,o=";
-          user = "prowlarr";
-          group = "prowlarr";
+          directory = "/var/lib/private/prowlarr";
+          mode = "u=rwx,g=,o=";
         }
       ];
     };
