@@ -48,6 +48,7 @@
         enable = true;
         home = true;
       };
+      steam.enable = true;
       yubikey.enable = true;
       wireguard.enable = true;
     };
