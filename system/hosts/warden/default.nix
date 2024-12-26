@@ -43,6 +43,10 @@
         baseUrl = "shulker.link";
         stateDir = "/storage/flash/radarr";
       };
+      prowlarr = {
+        enable = true;
+        baseUrl = "shulker.link";
+      };
     };
   };
 }

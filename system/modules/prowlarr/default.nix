@@ -2,25 +2,20 @@
 
 with lib;
 let
-  cfg = config.shulker.modules.jellyseerr;
+  cfg = config.shulker.modules.prowlarr;
 in
 {
-  options.shulker.modules.jellyseerr = {
-    enable = mkEnableOption "Enable jellyseerr service";
+  options.shulker.modules.prowlarr = {
+    enable = mkEnableOption "Enable prowlarr service";
     baseUrl = mkOption {
       type = types.str;
       default = "example.com";
-      description = "Default url where jellyseerr will be accessible.";
+      description = "Default url where prowlarr will be accessible.";
     };
     subDomain = mkOption {
       type = types.str;
-      default = "jellyseerr";
-      description = "Default subdomain where jellyseerr will be accessible.";
-    };
-    port = mkOption {
-      type = types.port;
-      default = 8080;
-      description = "Default internal port to open jellyseerr.";
+      default = "prowlarr";
+      description = "Default subdomain where prowlarr will be accessible.";
     };
     listenAddresses = mkOption {
       type = types.listOf types.str;
@@ -33,14 +28,14 @@ in
 
     services.nginx = {
       enable = true;
-      virtualHosts."jellyseerr" = {
+      virtualHosts."prowlarr" = {
         serverName = "${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
         useACMEHost = cfg.baseUrl;
         listenAddresses = cfg.listenAddresses;
         locations."/" = {
           proxyWebsockets = true;
-          proxyPass = "http://127.0.0.1:${toString cfg.port}";
+          proxyPass = "http://127.0.0.1:9696";
           extraConfig = ''
             proxy_busy_buffers_size   512k;
             proxy_buffers   4 512k;
@@ -50,16 +45,15 @@ in
       };
     };
 
-    services.jellyseerr = {
-      enable = true;
-      port = cfg.port;
-    };
+    services.prowlarr.enable = true;
 
     environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
-      "/nix/persist".directories = [ 
+      "/nix/persist".directories = [
         {
-          directory = "/var/lib/private/jellyseerr";
-          mode = "u=rwx,g=,o=";
+          directory = "/var/lib/prowlarr";
+          mode = "u=rwx,g=rx,o=";
+          user = "prowlarr";
+          group = "prowlarr";
         }
       ];
     };

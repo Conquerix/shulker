@@ -10,6 +10,7 @@
     modules = {
       app = {
         libreoffice.enable = true;
+        vscodium.enable = true;
       };
       shell = {
         ssh = {
