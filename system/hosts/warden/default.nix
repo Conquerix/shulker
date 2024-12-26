@@ -16,25 +16,6 @@
     allowedTCPPorts = [ 8096 ];
   };
 
-  services.nginx = {
-    enable = true;
-    virtualHosts."jellyfin-tailnet" = {
-      serverName = "vod.shulker.link";
-      forceSSL = true;
-      useACMEHost = "shulker.link";
-      listenAddresses = [ "0.0.0.0" ];
-      locations."/" = {
-        proxyWebsockets = true;
-        proxyPass = "http://127.0.0.1:8096";
-        extraConfig = ''
-          proxy_busy_buffers_size   512k;
-          proxy_buffers   4 512k;
-          proxy_buffer_size   256k;
-        '';
-      };
-    };
-  };
-
   shulker = {
     profiles.server.enable = true;
     modules = {
@@ -44,7 +25,7 @@
       jellyfin = {
         enable = true;
         baseUrl = "shulker.link";
-        subDomain = "vod.internal";
+        subDomain = "vod";
         stateDir = "/storage/flash/jellyfin";
       };
     };
