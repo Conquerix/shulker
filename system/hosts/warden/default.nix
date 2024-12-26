@@ -17,7 +17,13 @@
     allowedUDPPorts = [ 8096 1900 ];
   };
 
-  services.flaresolverr.enable = true;
+  virtualisation.oci-containers.containers = {
+    flaresolverr = {
+      image = "ghcr.io/flaresolverr/flaresolverr:latest";
+      ports = [ "8191:8191" ];
+      environment.LOG_LEVEL = "info";
+    };
+  };
 
   shulker = {
     profiles.server.enable = true;
