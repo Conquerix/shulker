@@ -47,6 +47,11 @@
         enable = true;
         baseUrl = "shulker.link";
       };
+      flaresolverr = {
+        enable = true;
+        baseUrl = "shulker.link";
+        port = 23231;
+      };
     };
   };
 }
