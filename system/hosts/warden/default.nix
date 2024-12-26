@@ -13,7 +13,8 @@
 
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 8096 ];
+    allowedTCPPorts = [ 8096 1900 ];
+    allowedUDPPorts = [ 8096 1900 ];
   };
 
   shulker = {
