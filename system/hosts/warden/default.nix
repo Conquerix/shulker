@@ -1,4 +1,4 @@
-{ pkgs, opnix, ... }:
+{ pkgs, config, ... }:
 
 {
   imports = [ ./hardware.nix ];
@@ -29,7 +29,7 @@
     device = "conquerix@spinel.usbx.me:/home/conquerix/downloads/rtorrent";
     fsType = "fuse.sshfs";
     options = [
-      "identityfile=${opnix.secrets.ssh-ed25519-host-key.path}"
+      "identityfile=${config.opnix.secrets.ssh-ed25519-host-key.path}"
       "idmap=user"
       "x-systemd.automount" # mount the filesystem automatically on first access
       "allow_other" # don't restrict access to only the user which `mount`s it (because that's probably systemd who mounts it, not you)
