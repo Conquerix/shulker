@@ -39,6 +39,12 @@
         oidcIssuer = "https://sso.shulker.link";
         oidcClientID = "04adfe9b-5974-44cd-96ce-f4f315cb5357";
       };
+      searx = {
+        enable = true;
+        port = 23235;
+        baseUrl = "shulker.link";
+        subDomain = "search";
+      };
     };
   };
 

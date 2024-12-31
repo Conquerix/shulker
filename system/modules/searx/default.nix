@@ -17,6 +17,11 @@ in
       default = "searx";
       description = "Default subdomain where searx will be accessible.";
     };
+    listenAddresses = mkOption {
+      type = types.listOf types.str;
+      default = [ "0.0.0.0" ];
+      description = "Addresses that the nginx virtual host will listen to. (Useful for only opening access internally)";
+    };
     port = mkOption {
       type = types.port;
       default = 8080;
@@ -26,14 +31,13 @@ in
 
   config = mkIf cfg.enable {
 
-    virtualisation.oci-containers.containers = {
-      searxng = {
-        image = "searxng/searxng:latest";
-        ports = [ "${toString cfg.port}:8080" ];
-        environment = {
-          INSTANCE_NAME = "Shulker search";
-          SEARXNG_BASE_URL = "https://${cfg.subDomain}.${cfg.baseUrl}/";
-        };
+    services.searx = {
+      enable = true;
+      environmentFile = config.opnix.secrets.searx-env.path;
+      settings = {
+        server.port = cfg.port;
+        server.secret_key = "@SEARX_SECRET_KEY@";
+        server.base_url = "https://${cfg.subDomain}.${cfg.baseUrl}/";
       };
     };
 
@@ -43,10 +47,17 @@ in
         serverName = "${cfg.subDomain}.${cfg.baseUrl}";
         forceSSL = true;
         useACMEHost = cfg.baseUrl;
+        listenAddresses = cfg.listenAddresses;
         locations."/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.port}";
         };
       };
+    };
+
+    opnix.secrets.searx-env = {
+      source = ''
+        SEARX_SECRET_KEY="{{ op://Shulker/${config.networking.hostName}/Searx Secret Key }}"
+      '';
     };
   };
 }
