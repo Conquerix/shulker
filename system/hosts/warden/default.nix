@@ -55,7 +55,7 @@
     enable = true;
     extraPackages = with pkgs; [
       intel-media-driver
-      (intel-vaapi-driver.override { enableHybridCodec = true; };)
+      (intel-vaapi-driver.override { enableHybridCodec = true; })
       vaapiVdpau
       libvdpau-va-gl
       intel-compute-runtime # OpenCL filter support (hardware tonemapping and subtitle burn-in)
