@@ -51,9 +51,6 @@
   };
   boot.supportedFilesystems."fuse.sshfs" = true;
 
-  pkgs.config.packageOverrides = pkgs: {
-    vaapiIntel = pkgs.vaapiIntel.override { enableHybridCodec = true; };
-  };
   hardware.opengl = {
     enable = true;
     extraPackages = with pkgs; [
