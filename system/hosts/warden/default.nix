@@ -51,7 +51,7 @@
   };
   boot.supportedFilesystems."fuse.sshfs" = true;
 
-  nixpkgs.config.packageOverrides = pkgs: {
+  pkgs.config.packageOverrides = pkgs: {
     vaapiIntel = pkgs.vaapiIntel.override { enableHybridCodec = true; };
   };
   hardware.opengl = {
