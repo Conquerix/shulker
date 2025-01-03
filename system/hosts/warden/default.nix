@@ -51,6 +51,28 @@
   };
   boot.supportedFilesystems."fuse.sshfs" = true;
 
+  networking.wireguard.interfaces = {
+    # "wg0" is the network interface name. You can name the interface arbitrarily.
+    wg-proton = {
+      # Determines the IP address and subnet of the server's end of the tunnel interface.
+      ips = [ "10.2.0.2/32" ];
+      # The port that WireGuard listens to. Must be accessible by the client.
+      listenPort = 51820;
+      # Path to the private key file.
+      privateKeyFile = config.opsm.secrets.proton-vpn-wireguard-private-key.path;
+      peers = [
+        { # Shulker server
+          publicKey = "FFj4mVAwo5puyuimT7xsEdQqXwqQmuA0DBjQJpQmSg0=";
+          allowedIPs = [ "10.2.0.0/32" ];
+          endpoint = "79.127.184.158:51820";
+          persistentKeepalive = 25;
+        }
+      ];
+    };
+  };
+
+  opsm.secrets.proton-vpn-wireguard-private-key.secretRef = "op://Shulker/${config.networking.hostName}/Proton VPN Wireguard Private Key";
+
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
