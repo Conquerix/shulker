@@ -81,6 +81,8 @@ in
         {
           directory = cfg.stateDir;
           mode = "u=rwx,g=rx,o=";
+          user = services.gitea.user;
+          group = services.gitea.group;
         }
       ];
     };
