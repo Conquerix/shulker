@@ -34,17 +34,17 @@
         enable = true;
         baseUrl = "shulker.link";
         subDomain = "coder";
-        listenAddresses = [ "100.64.0.5" ];
+        #listenAddresses = [ "100.64.0.5" ];
         port = 23234;
         oidcIssuer = "https://sso.shulker.link";
         oidcClientID = "04adfe9b-5974-44cd-96ce-f4f315cb5357";
       };
-      searx = {
-        enable = true;
-        port = 23235;
-        baseUrl = "shulker.link";
-        subDomain = "search";
-      };
+      #searx = {
+      #  enable = true;
+      #  port = 23235;
+      #  baseUrl = "shulker.link";
+      #  subDomain = "search";
+      #};
       gitea = {
         enable = true;
         impermanence = true;
@@ -68,6 +68,8 @@
   ];
   boot.supportedFilesystems = [ "zfs" ];
   networking.hostId = "02789429";
+
+  systemd.services.
   
   boot = {
     #kernelParams = [ "ip=144.76.176.22::144.76.176.31:255.255.255.224::enp6s0:none" ]; # Use if dhcp not available.

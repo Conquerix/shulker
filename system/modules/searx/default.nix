@@ -59,5 +59,7 @@ in
         SEARX_SECRET_KEY="{{ op://Shulker/${config.networking.hostName}/Searx Secret Key }}"
       '';
     };
+
+    opnix.systemdWantedBy = [ "searx-init" ];
   };
 }
