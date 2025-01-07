@@ -59,7 +59,7 @@ in
           DOMAIN = "${cfg.subDomain}.${cfg.baseUrl}";
           HTTP_PORT = cfg.httpPort;
           SSH_PORT = cfg.sshPort;
-          PROTOCOL = "https";
+          #PROTOCOL = "https";
         };
       };
     };
