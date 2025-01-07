@@ -44,7 +44,7 @@ in
 
     services.gitea = {
       enable = true;
-      useWizard = true;
+      #useWizard = true;
       stateDir = cfg.stateDir;
       lfs.enable = true;
       settings = {
