@@ -12,6 +12,7 @@
     libvlc
     easyeffects
     packwiz
+    obsidian
   ];
   
   shulker = {

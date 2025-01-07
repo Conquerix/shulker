@@ -45,6 +45,13 @@
         baseUrl = "shulker.link";
         subDomain = "search";
       };
+      gitea = {
+        enable = true;
+        impermanence = true;
+        baseUrl = "shulker.link";
+        subDomain = "git";
+        httpPort = 23236;
+      };
     };
   };
 

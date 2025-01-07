@@ -7,6 +7,7 @@ in
 {
   options.shulker.modules.gitea = {
     enable = mkEnableOption "Enable gitea service";
+    impermanence = mkEnableOption "Wether to enable impermanence on state directories.";
     baseUrl = mkOption {
       type = types.str;
       default = "example.com";
@@ -43,7 +44,7 @@ in
 
     services.gitea = {
       enable = true;
-      #useWizard = true;
+      useWizard = true;
       stateDir = cfg.stateDir;
       lfs.enable = true;
       settings = {
@@ -51,14 +52,14 @@ in
           COOKIE_SECURE = true;
         };
         service = {
-          #DISABLE_REGISTRATION = true;
+          DISABLE_REGISTRATION = true;
         };
         server = {
           ROOT_URL = "https://${cfg.subDomain}.${cfg.baseUrl}:443";
           DOMAIN = "${cfg.subDomain}.${cfg.baseUrl}";
           HTTP_PORT = cfg.httpPort;
           SSH_PORT = cfg.sshPort;
-          #PROTOCOL = "https";
+          PROTOCOL = "https";
         };
       };
     };
@@ -71,9 +72,17 @@ in
         useACMEHost = cfg.baseUrl;
         locations."/" = {
           proxyPass = "http://127.0.0.1:${toString cfg.httpPort}";
-          #extraConfig = "rewrite ^/user/login.*$ /user/oauth2/Zitadel last;";
         };
       };
+    };
+
+    environment.persistence = mkIf (cfg.impermanence) {
+      "/nix/persist".directories = [ 
+        {
+          directory = cfg.stateDir;
+          mode = "u=rwx,g=rx,o=";
+        }
+      ];
     };
   };
 }
