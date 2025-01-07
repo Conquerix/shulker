@@ -30,15 +30,6 @@
         subDomain = "sso";
         port = 23232;
       };
-      coder = {
-        enable = true;
-        baseUrl = "shulker.link";
-        subDomain = "coder";
-        #listenAddresses = [ "100.64.0.5" ];
-        port = 23234;
-        oidcIssuer = "https://sso.shulker.link";
-        oidcClientID = "04adfe9b-5974-44cd-96ce-f4f315cb5357";
-      };
       #searx = {
       #  enable = true;
       #  port = 23235;
