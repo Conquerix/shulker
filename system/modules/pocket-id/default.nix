@@ -79,8 +79,8 @@ in
         {
           directory = cfg.stateDir;
           mode = "u=rwx,g=rx,o=";
-          user = config.users.users."pocket-id".uid;
-          group = config.users.groups."pocket-id".gid;
+          user = "pocket-id";
+          group = "pocket-id";
         }
       ];
     };
