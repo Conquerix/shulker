@@ -69,7 +69,7 @@
   boot.supportedFilesystems = [ "zfs" ];
   networking.hostId = "02789429";
 
-  systemd.services."docker-pocket-id".wantedBy = [ "coder" "headscale" "gitea" ];
+  systemd.services."docker-pocket-id".wantedBy = [ "coder.service" "headscale.service" "gitea.service" ];
   
   boot = {
     #kernelParams = [ "ip=144.76.176.22::144.76.176.31:255.255.255.224::enp6s0:none" ]; # Use if dhcp not available.
