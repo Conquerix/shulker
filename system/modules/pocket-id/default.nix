@@ -64,7 +64,7 @@ in
     virtualisation.oci-containers.containers."pocket-id" = {
       image = "stonith404/pocket-id:latest";
       ports = [ "127.0.0.1:${toString cfg.port}:80" ];
-      volumes = [ "${cfg.stateDir}:/app/backed/data" ];
+      volumes = [ "${cfg.stateDir}:/app/backend/data" ];
       environmentFiles = [ config.opnix.secrets.pocket-id-env.path ];
       environment = {
         PUBLIC_APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
