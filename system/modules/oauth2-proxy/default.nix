@@ -101,13 +101,13 @@ in
 
     services.oauth2-proxy = {
       enable = true;
-      #listenAddress = "127.0.0.1:${toString cfg.port}";
       provider = "oidc";
       clientID = cfg.oidcClientID;
       oidcIssuerUrl = cfg.oidcIssuer;
       httpAddress = "http://127.0.0.1:${toString cfg.port}";
       reverseProxy = true;
       redirectURL = "https://${cfg.subDomain}.${cfg.baseUrl}/oauth2/callback";
+      email.domains = [ "*" ];
       nginx = {
         proxy = "https://${cfg.subDomain}.${cfg.baseUrl}/";
         domain = "${cfg.subDomain}.${cfg.baseUrl}";
@@ -119,6 +119,7 @@ in
     opnix.secrets.oauth2-proxy-env = {
       source = ''
         OAUTH2_PROXY_CLIENT_SECRET="{{ op://Shulker/${config.networking.hostName}/oauth2-proxy OIDC Client Secret }}"
+        OAUTH2_PROXY_COOKIE_SECRET="{{ op://Shulker/${config.networking.hostName}/oauth2-proxy Cookie Secret }}"
       '';
     };
 
