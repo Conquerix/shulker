@@ -101,7 +101,7 @@ in
 
     services.oauth2-proxy = {
       enable = true;
-      listenAddress = "127.0.0.1:${toString cfg.port}";
+      #listenAddress = "127.0.0.1:${toString cfg.port}";
       provider = "oidc";
       clientID = cfg.oidcClientID;
       oidcIssuerUrl = cfg.oidcIssuer;
