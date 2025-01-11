@@ -81,6 +81,7 @@ in
         You can exclude specific locations by setting `auth_request off;` in the locations extraConfig setting.
       '';
     };
+  };
 
   config = mkIf cfg.enable {
 
