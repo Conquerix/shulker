@@ -25,6 +25,8 @@ let
     "networkmanager"
     "wheel"
     "plugdev"
+    "adbusers"
+    "kvm"
   ];
 in
 {

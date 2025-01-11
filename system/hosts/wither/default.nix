@@ -38,6 +38,9 @@
     SUBSYSTEMS=="usb", ATTRS{idVendor}=="3297", MODE:="0666", SYMLINK+="ignition_dfu"
   '';
 
+  programs.adb.enable = true;
+  users.users.conquerix.extraGroups = [ "adbusers" "kvm" ];
+
   environment.systemPackages = with pkgs; [
     chromium
     netflix

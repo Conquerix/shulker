@@ -30,12 +30,14 @@
         subDomain = "sso";
         port = 23232;
       };
-      #searx = {
-      #  enable = true;
-      #  port = 23235;
-      #  baseUrl = "shulker.link";
-      #  subDomain = "search";
-      #};
+      oauth2-proxy = {
+        enable = true;
+        baseUrl = "shulker.link";
+        subDomain = "auth";
+        port = 23233;
+        oidcIssuer = "https://sso.shulker.link";
+        oidcClientID = "92b91b09-c87b-4c34-abfa-16b52bb67ad3";
+      };
       gitea = {
         enable = true;
         impermanence = true;
