@@ -45,6 +45,7 @@
     chromium
     netflix
     keymapp
+    trezor-suite
   ];
 
   shulker = {

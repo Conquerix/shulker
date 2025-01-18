@@ -22,7 +22,7 @@
         baseUrl = "shulker.link";
         subDomain = "vpn";
         oidcIssuer = "https://sso.shulker.link";
-        oidcClientID = "eef19321-984e-4086-9b93-8d4c905f7ca9";
+        oidcClientID = "0e45c1aa-116a-4cd7-a00c-96fb012080a5";
       };
       pocket-id = {
         enable = true;
