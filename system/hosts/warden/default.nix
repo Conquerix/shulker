@@ -91,6 +91,14 @@
       user.home = ./home.nix;
       impermanence.enable = true;
       wireguard.enable = true;
+      coder = {
+        enable = true;
+        baseUrl = "shulker.link";
+        stateDir = "/storage/flash/coder";
+        port = 23231;
+        oidcIssuer = "https://sso.shulker.link";
+        oidcClientID = "bf21c43e-c845-425d-82ad-89916c7e8034";
+      };
       jellyfin = {
         enable = true;
         baseUrl = "shulker.link";

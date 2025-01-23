@@ -7,6 +7,7 @@ in
 {
   options.shulker.modules.coder = {
     enable = mkEnableOption "Enable coder service";
+    persistence = mkEnableOption "Enable coder persistence in /nix/persist";
     baseUrl = mkOption {
       type = types.str;
       default = "example.com";
@@ -68,7 +69,7 @@ in
       environment.file = config.opnix.secrets.coder-env.path;
     };
 
-    environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
+    environment.persistence = mkIf (config.shulker.modules.impermanence.enable && cfg.persistence) {
       "/nix/persist".directories = [ 
         {
           directory = cfg.stateDir;

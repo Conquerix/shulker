@@ -46,6 +46,8 @@
     netflix
     keymapp
     trezor-suite
+    protonvpn-gui
+    bisq2
   ];
 
   shulker = {
