@@ -32,15 +32,6 @@ in
       default = "/var/lib/headscale";
       description = "State Directory.";
     };
-    oidcIssuer = mkOption {
-      type = types.str;
-      example = "https://openid.example.com";
-      description = "URL to OpenID issuer.";
-    };
-    oidcClientID = mkOption {
-      type = types.str;
-      description = "OpenID Connect client ID.";
-    };
   };
 
   config = mkIf cfg.enable {
@@ -50,11 +41,6 @@ in
       port = cfg.port;
       settings = {
         server_url = "https://${cfg.subDomain}.${cfg.baseUrl}:443";
-        oidc = {
-          issuer = cfg.oidcIssuer;
-          client_id = cfg.oidcClientID;
-          client_secret_path = config.opnix.secrets.headscale-oidc-client-secret.path;
-        };
         dns = {
           base_domain = "shulker.sh";
           search_domains = [ "shulker.sh" ];
@@ -88,13 +74,5 @@ in
         }
       ];
     };
-
-    opnix.secrets.headscale-oidc-client-secret = {
-      source = "{{ op://Shulker/${config.networking.hostName}/Headscale OIDC Client Secret }}";
-      user = "headscale";
-      group = "headscale";
-    };
-
-    opnix.systemdWantedBy = [ "headscale" ];
   };
 }

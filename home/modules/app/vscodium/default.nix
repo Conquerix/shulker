@@ -32,7 +32,7 @@ in
         alefragnani.project-manager
         jnoortheen.nix-ide
         ms-vscode-remote.remote-ssh
-        rust-lang.rust-analyzer
+        #rust-lang.rust-analyzer
         github.github-vscode-theme
         mkhl.direnv
       ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [

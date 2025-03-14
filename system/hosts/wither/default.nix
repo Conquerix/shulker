@@ -66,12 +66,12 @@
       wireguard.enable = true;
       nvidia  = {
         enable = true;
-        hybrid = {
-          enable = true;
-          offload = true;
-          amdgpuBusId = "PCI:12:0:0";
-          nvidiaBusId = "PCI:1:0:0";
-        };
+        #hybrid = {
+        #  enable = true;
+        #  offload = true;
+        #  amdgpuBusId = "PCI:12:0:0";
+        #  nvidiaBusId = "PCI:1:0:0";
+        #};
       };
     };
   };

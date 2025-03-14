@@ -21,8 +21,6 @@
         adminPort = 23231;
         baseUrl = "shulker.link";
         subDomain = "vpn";
-        oidcIssuer = "https://sso.shulker.link";
-        oidcClientID = "0e45c1aa-116a-4cd7-a00c-96fb012080a5";
       };
       pocket-id = {
         enable = true;
