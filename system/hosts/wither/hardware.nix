@@ -5,10 +5,9 @@
 
 {
   imports =
-    [ (modulesPath + "/installer/scan/not-detected.nix")
-    ];
+    [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
-  boot.initrd.availableKernelModules = [ "nvme" "thunderbolt" "xhci_pci" "ahci" "usbhid" ];
+  boot.initrd.availableKernelModules = [ "nvme" "thunderbolt" "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
@@ -19,33 +18,22 @@
       options = [ "defaults" "size=8G" "mode=755" ];
     };
 
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/04F9-A727";
-      fsType = "vfat";
-      options = [ "fmask=0022" "dmask=0022" ];
-    };
 
   fileSystems."/nix" =
-    { device = "/dev/disk/by-uuid/9193dd40-cd05-461f-861b-6a6c01d9aafa";
-      fsType = "ext4";
+    { device = "zpool/nix";
+      fsType = "zfs";
     };
 
-  fileSystems."/etc/nixos" =
-    { device = "/nix/persist/etc/nixos";
-      fsType = "none";
-      options = [ "bind" ];
+  fileSystems."/nix/persist" =
+    { device = "zpool/persist";
+      fsType = "zfs";
+      neededForBoot = true;
     };
 
-  fileSystems."/secrets" =
-    { device = "/nix/persist/secrets";
-      fsType = "none";
-      options = [ "bind" ];
-    };
-
-  fileSystems."/var/log" =
-    { device = "/nix/persist/var/log";
-      fsType = "none";
-      options = [ "bind" ];
+  fileSystems."/boot" =
+    { device = "/dev/disk/by-uuid/9D45-26B0";
+      fsType = "vfat";
+      options = [ "fmask=0022" "dmask=0022" ];
     };
 
   swapDevices = [ ];
@@ -55,11 +43,8 @@
   # still possible to use this option, but it's recommended to use it in conjunction
   # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
   networking.useDHCP = lib.mkDefault true;
-  # networking.interfaces.docker0.useDHCP = lib.mkDefault true;
   # networking.interfaces.eno1.useDHCP = lib.mkDefault true;
   # networking.interfaces.eno2.useDHCP = lib.mkDefault true;
-  # networking.interfaces.tailscale0.useDHCP = lib.mkDefault true;
-  # networking.interfaces.wg-shulker.useDHCP = lib.mkDefault true;
   # networking.interfaces.wlp8s0.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";

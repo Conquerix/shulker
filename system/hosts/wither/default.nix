@@ -11,6 +11,8 @@
 
   programs.gamemode.enable = true;
 
+  networking.hostId = "7fbe10c9";
+
   services.udev.extraRules = ''
     # Rules for Oryx web flashing and live training
     KERNEL=="hidraw*", ATTRS{idVendor}=="16c0", MODE="0664", GROUP="plugdev"
@@ -66,12 +68,12 @@
       wireguard.enable = true;
       nvidia  = {
         enable = true;
-        #hybrid = {
-        #  enable = true;
-        #  offload = true;
-        #  amdgpuBusId = "PCI:12:0:0";
-        #  nvidiaBusId = "PCI:1:0:0";
-        #};
+        hybrid = {
+          enable = true;
+          offload = true;
+          amdgpuBusId = "PCI:108:0:0";
+          nvidiaBusId = "PCI:1:0:0";
+        };
       };
     };
   };
