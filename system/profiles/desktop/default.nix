@@ -61,7 +61,7 @@ in
       gnome-tweaks
       gtk-engine-murrine
       sassc
-      okular
+      papers
       pop-launcher
     ]);
 
