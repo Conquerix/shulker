@@ -2,7 +2,8 @@
 
 {
   imports = [ 
-    ./hardware.nix 
+    ./hardware.nix
+    ./wireguard-s2s.nix
   ];
 
   zramSwap.enable = true;
