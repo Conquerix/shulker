@@ -33,11 +33,11 @@
         # List of allowed peers.
         { # Nether
           publicKey = "+umM4HrYSjxV5AwN3bx/hJoOIQE/DvIV8hx2R8A4vmg=";
-          allowedIPs = [ "10.11.0.1/32" "10.0.0.0/16" ];
+          allowedIPs = [ "10.100.0.2/32" "10.0.0.0/16" ];
         }
         { # Ender
           publicKey = "egXy+mxcBdsaDwTmWYmdFNtb7TTmXftdqVAFgE5IcVg=";
-          allowedIPs = [ "10.1.0.1/32"  "10.10.0.0/16" ];
+          allowedIPs = [ "10.100.0.3/32"  "10.10.0.0/16" ];
         }
       ];
     };
