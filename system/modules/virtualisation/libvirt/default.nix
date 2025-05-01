@@ -28,7 +28,9 @@ in {
     users.users."qemu-libvirtd" = {
       extraGroups = optionals (!cfg.qemu.runAsRoot) [ "kvm" "input" ];
       isSystemUser = true;
+      group = "qemu-libvirtd";
     };
+    users.groups.qemu-libvirtd = {};
 
     virtualisation.libvirtd.qemu.verbatimConfig = ''
       clear_emulation_capabilities = ${
