@@ -117,6 +117,8 @@
     protonvpn-gui
     bisq2
     looking-glass-client
+    ryubing
+    linux-wallpaperengine
   ];
 
   shulker = {
