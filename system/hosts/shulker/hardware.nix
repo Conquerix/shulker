@@ -22,13 +22,11 @@
   fileSystems."/nix" =
     { device = "rpool/nix";
       fsType = "zfs";
-      options = [ "zfsutil" ];
     };
 
   fileSystems."/nix/persist" =
     { device = "rpool/persist";
       fsType = "zfs";
-      options = [ "zfsutil" ];
       neededForBoot = true;
     };
 
