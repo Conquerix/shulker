@@ -104,12 +104,12 @@ with lib;
         openFirewall = true;
         hostKeys = [ { type = "ed25519"; path = config.opnix.secrets.ssh-ed25519-host-key.path; } ];
       };
-      tailscale = {
-        enable = true;
-        authKeyFile = config.opnix.secrets.tailscale-auth-key.path;
-        extraUpFlags = [ "--login-server" "https://vpn.shulker.link" "--advertise-exit-node" ];
-        useRoutingFeatures = "both";
-      };
+      #tailscale = {
+      #  enable = true;
+      #  authKeyFile = config.opnix.secrets.tailscale-auth-key.path;
+      #  extraUpFlags = [ "--login-server" "https://vpn.shulker.link" "--advertise-exit-node" ];
+      #  useRoutingFeatures = "both";
+      #};
     };
 
     # List of bare minimal requirements for a system to have to bootstrap from
@@ -149,9 +149,9 @@ with lib;
 
     opnix = {
       environmentFile = "/etc/opnix.env";
-      systemdWantedBy = [ "docker" "tailscaled" "tailscaled-autoconnect" "sshd" ];
+      systemdWantedBy = [ "docker" "sshd" ]; #"tailscaled" "tailscaled-autoconnect"
       secrets = {
-        tailscale-auth-key.source = "{{ op://Shulker/Headscale Preauth Key/key }}";
+        #tailscale-auth-key.source = "{{ op://Shulker/Headscale Preauth Key/key }}";
         ssh-ed25519-host-key = {
           source = "{{ op://Shulker/${config.networking.hostName} ssh ed25519/private_key }}";
           mode = "0600";

@@ -70,6 +70,13 @@
 
   programs.dconf.enable = true;
   programs.virt-manager.enable = true;
+  #programs.nix-ld = {
+  #  enable = true;
+  #  libraries = [
+  #    pkgs.alsa-lib
+  #    (pkgs.runCommand "steamrun-lib" {} "mkdir $out; ln -s ${pkgs.steam-run.fhsenv}/usr/lib64 $out/lib")
+  #  ];
+  #};
   hardware.graphics.enable = true;
   virtualisation = {
     spiceUSBRedirection.enable = true;
@@ -134,7 +141,7 @@
         home = true;
       };
       yubikey.enable = true;
-      wireguard.enable = true;
+      #wireguard.enable = true;
       nvidia  = {
         enable = true;
         hybrid = {

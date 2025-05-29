@@ -49,6 +49,7 @@ in
       vitals # CPU temp, etc
       forge # Better windows tiling.
       pop-shell # Better than forge right above ?
+      ddterm # Drop down terminal
       spotify-tray
       tailscale-qs
     ] ++ (with pkgs; [
