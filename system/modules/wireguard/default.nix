@@ -4,7 +4,7 @@ with lib;
 let cfg = config.shulker.modules.wireguard;
 in
 {
-  options.shulker.modules.wireguard.server = {
+  options.shulker.modules.wireguard = {
       enable = mkEnableOption "Enable wireguard server for multi-site vpn";
       extInterface = mkOption {
         description = ''Hardware interface for the NAT'';
