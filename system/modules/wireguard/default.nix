@@ -1,124 +1,70 @@
 { config, lib, pkgs, ... }:
 
 with lib;
-let 
-  cfg = config.shulker.modules.wireguard;
-  wgPort = 51821;
-  devices = [
-    {
-      name = "shulker";
-      server = true;
-      extInterface = "ens3";
-      address = "10.10.10.1";
-      publicKey = "vLo4XYe84WcCnkLynjO2SjBzHmFuYeuFN0CF5b/CfBc=";
-      endpoint = {
-        ip = "51.178.27.137";
-        port = wgPort;
-      };
-    }
-    {
-      name = "warden";
-      address = "10.10.10.2";
-      publicKey = "gfwhPNVOMoBxaCXP+dIcuLv+r2aat127wE+vO20Y/l0=";
-    }
-    {
-      name = "phantom";
-      address = "10.10.10.3";
-      publicKey = "f2m5/gMPILz9ISGiAtwZFEWcU01jzU899bJBuhTiuyc=";
-    }
-    {
-      name = "wither";
-      address = "10.10.10.4";
-      publicKey = "9JNyydvMlIDGpOCwAW6a8TzPALGvRq2UKBiPFLV8GwM=";
-    }
-    {
-      name = "guardian";
-      extInterface = "enp2s0";
-      address = "10.10.10.5";
-      publicKey = "J2amctRH90iC1bnd2UnqOp9D9Rpbgmb0w/Xs+caB83U=";
-    }
-    {
-      name = "vindicator";
-      address = "10.10.10.6";
-      publicKey = "2xrdv1hBlJAQx8jo5P6hie6QzWSjbdGC8wP4pvCP6Rs=";
-    }
-    {
-      name = "enderdragon";
-      address = "10.10.10.7";
-      publicKey = "k40E/7Z1DpaiwkTPTnn660N7A/V9jwgwjsL2Lm0OSlU=";
-    }
-    {
-      name = "endermite";
-      address = "10.10.10.8";
-      publicKey = "LoGAYxqvBJYxBOY39VRd9vmyVAy592NDxQb2iBOf5wU=";
-    }
-  ];
-
-  hosts = listToAttrs (map (x: {name = x.name; value = x;}) devices);
-
-  host = hosts.${config.networking.hostName};
-
-in {
-
-  options.shulker.modules.wireguard = {
-    enable = mkEnableOption "Enable wireguard server";
-    fullVPN = mkEnableOption "Enable Full VPN mode";
-  };
-
-  config = mkIf cfg.enable {
-    networking = {
-      nat = mkIf ((host ? server && host.server) || (host ? transfer && host ? extInterface)) {
-        enable = true;
-        externalInterface = host.extInterface;
-        internalInterfaces = [ "wg-shulker" ];
-      };
-      # Map the hostnames for easy addressing, both as "hostname" and "hostname.wg"
-      hosts = listToAttrs (map (x: {
-        name = x.address;
-        value = [ "${x.name}" "${x.name}.shulker.fr" ];
-      }) devices);
-      firewall = {
-        allowedUDPPorts = [ wgPort ];
-        # Trust all traffic on this interface
-        trustedInterfaces = [ "wg-shulker" ];
-      };
-      wireguard.interfaces.wg-shulker = {
-        privateKeyFile = "/secrets/wireguard-private-key";
-        ips = [ "${host.address}/24" ];
-        listenPort = wgPort;
-
-        postSetup = mkIf (host ? server && host.server) ''
-          ${pkgs.iptables}/bin/iptables -t nat -A POSTROUTING -s 10.10.10.0/24 -o ${host.extInterface} -j MASQUERADE
-        '';
-  
-        # This undoes the above command
-        postShutdown = mkIf (host ? server && host.server) ''
-          ${pkgs.iptables}/bin/iptables -t nat -D POSTROUTING -s 10.10.10.0/24 -o ${host.extInterface} -j MASQUERADE
-        '';
-
-        # There is no problem with having a peer device listed for itself, it is ignored.
-        # Endpoints are a hint as to were to find the device, but connections can be accepted from anywhere.
-
-        # Maps the devices list to configured Wireguard peers.
-        # It adds an endpoint if that device has a public endpoint, which
-        # should be the case for all servers.
-        peers = if (host ? server && host.server) 
-          then
-            (map (x: {
-              inherit (x) publicKey;
-              allowedIPs = [ "${x.address}/32" ] ++ (if (x ? transfer) then x.transfer else []);
-              endpoint = mkIf (x ? endpoint) "${x.endpoint.ip}:${toString x.endpoint.port}";
-            }) devices)
-          else
-            ([{
-              publicKey = hosts.shulker.publicKey;
-              allowedIPs = [ (if cfg.fullVPN then "0.0.0.0/0" else "10.10.10.0/24") ] ++ (if (host ? receive) then host.receive else []);
-              endpoint = "${hosts.shulker.endpoint.ip}:${toString hosts.shulker.endpoint.port}";
-              persistentKeepalive = 25;
-            }]);
+let cfg = config.shulker.modules.wireguard;
+in
+{
+  options.shulker.modules.wireguard.server = {
+      enable = mkEnableOption "Enable wireguard server for multi-site vpn";
+      extInterface = mkOption {
+        description = ''Hardware interface for the NAT'';
+        type = types.str;
+        default = "eth0";
       };
     };
 
-    #opsm.secrets.wireguard-private-key.secretRef = "op://Shulker/${config.networking.hostName}/Wireguard Private Key";
+  config = mkIf cfg.enable {
+    # enable NAT
+    networking.nat.enable = true;
+    networking.nat.externalInterface = cfg.extInterface;
+    networking.nat.internalInterfaces = [ "wg-shulker" ];
+    networking.firewall = {
+      allowedUDPPorts = [ 51920 ];
+    };
+
+    boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+  
+    networking.wireguard.interfaces = {
+      # "wg-shulker" is the network interface name. You can name the interface arbitrarily.
+      wg-shulker = {
+        # Determines the IP address and subnet of the server's end of the tunnel interface.
+        ips = [ "10.100.0.1/24" ];
+  
+        # The port that WireGuard listens to. Must be accessible by the client.
+        listenPort = 51920;
+  
+        # This allows the wireguard server to route your traffic to the internet and hence be like a VPN
+        
+        # For this to work you have to set the dnsserver IP of your router (or dnsserver of choice) in your clients
+        postSetup = ''
+          ${pkgs.iptables}/bin/iptables -t nat -A POSTROUTING -s 10.100.0.0/24 -o ${cfg.extInterface} -j MASQUERADE
+        '';
+  
+        # This undoes the above command
+        postShutdown = ''
+          ${pkgs.iptables}/bin/iptables -t nat -D POSTROUTING -s 10.100.0.0/24 -o ${cfg.extInterface} -j MASQUERADE
+        '';
+  
+        # Path to the private key file.
+        privateKeyFile = config.opnix.secrets.ssh-ed25519-host-key.path;
+  
+        peers = [
+          # List of allowed peers.
+          { # Nether
+            publicKey = "+umM4HrYSjxV5AwN3bx/hJoOIQE/DvIV8hx2R8A4vmg=";
+            allowedIPs = [ "10.100.0.2/32" ];
+          }
+          { # Ender
+            publicKey = "egXy+mxcBdsaDwTmWYmdFNtb7TTmXftdqVAFgE5IcVg=";
+            allowedIPs = [ "10.100.0.3/32" ];
+          }
+        ];
+      };
+    };
+
+    opnix.secrets.ssh-ed25519-host-key = {
+      source = "{{ op://Shulker/${config.networking.hostName}/Wireguard Private Key }}";
+      mode = "0600";
+    };
   };
 }

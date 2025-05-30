@@ -12,6 +12,10 @@
     modules = {
       user.home = ./home.nix;
       impermanence.enable = true;
+      wireguard = {
+        enable = true;
+        extInterface = "enp6s0";
+      };
     };
   };
 
