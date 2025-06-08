@@ -65,7 +65,6 @@ in
         SMTP_HOST = "smtp.fastmail.com";
         SMTP_PORT = 465;
         SMTP_FROM = "sso@shulker.link";
-        SMTP_USER = "conquerix@shulker.link";
         SMTP_TLS = "tls";
         EMAIL_LOGIN_NOTIFICATION_ENABLED = true;
         EMAIL_ONE_TIME_ACCESS_AS_ADMIN_ENABLED = true;
@@ -89,6 +88,7 @@ in
       source = ''
         MAXMIND_LICENSE_KEY={{ op://Shulker/${config.networking.hostName}/Pocket-ID Maxmind License Key }}
         SMTP_PASSWORD={{ op://Shulker/${config.networking.hostName}/Pocket-ID SMTP Password }}
+        SMTP_USER={{ op://Shulker/${config.networking.hostName}/Pocket-ID SMTP Username }}
       '';
     };
   };
