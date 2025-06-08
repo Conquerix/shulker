@@ -22,6 +22,12 @@
         subDomain = "sso";
         port = 23230;
       };
+      karakeep = {
+        enable = true;
+        baseUrl = "shulker.link";
+        subDomain = "links";
+        port = 23231;
+      };
     };
   };
 
