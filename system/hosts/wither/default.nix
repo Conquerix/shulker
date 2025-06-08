@@ -6,7 +6,14 @@
 
   boot.kernel.sysctl = { "vm.max_map_count" = 1048576; };
 
-  boot.loader.systemd-boot.enable = true;
+  boot.loader.systemd-boot = {
+    enable = true;
+    edk2-uefi-shell.enable = true; # used to find efi dev handle: https://search.nixos.org/options?channel=unstable&show=boot.loader.systemd-boot.windows.%3Cname%3E.efiDeviceHandle&from=0&size=50&sort=relevance&type=packages&query=boot.loader.systemd-boot.windows
+    windows."win-11-entreprise" = {
+      title = "Windows 11 Entreprise";
+      efiDeviceHandle = "HD0b";
+    };
+  };
   boot.loader.efi.canTouchEfiVariables = true;
 
   programs.gamemode.enable = true;

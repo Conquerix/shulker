@@ -49,6 +49,7 @@ in
       networkmanager.enable = false;
       useNetworkd = true;
     };
+    systemd.network.enable = true;
 
     services.nginx = {
       enable = true;
