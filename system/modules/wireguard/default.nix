@@ -22,6 +22,8 @@ in
       allowedUDPPorts = [ 51920 ];
     };
 
+    boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
+
     systemd.network = {
       enable = true;
       netdevs = {
