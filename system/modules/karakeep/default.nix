@@ -43,13 +43,13 @@ in
         };
       };
     };
-
+    services.meilisearch.package = pkgs.meilisearch;
     services.karakeep = {
       enable = true;
       environmentFile = config.opnix.secrets.karakeep-env.path;
       extraEnvironment = {
         NEXTAUTH_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
-        PORT = cfg.port;
+        PORT = toString cfg.port;
         DISABLE_SIGNUPS = "true";
         DISABLE_NEW_RELEASE_CHECK = "true";
         DISABLE_PASSWORD_AUTH = "true";
