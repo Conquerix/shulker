@@ -27,6 +27,7 @@ in
       default = 8080;
       description = "Default internal port to open pocket-id.";
     };
+    noImpermanence = mkEnableOption "Enable impermanence for pocket-id.";
   };
 
   config = mkIf cfg.enable {
@@ -49,32 +50,17 @@ in
       };
     };
 
-    users.users."pocket-id" = {
-      uid = 2001;
-      isSystemUser = true;
-      createHome = false;
-      group = "pocket-id";
-    };
-
-    users.groups."pocket-id" = {
-      gid = 2001;
-    };
-
-
-    virtualisation.oci-containers.containers."pocket-id" = {
-      image = "stonith404/pocket-id:latest";
-      ports = [ "127.0.0.1:${toString cfg.port}:80" ];
-      volumes = [ "${cfg.stateDir}:/app/backend/data" ];
-      environmentFiles = [ config.opnix.secrets.pocket-id-env.path ];
-      environment = {
-        PUBLIC_APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
-        TRUST_PROXY = "true";
-        PUID = "${toString config.users.users."pocket-id".uid}";
-        PGID = "${toString config.users.groups."pocket-id".gid}";
+    services.pocket-id = {
+      enable = true;
+      environmentFile = config.opnix.secrets.pocket-id-env.path;
+      dataDir = cfg.stateDir;
+      settings = {
+        TRUST_PROXY = true;
+        APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
       };
     };
 
-    environment.persistence = mkIf (config.shulker.modules.impermanence.enable) {
+    environment.persistence = mkIf (config.shulker.modules.impermanence.enable and !(cfg.impermanence)) {
       "/nix/persist".directories = [ 
         {
           directory = cfg.stateDir;

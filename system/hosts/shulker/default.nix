@@ -16,6 +16,12 @@
         enable = true;
         extInterface = "enp6s0";
       };
+      pocket-id = {
+        enable = true;
+        baseUrl = "shulker.link";
+        subDomain = "sso";
+        port = 23230;
+      };
     };
   };
 
