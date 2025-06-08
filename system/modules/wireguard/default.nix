@@ -61,7 +61,7 @@ in
     opnix.secrets.wireguard-private-key = {
       source = "{{ op://Shulker/${config.networking.hostName}/Wireguard Private Key }}";
       mode = "0600";
-      user = "systemd-networkd";
+      user = "systemd-network";
     };
   };
 }
