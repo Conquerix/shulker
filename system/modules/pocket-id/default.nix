@@ -82,7 +82,7 @@ in
       ];
     };
 
-    opnix.systemdWantedBy = [ "pocket-id" ];
+    opnix.systemdWantedBy = [ "pocket-id" "pocket-id-frontend" "pocket-id-backend" ];
     opnix.secrets.pocket-id-env = {
       source = ''
         MAXMIND_LICENSE_KEY={{ op://Shulker/${config.networking.hostName}/Pocket-ID Maxmind License Key }}
