@@ -60,7 +60,7 @@ in
       };
     };
 
-    environment.persistence = mkIf (config.shulker.modules.impermanence.enable && !(cfg.impermanence)) {
+    environment.persistence = mkIf (config.shulker.modules.impermanence.enable && !(cfg.noImpermanence)) {
       "/nix/persist".directories = [ 
         {
           directory = cfg.stateDir;
