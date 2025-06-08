@@ -57,6 +57,8 @@ in
       settings = {
         TRUST_PROXY = true;
         APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
+        HOST = "127.0.0.1";
+        PORT = cfg.port;
         UI_CONFIG_DISABLED = true;
         APP_NAME = "Shulker SSO";
         EMAILS_VERIFIED = true;
