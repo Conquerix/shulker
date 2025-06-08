@@ -50,7 +50,7 @@ in
       extraEnvironment = {
         NEXTAUTH_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
         PORT = toString cfg.port;
-        DISABLE_SIGNUPS = "true";
+        #DISABLE_SIGNUPS = "true";
         DISABLE_NEW_RELEASE_CHECK = "true";
         DISABLE_PASSWORD_AUTH = "true";
       };
