@@ -38,11 +38,11 @@ in
           wireguardPeers = [
             { # Nether
               PublicKey = "+umM4HrYSjxV5AwN3bx/hJoOIQE/DvIV8hx2R8A4vmg=";
-              AllowedIPs = ["10.100.0.2/32"];
+              AllowedIPs = ["10.100.0.2/32" "10.0.0.0/16"];
             }
             { # Ender
               PublicKey = "egXy+mxcBdsaDwTmWYmdFNtb7TTmXftdqVAFgE5IcVg=";
-              AllowedIPs = ["10.100.0.3/32"];
+              AllowedIPs = ["10.100.0.3/32" "10.10.0.0/16"];
             }
           ];
         };
