@@ -53,7 +53,7 @@ in
         wg-shulker = {
           matchConfig.Name = "wg-shulker";
           address = ["10.100.0.1/8"];
-          gateway = ["10.100.0.2" "10.100.0.3"];
+          #gateway = ["10.100.0.2" "10.100.0.3"];
           networkConfig = {
             IPMasquerade = "ipv4";
             IPv4Forwarding = true;
