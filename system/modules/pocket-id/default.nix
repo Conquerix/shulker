@@ -57,6 +57,17 @@ in
       settings = {
         TRUST_PROXY = true;
         APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
+        UI_CONFIG_DISABLED = true;
+        APP_NAME = "Shulker SSO";
+        EMAILS_VERIFIED = true;
+        SMTP_HOST = "smtp.fastmail.com";
+        SMTP_PORT = 465;
+        SMTP_FROM = "sso@shulker.link";
+        SMTP_USER = "conquerix@shulker.link";
+        SMTP_TLS = "tls";
+        EMAIL_LOGIN_NOTIFICATION_ENABLED = true;
+        EMAIL_ONE_TIME_ACCESS_AS_ADMIN_ENABLED = true;
+        EMAIL_API_KEY_EXPIRATION_ENABLED = true;
       };
     };
 
@@ -71,8 +82,12 @@ in
       ];
     };
 
+    opnix.systemdWantedBy = [ "pocket-id" ];
     opnix.secrets.pocket-id-env = {
-      source = "MAXMIND_LICENSE_KEY={{ op://Shulker/${config.networking.hostName}/Pocket-ID Maxmind License Key }}";
+      source = ''
+        MAXMIND_LICENSE_KEY={{ op://Shulker/${config.networking.hostName}/Pocket-ID Maxmind License Key }}
+        SMTP_PASSWORD={{ op://Shulker/${config.networking.hostName}/Pocket-ID SMTP Password }}
+      '';
     };
   };
 }
