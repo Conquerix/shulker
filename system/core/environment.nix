@@ -24,6 +24,7 @@ in
 with lib;
 {
   config = {
+    system.stateVersion = "22.05";
     nixpkgs.config.allowUnfree = true;
     boot = {
       kernelPackages = latestKernelPackage;
@@ -43,53 +44,12 @@ with lib;
     };
 
     hardware.enableRedistributableFirmware = true;
-
-    networking.networkmanager = {
-      enable = lib.mkDefault true;
-      dns = "systemd-resolved";
-    };
-
-    networking.nameservers = [
-      "9.9.9.9"
-      "149.112.112.112"
-    ];
-
-    services.resolved = {
-      enable = true;
-      dnssec = "true";
-      domains = [ "~." ];
-      fallbackDns = [
-        "1.1.1.1#one.one.one.one"
-        "1.0.0.1#one.one.one.one"
-      ];
-      dnsovertls = "true";
-      extraConfig = ''
-        DNSStubListener=no
-      '';
-    };
-
-    security.sudo.enable = false;
-    security.sudo-rs = {
-      enable = true;
-      wheelNeedsPassword = false;
-    };
-
-    programs._1password.enable = true;
+    
     virtualisation.oci-containers.backend = "docker";
     virtualisation.docker = {
       enable = true;
       enableOnBoot = true;
     };
-
-    #Fix dns lookups at boot time when wireguard is enabled
-    networking.dhcpcd.denyInterfaces = [
-      "wg*"
-      "tailscale*"
-    ];
-
-    # Disable this to try and solve the network manager wait online failed after each rebuild.
-    systemd.network.wait-online.enable = false;
-    boot.initrd.systemd.network.wait-online.enable = false;
 
     systemd.settings.Manager.DefaultLimitNOFILE = "4096";
 
@@ -98,7 +58,7 @@ with lib;
 
         # Save space by hardlinking store directories containing the exact same content.
         auto-optimise-store = true;
-
+        trusted-users = [ "conquerix" ];
         allowed-users = [ "root" ];
       };
 
@@ -110,7 +70,8 @@ with lib;
     };
 
     time.timeZone = "Europe/Paris";
-    i18n.defaultLocale = "fr_FR.UTF-8";
+    console.keyMap = "fr";
+    i18n.defaultLocale = "en_US.UTF-8";
 
     services = {
       cron.enable = true;
@@ -126,12 +87,6 @@ with lib;
           }
         ];
       };
-      #tailscale = {
-      #  enable = true;
-      #  authKeyFile = config.opnix.secrets.tailscale-auth-key.path;
-      #  extraUpFlags = [ "--login-server" "https://vpn.shulker.link" "--advertise-exit-node" ];
-      #  useRoutingFeatures = "both";
-      #};
     };
 
     # List of bare minimal requirements for a system to have to bootstrap from
@@ -143,13 +98,9 @@ with lib;
       micro
       xclip
       openssl
-      wl-clipboard
       zip
       bat
       htop
-      nh
-      devenv
-      devbox # portable dev environments
       gping # better ping
       eza # better ls
       docker-compose
@@ -167,21 +118,6 @@ with lib;
     programs = {
       direnv.enable = true;
       starship.enable = true;
-    };
-
-    opnix = {
-      environmentFile = "/etc/opnix.env";
-      systemdWantedBy = [
-        "docker"
-        "sshd"
-      ]; # "tailscaled" "tailscaled-autoconnect"
-      secrets = {
-        #tailscale-auth-key.source = "{{ op://Shulker/Headscale Preauth Key/key }}";
-        ssh-ed25519-host-key = {
-          source = "{{ op://Shulker/${config.networking.hostName} ssh ed25519/private_key }}";
-          mode = "0600";
-        };
-      };
     };
   };
 }

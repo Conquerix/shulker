@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  user,
   ...
 }:
 
@@ -97,12 +96,6 @@ in
       in
       total;
 
-    # xdg.configFile."git" = {
-    #   source = ../../../config/.config/git;
-    #   executable = true;
-    #   recursive = true;
-    # };
-
     xdg.dataFile."git/nyx-gen".text =
       let
         firstOrDefault =
@@ -114,10 +107,8 @@ in
           else
             null;
         username = cfg.username;
-        email = firstOrDefault cfg.email user.email;
-        signkey = firstOrDefault cfg.signing.key (
-          if hasAttr "signingKey" user then user.signingKey else null
-        );
+        email = cfg.email;
+        signkey = cfg.signing.key;
         signByDefault = (!isNull signkey) || cfg.signing.signByDefault;
       in
       ''

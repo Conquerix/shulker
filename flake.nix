@@ -1,11 +1,41 @@
 {
   description = "Conquerix's Nix-Config";
-  outputs =
-    {
-      self,
-      nixpkgs,
-      ...
-    }@inputs:
+  inputs = {
+    #
+    # ========= Official NixOS, Darwin, and HM Package Sources =========
+    #
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    hardware.url = "github:nixos/nixos-hardware";
+    home-manager = {
+      url = "github:nix-community/home-manager/master";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    #
+    # ========= Utilities =========
+    #
+    impermanence.url = "github:nix-community/impermanence";
+    # Declarative partitioning and formatting
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # Pre-commit
+    pre-commit-hooks = {
+      url = "github:cachix/git-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # Secrets management
+    opnix = {
+      url = "github:conquerix/opnix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # Theming
+    stylix.url = "github:danth/stylix/master";
+    rose-pine-hyprcursor.url = "github:ndom91/rose-pine-hyprcursor";
+  };
+  outputs = { self, nixpkgs, ...}@inputs:
     let
       inherit (self) outputs;
 
@@ -37,25 +67,19 @@
         map (host: {
           name = host;
           value = nixpkgs.lib.nixosSystem {
-            specialArgs =
-              let
-                self = inputs.self;
-              in
-              {
-                inherit
-                  inputs
-                  outputs
-                  lib
-                  self
-                  ;
-              };
+            specialArgs = { inherit inputs outputs lib; };
             modules = [
               inputs.home-manager.nixosModules.home-manager
               inputs.impermanence.nixosModule
               inputs.opnix.nixosModules.default
+              { 
+                home-manager.extraSpecialArgs = { inherit inputs; };
+                home-manager.sharedModules = [ (import ./home) ];
+              }
+              (import ./system/core)
               (import ./system/modules)
               (import ./system/profiles)
-              (import ./home/users)
+              (import ./system/users)
               (import ./system/hosts/${host})
             ];
           };
@@ -111,40 +135,4 @@
         }
       );
     };
-
-  inputs = {
-    #
-    # ========= Official NixOS, Darwin, and HM Package Sources =========
-    #
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-    hardware.url = "github:nixos/nixos-hardware";
-    home-manager = {
-      url = "github:nix-community/home-manager/master";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    #
-    # ========= Utilities =========
-    #
-    impermanence.url = "github:nix-community/impermanence";
-    # Declarative partitioning and formatting
-    disko = {
-      url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    # Pre-commit
-    pre-commit-hooks = {
-      url = "github:cachix/git-hooks.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    # Secrets management
-    opnix = {
-      url = "github:conquerix/opnix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    # Theming
-    stylix.url = "github:danth/stylix/master";
-    rose-pine-hyprcursor.url = "github:ndom91/rose-pine-hyprcursor";
-  };
 }

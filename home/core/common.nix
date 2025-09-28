@@ -2,19 +2,62 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 
 with lib;
-let
-  cfg = config.shulker.home.profiles.common;
-in
 {
-  options.shulker.home.profiles.common = {
-    enable = mkEnableOption "common profile";
-  };
+  config = {
 
-  config = mkIf cfg.enable {
+    # For compatibility with nix-shell, nix-build, etc.
+    home.file.".nixpkgs".source = inputs.nixpkgs;
+    home.sessionVariables."NIX_PATH" = "nixpkgs=$HOME/.nixpkgs\${NIX_PATH:+:}$NIX_PATH";
+
+    # Use the same Nix configuration for the user
+    xdg.configFile."nixpkgs/config.nix".source = lib.custom.relativeToRoot "nix/config.nix";
+
+    # Re-expose self and nixpkgs as flakes.
+    xdg.configFile."nix/registry.json".text = builtins.toJSON {
+      version = 2;
+      flakes =
+        let
+          toInput =
+            input:
+            {
+              type = "path";
+              path = input.outPath;
+            }
+            // (lib.filterAttrs (
+              n: _: n == "lastModified" || n == "rev" || n == "revCount" || n == "narHash"
+            ) input);
+        in
+        [
+          {
+            from = {
+              id = "shulker";
+              type = "indirect";
+            };
+            to = toInput inputs.self;
+          }
+          {
+            from = {
+              id = "nixpkgs";
+              type = "indirect";
+            };
+            to = toInput inputs.nixpkgs;
+          }
+        ];
+    };
+
+    # Directories to add to the PATH environment variable
+    home.sessionPath = [
+      "$HOME/.local/shulker/bin"
+      "$XDG_BIN_HOME"
+    ];
+
+    home.stateVersion = "22.05";
+
     nixpkgs.config.allowUnfree = true;
     home = {
       enableDebugInfo = true;

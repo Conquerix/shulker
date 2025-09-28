@@ -49,17 +49,11 @@ in
         lock-keys # Numlock & Capslock status on the panel
         just-perfection # Many options
         appindicator # Systray icons
-        gsconnect
-        vitals
         burn-my-windows # Cool animations
         dash-to-dock # Dock on dekstop
         alttab-mod # Better Alt+Tab
         vitals # CPU temp, etc
-        forge # Better windows tiling.
         pop-shell # Better than forge right above ?
-        ddterm # Drop down terminal
-        spotify-tray
-        tailscale-qs
       ]
       ++ (with pkgs; [
         pamixer
@@ -69,10 +63,8 @@ in
         vlc
         gnome-themes-extra
         gnome-tweaks
-        gtk-engine-murrine
-        sassc
         papers
-        pop-launcher
+        wl-clipboard
       ]);
 
     programs._1password-gui = {
@@ -80,16 +72,12 @@ in
       polkitPolicyOwners = [ "conquerix" ];
     };
 
-    programs.kdeconnect = {
-      enable = true;
-      package = pkgs.gnomeExtensions.gsconnect;
-    };
-
     # Desktop environment
     services.libinput = mkIf cfg.laptop {
       enable = true;
       touchpad.tapping = true;
     };
+
     services.xserver = {
       enable = true;
       xkb.layout = "fr";
@@ -97,6 +85,7 @@ in
       displayManager.gdm.wayland = true;
       desktopManager.gnome.enable = true;
     };
+
     #services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.udev.packages = with pkgs; [ gnome-settings-daemon ];
     environment.gnome.excludePackages = with pkgs; [
