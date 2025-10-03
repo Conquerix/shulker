@@ -78,7 +78,7 @@ in
     };
 
     services.onepassword-secrets.secrets.wireguardPrivateKey = {
-      reference = "{{ op://Shulker/${config.networking.hostName}/Wireguard Private Key }}";
+      reference = "op://Shulker/${config.networking.hostName}/Wireguard Private Key";
       mode = "0600";
       owner = "systemd-network";
     };
