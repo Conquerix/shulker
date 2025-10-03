@@ -25,7 +25,7 @@ in
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
-        credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
+        credentialsFile = config.services.onepassword-secrets.secrets.ovhWildcardCa.path;
       };
       certs."shulker.link" = {
         domain = "shulker.link";
@@ -33,7 +33,7 @@ in
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
-        credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
+        credentialsFile = config.services.onepassword-secrets.secrets.ovhWildcardCa.path;
       };
       certs."the-inbetween.net" = {
         domain = "the-inbetween.net";
@@ -41,7 +41,15 @@ in
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;
-        credentialsFile = config.opnix.secrets.ovh-wildcard-ca.path;
+        credentialsFile = config.services.onepassword-secrets.secrets.ovhWildcardCa.path;
+      };
+      certs."beyondsmp.com" = {
+        domain = "beyondsmp.com";
+        extraDomainNames = [ "*.beyondsmp.com" ];
+        dnsProvider = "ovh";
+        dnsPropagationCheck = true;
+        webroot = null;
+        credentialsFile = config.services.onepassword-secrets.secrets.ovhWildcardCa.path;
       };
     };
 
@@ -76,19 +84,22 @@ in
 
     users.groups.nginx = { };
 
-    opnix.secrets.ovh-wildcard-ca = {
-      source = "{{ op://Shulker/OVH wildcard certificate/OVH-wildcard-ca }}";
+    services.onepassword-secrets.secrets.ovhWildcardCa = {
+      reference = "op://Shulker/OVH wildcard certificate/OVH-wildcard-ca";
       mode = "0600";
+      services = [
+        "acme-fixperms"
+        "acme-lockfiles"
+        "acme-selfsigned-ca"
+        "acme-shulker.fr"
+        "acme-beyond.smp"
+        "acme-shulker.link"
+        "acme-the-inbetween.net"
+        "acme-selfsigned-shulker.fr"
+        "acme-selfsigned-beyond.smp"
+        "acme-selfsigned-shulker.link"
+        "acme-selfsigned-the-inbetween.net"
+      ];
     };
-
-    opnix.systemdWantedBy = [
-      "acme-fixperms"
-      "acme-lockfiles"
-      "acme-selfsigned-ca"
-      "acme-shulker.fr"
-      "acme-the-inbetween.net"
-      "acme-selfsigned-shulker.fr"
-      "acme-selfsigned-the-inbetween.net"
-    ];
   };
 }

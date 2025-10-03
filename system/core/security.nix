@@ -18,17 +18,14 @@ with lib;
 
     programs._1password.enable = true;
 
-    opnix = {
-      environmentFile = "/etc/opnix.env";
-      systemdWantedBy = [
-        "docker"
-        "sshd"
-      ]; # "tailscaled" "tailscaled-autoconnect"
+    services.onepassword-secrets = {
+      enable = true;
+      tokenFile = "/etc/opnix-token";
       secrets = {
-        #tailscale-auth-key.source = "{{ op://Shulker/Headscale Preauth Key/key }}";
-        ssh-ed25519-host-key = {
-          source = "{{ op://Shulker/${config.networking.hostName} ssh ed25519/private_key }}";
+        sshed25519HostKey = {
+          reference = "op://Shulker/${config.networking.hostName} ssh ed25519/private_key";
           mode = "0600";
+          services = [ "sshd" ];
         };
       };
     };

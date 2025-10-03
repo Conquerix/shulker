@@ -13,27 +13,29 @@
   zramSwap.enable = true;
 
   shulker = {
-    profiles.server.enable = true;
-    modules = {
-      user.home = ./home.nix;
-      impermanence.enable = true;
-      wireguard = {
-        enable = true;
-        extInterface = "enp6s0";
-      };
-      pocket-id = {
-        enable = true;
-        baseUrl = "shulker.link";
-        subDomain = "sso";
-        port = 23230;
-      };
-      karakeep = {
-        enable = true;
-        baseUrl = "shulker.link";
-        subDomain = "links";
-        port = 23231;
+    system = {
+      profiles.server.enable = true;
+      modules = {
+        impermanence.enable = true;
+        wireguard = {
+          enable = true;
+          extInterface = "enp6s0";
+        };
+        pocket-id = {
+          enable = true;
+          baseUrl = "shulker.link";
+          subDomain = "sso";
+          port = 23230;
+        };
+        karakeep = {
+          enable = true;
+          baseUrl = "shulker.link";
+          subDomain = "links";
+          port = 23231;
+        };
       };
     };
+    users.conquerix.enable = true;
   };
 
   boot.loader.grub.enable = true;

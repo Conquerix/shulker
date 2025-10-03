@@ -41,7 +41,6 @@ in
         steamtinkerlaunch
         protonup
         protontricks
-        steam-tui
       ];
     };
   };

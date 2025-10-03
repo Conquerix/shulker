@@ -38,7 +38,7 @@ in
 
     services.searx = {
       enable = true;
-      environmentFile = config.opnix.secrets.searx-env.path;
+      environmentFile = config.services.onepassword-secrets.secrets.searxEnv.path;
       settings = {
         server.port = cfg.port;
         server.secret_key = "@SEARX_SECRET_KEY@";
@@ -59,12 +59,9 @@ in
       };
     };
 
-    opnix.secrets.searx-env = {
-      source = ''
-        SEARX_SECRET_KEY="{{ op://Shulker/${config.networking.hostName}/Searx Secret Key }}"
-      '';
+    services.onepassword-secrets.secrets.searxEnv = {
+      reference = "op://Shulker/${config.networking.hostName}/Searx/Searx env";
+      services = [ "searx-init" ];
     };
-
-    opnix.systemdWantedBy = [ "searx-init" ];
   };
 }

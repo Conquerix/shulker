@@ -81,10 +81,10 @@ in
     services.xserver = {
       enable = true;
       xkb.layout = "fr";
-      displayManager.gdm.enable = true;
-      displayManager.gdm.wayland = true;
-      desktopManager.gnome.enable = true;
     };
+    services.displayManager.gdm.enable = true;
+    services.displayManager.gdm.wayland = true;
+    services.desktopManager.gnome.enable = true;
 
     #services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.udev.packages = with pkgs; [ gnome-settings-daemon ];

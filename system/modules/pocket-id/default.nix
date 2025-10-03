@@ -57,7 +57,7 @@ in
 
     services.pocket-id = {
       enable = true;
-      environmentFile = config.opnix.secrets.pocket-id-env.path;
+      environmentFile = config.services.onepassword-secrets.secrets.pocketIdEnv.path;
       dataDir = cfg.stateDir;
       settings = {
         TRUST_PROXY = true;
@@ -90,17 +90,9 @@ in
           ];
         };
 
-    opnix.systemdWantedBy = [
-      "pocket-id"
-      "pocket-id-frontend"
-      "pocket-id-backend"
-    ];
-    opnix.secrets.pocket-id-env = {
-      source = ''
-        MAXMIND_LICENSE_KEY={{ op://Shulker/${config.networking.hostName}/Pocket-ID Maxmind License Key }}
-        SMTP_PASSWORD={{ op://Shulker/${config.networking.hostName}/Pocket-ID SMTP Password }}
-        SMTP_USER={{ op://Shulker/${config.networking.hostName}/Pocket-ID SMTP Username }}
-      '';
+    services.onepassword-secrets.secrets.pocketIdEnv = {
+      reference = "op://Shulker/${config.networking.hostName}/Pocket-ID env";
+      services = [ "pocket-id" "pocket-id-frontend" "pocket-id-backend" ];
     };
   };
 }

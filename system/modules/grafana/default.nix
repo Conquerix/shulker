@@ -84,18 +84,19 @@ in
           ];
         };
 
-    systemd.services.grafana.serviceConfig.EnvironmentFile = opnix.secrets.grafana-env.path;
+    #systemd.services.grafana.serviceConfig.EnvironmentFile = config.services.onepassword-secrets.secrets.grafanaEnv.path;
 
-    opnix.secrets.grafana-env = {
-      source = ''
-        grafana_OIDC_ISSUER_URL="${cfg.oidcIssuer}"
-        grafana_OIDC_EMAIL_DOMAIN="shulker.link"
-        grafana_OIDC_CLIENT_ID="${cfg.oidcClientID}"
-        grafana_OIDC_CLIENT_SECRET="{{ op://Shulker/${config.networking.hostName}/grafana OIDC Client Secret }}"
-        grafana_DISABLE_PASSWORD_AUTH=true
-      '';
-    };
+    #services.onepassword-secrets.secrets.grafanaEnv = {
+    #  source = ''
+    #    grafana_OIDC_ISSUER_URL="${cfg.oidcIssuer}"
+    #    grafana_OIDC_EMAIL_DOMAIN="shulker.link"
+    #    grafana_OIDC_CLIENT_ID="${cfg.oidcClientID}"
+    #    grafana_OIDC_CLIENT_SECRET="{{ op://Shulker/${config.networking.hostName}/grafana OIDC Client Secret }}"
+    #    grafana_DISABLE_PASSWORD_AUTH=true
+    #  '';
+    #  services = [ "grafana" ];
+    #};
 
-    opnix.systemdWantedBy = [ "grafana" ];
+
   };
 }

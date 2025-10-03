@@ -51,11 +51,11 @@ in
     services.meilisearch.package = pkgs.meilisearch;
     services.karakeep = {
       enable = true;
-      environmentFile = config.opnix.secrets.karakeep-env.path;
+      environmentFile = config.services.onepassword-secrets.secrets.karakeepEnv.path;
       extraEnvironment = {
         NEXTAUTH_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
         PORT = toString cfg.port;
-        #DISABLE_SIGNUPS = "true";
+        DISABLE_SIGNUPS = "true";
         DISABLE_NEW_RELEASE_CHECK = "true";
         DISABLE_PASSWORD_AUTH = "true";
       };
@@ -72,17 +72,9 @@ in
       ];
     };
 
-    opnix.systemdWantedBy = [
-      "karakeep-workers"
-      "karakeep-web"
-    ];
-    opnix.secrets.karakeep-env = {
-      source = ''
-        OAUTH_PROVIDER_NAME={{ op://Shulker/${config.networking.hostName}/Karakeep OIDC Provider Name }}
-        OAUTH_CLIENT_ID={{ op://Shulker/${config.networking.hostName}/Karakeep OIDC Client ID }}
-        OAUTH_CLIENT_SECRET={{ op://Shulker/${config.networking.hostName}/Karakeep OIDC Client Secret }}
-        OAUTH_WELLKNOWN_URL={{ op://Shulker/${config.networking.hostName}/Karakeep OIDC Wellknown URL }}
-      '';
+    services.onepassword-secrets.secrets.karakeepEnv = {
+      reference = "op://Shulker/${config.networking.hostName}/Karakeep env";
+      services = [ "karakeep-workers" "karakeep-web" ];
     };
   };
 }

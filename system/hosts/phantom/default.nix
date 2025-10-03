@@ -28,22 +28,22 @@
   };
 
   shulker = {
-    profiles.desktop = {
-      enable = true;
-      laptop = true;
-    };
-    modules = {
-      steam = {
+    system = {
+      profiles.desktop = {
         enable = true;
-        protonGE = true;
+        laptop = true;
       };
-      user.home = ./home.nix;
-      impermanence = {
-        enable = true;
-        home = true;
+      modules = {
+        steam = {
+          enable = true;
+          protonGE = true;
+        };
+        impermanence = {
+          enable = true;
+          home = true;
+        };
+        yubikey.enable = true;
       };
-      yubikey.enable = true;
-      wireguard.enable = true;
     };
   };
 }

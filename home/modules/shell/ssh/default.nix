@@ -18,13 +18,15 @@ in
   config = mkIf cfg.enable {
     programs.ssh = {
       enable = true;
-      controlMaster = "auto";
-      controlPath = "~/.ssh/control/%C";
       extraOptionOverrides = {
         "Include" = "~/.ssh/config.local";
       };
-      hashKnownHosts = true;
       extraConfig = mkIf (cfg._1password) ''IdentityAgent ~/.1password/agent.sock '';
+      matchBlocks."*" = {
+        controlMaster = "auto";
+        controlPath = "~/.ssh/control/%C";
+        hashKnownHosts = true;
+      };
     };
   };
 }

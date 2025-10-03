@@ -21,7 +21,7 @@ in
       enable = true;
       package = pkgs.vscodium;
       mutableExtensionsDir = true;
-      extensions =
+      profiles.default.extensions =
         with pkgs.vscode-extensions;
         [
           njpwerner.autodocstring

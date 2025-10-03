@@ -40,7 +40,7 @@ in
             MTUBytes = "1300";
           };
           wireguardConfig = {
-            PrivateKeyFile = config.opnix.secrets.wireguard-private-key.path;
+            PrivateKeyFile = config.services.onepassword-secrets.secrets.wireguardPrivateKey.path;
             ListenPort = 51920;
           };
           wireguardPeers = [
@@ -77,10 +77,10 @@ in
       };
     };
 
-    opnix.secrets.wireguard-private-key = {
-      source = "{{ op://Shulker/${config.networking.hostName}/Wireguard Private Key }}";
+    services.onepassword-secrets.secrets.wireguardPrivateKey = {
+      reference = "{{ op://Shulker/${config.networking.hostName}/Wireguard Private Key }}";
       mode = "0600";
-      user = "systemd-network";
+      owner = "systemd-network";
     };
   };
 }

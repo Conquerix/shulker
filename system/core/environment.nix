@@ -83,7 +83,7 @@ with lib;
         hostKeys = [
           {
             type = "ed25519";
-            path = config.opnix.secrets.ssh-ed25519-host-key.path;
+            path = config.services.onepassword-secrets.secrets.sshed25519HostKey.path;
           }
         ];
       };

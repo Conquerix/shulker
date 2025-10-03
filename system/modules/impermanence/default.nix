@@ -40,7 +40,7 @@ in
       files = [
         "/etc/machine-id"
         {
-          file = config.opnix.environmentFile;
+          file = config.services.onepassword-secrets.tokenFile;
           parentDirectory = {
             mode = "u=rw,g=,o=";
           };

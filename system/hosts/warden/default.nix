@@ -35,7 +35,7 @@
     device = "conquerix@spinel.usbx.me:/home/conquerix/downloads/rtorrent";
     fsType = "fuse.sshfs";
     options = [
-      "identityfile=${config.opnix.secrets.ssh-ed25519-host-key.path}"
+      "identityfile=${config.services.onepassword-secrets.secrets.sshed25519HostKey.path}"
       "idmap=user"
       "x-systemd.automount" # mount the filesystem automatically on first access
       "allow_other" # don't restrict access to only the user which `mount`s it (because that's probably systemd who mounts it, not you)
@@ -47,7 +47,7 @@
     device = "conquerix@spinel.usbx.me:/home/conquerix/downloads/sabnzbd/complete";
     fsType = "fuse.sshfs";
     options = [
-      "identityfile=${config.opnix.secrets.ssh-ed25519-host-key.path}"
+      "identityfile=${config.services.onepassword-secrets.secrets.sshed25519HostKey.path}"
       "idmap=user"
       "x-systemd.automount" # mount the filesystem automatically on first access
       "allow_other" # don't restrict access to only the user which `mount`s it (because that's probably systemd who mounts it, not you)
@@ -65,7 +65,7 @@
   #    # The port that WireGuard listens to. Must be accessible by the client.
   #    listenPort = 51820;
   #    # Path to the private key file.
-  #    privateKeyFile = config.opnix.secrets.proton-vpn-wireguard-private-key.path;
+  #    privateKeyFile = config.services.onepassword-secrets.secrets.protonVpnWireguardPrivateKey.path;
   #    peers = [
   #      { # Shulker server
   #        publicKey = "FFj4mVAwo5puyuimT7xsEdQqXwqQmuA0DBjQJpQmSg0=";
@@ -77,7 +77,7 @@
   #  };
   #};
 
-  #opnix.secrets.proton-vpn-wireguard-private-key.secretRef = "op://Shulker/${config.networking.hostName}/Proton VPN Wireguard Private Key";
+  #services.onepassword-secrets.secrets.protonVpnWireguardPrivateKey.reference = "op://Shulker/${config.networking.hostName}/Proton VPN Wireguard Private Key";
 
   hardware.graphics = {
     enable = true;
@@ -92,42 +92,44 @@
   };
 
   shulker = {
-    profiles.server.enable = true;
-    modules = {
-      user.home = ./home.nix;
-      impermanence.enable = true;
-      wireguard.enable = true;
-      coder = {
-        enable = true;
-        baseUrl = "shulker.link";
-        stateDir = "/storage/flash/coder";
-        port = 23231;
-        oidcIssuer = "https://sso.shulker.link";
-        oidcClientID = "bf21c43e-c845-425d-82ad-89916c7e8034";
-      };
-      jellyfin = {
-        enable = true;
-        baseUrl = "shulker.link";
-        subDomain = "vod";
-        stateDir = "/storage/flash/jellyfin";
-      };
-      jellyseerr = {
-        enable = true;
-        baseUrl = "shulker.link";
-      };
-      sonarr = {
-        enable = true;
-        baseUrl = "shulker.link";
-        stateDir = "/storage/flash/sonarr";
-      };
-      radarr = {
-        enable = true;
-        baseUrl = "shulker.link";
-        stateDir = "/storage/flash/radarr";
-      };
-      prowlarr = {
-        enable = true;
-        baseUrl = "shulker.link";
+    users.conquerix.enable = true;
+    system = {
+      profiles.server.enable = true;
+      modules = {
+        impermanence.enable = true;
+        wireguard.enable = true;
+        coder = {
+          enable = true;
+          baseUrl = "shulker.link";
+          stateDir = "/storage/flash/coder";
+          port = 23231;
+          oidcIssuer = "https://sso.shulker.link";
+          oidcClientID = "bf21c43e-c845-425d-82ad-89916c7e8034";
+        };
+        jellyfin = {
+          enable = true;
+          baseUrl = "shulker.link";
+          subDomain = "vod";
+          stateDir = "/storage/flash/jellyfin";
+        };
+        jellyseerr = {
+          enable = true;
+          baseUrl = "shulker.link";
+        };
+        sonarr = {
+          enable = true;
+          baseUrl = "shulker.link";
+          stateDir = "/storage/flash/sonarr";
+        };
+        radarr = {
+          enable = true;
+          baseUrl = "shulker.link";
+          stateDir = "/storage/flash/radarr";
+        };
+        prowlarr = {
+          enable = true;
+          baseUrl = "shulker.link";
+        };
       };
     };
   };

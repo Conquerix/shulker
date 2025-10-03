@@ -49,19 +49,21 @@
   };
 
   shulker = {
-    profiles.desktop = {
-      enable = true;
-      laptop = true;
-    };
-    modules = {
-      user.home = ./home.nix;
-      impermanence = {
+    system = {
+      profiles.desktop = {
         enable = true;
-        home = true;
+        laptop = true;
       };
-      steam.enable = true;
-      yubikey.enable = true;
-      wireguard.enable = true;
+      modules = {
+        impermanence = {
+          enable = true;
+          home = true;
+        };
+        steam.enable = true;
+        yubikey.enable = true;
+        wireguard.enable = true;
+      };
     };
+    users.conquerix.enable = true;
   };
 }

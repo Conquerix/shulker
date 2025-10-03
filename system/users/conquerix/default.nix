@@ -18,7 +18,7 @@ in
 
     users.users.conquerix = {
       isNormalUser = true;
-      extraGroups = [ "audio" "video" "docker" "games" "locate" "networkmanager" "wheel" "plugdev" "adbusers" "kvm" ];
+      extraGroups = [ "audio" "video" "docker" "games" "locate" "networkmanager" "wheel" "plugdev" "adbusers" "kvm" "disk" ];
       hashedPassword = "$6$Na7d9SJRCkC6FyK7$3K.rYNPXX1.aeJe8f.2ylE2ITGLgxqv3CFvVYRsTiarQjFNZ.p2QZ/MIu1n6qz6wOO44lXU6wc9kmgIV.wboC/";
       uid = 1000;
       shell = pkgs.bash;
@@ -36,7 +36,7 @@ in
         wineWowPackages.waylandFull
         libvlc
         easyeffects
-        obsidian
+        ryubing
       ];
 
       shulker.home = {
