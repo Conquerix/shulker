@@ -26,6 +26,27 @@ in
 
   config = mkIf cfg.enable {
 
+    users.groups.authentik = { };
+    users.users.authentik = {
+      isSystemUser = true;
+      group = "authentik";
+    };
+
+    systemd.services = {
+      authentik-migrate.serviceConfig = {
+        DynamicUser = false;
+        Group = "authentik";
+      };
+      authentik-worker.serviceConfig = {
+        DynamicUser = false;
+        Group = "authentik";
+      };
+      authentik.serviceConfig = {
+        DynamicUser = false;
+        Group = "authentik";
+      };
+    };
+
     services.authentik = {
       enable = true;
       # The environmentFile needs to be on the target host!
@@ -63,11 +84,13 @@ in
           directory = cfg.stateDir;
           mode = "u=rwx,g=,o=";
           user = "authentik";
+          group = "authentik";
         }
         {
           directory = "/var/lib/private/authentik";
           mode = "u=rwx,g=,o=";
           user = "authentik";
+          group = "authentik";
         }
         {
           directory = "/var/lib/redis-authentik";
