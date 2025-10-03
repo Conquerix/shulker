@@ -61,11 +61,11 @@ in
       "/nix/persist".directories = [ 
         {
           directory = cfg.stateDir;
-          mode = "u=rwx,g=rx,o=";
+          mode = "u=rwx,g=,o=";
         }
         {
           directory = "/var/lib/private/authentik";
-          mode = "u=rwx,g=rx,o=";
+          mode = "u=rwx,g=,o=";
         }
         {
           directory = "/var/lib/redis-authentik";
