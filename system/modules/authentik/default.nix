@@ -34,15 +34,15 @@ in
 
     systemd.services = {
       authentik-migrate.serviceConfig = {
-        DynamicUser = false;
+        DynamicUser = lib.mkForce false;
         Group = "authentik";
       };
       authentik-worker.serviceConfig = {
-        DynamicUser = false;
+        DynamicUser = lib.mkForce false;
         Group = "authentik";
       };
       authentik.serviceConfig = {
-        DynamicUser = false;
+        DynamicUser = lib.mkForce false;
         Group = "authentik";
       };
     };
