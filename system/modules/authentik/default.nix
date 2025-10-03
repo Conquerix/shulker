@@ -62,10 +62,12 @@ in
         {
           directory = cfg.stateDir;
           mode = "u=rwx,g=,o=";
+          user = "authentik";
         }
         {
           directory = "/var/lib/private/authentik";
           mode = "u=rwx,g=,o=";
+          user = "authentik";
         }
         {
           directory = "/var/lib/redis-authentik";
