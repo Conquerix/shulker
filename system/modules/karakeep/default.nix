@@ -49,6 +49,7 @@ in
       };
     };
     services.meilisearch.package = pkgs.meilisearch;
+    services.meilisearch.dumplessUpgrade = true;
     services.karakeep = {
       enable = true;
       environmentFile = config.services.onepassword-secrets.secrets.karakeepEnv.path;
