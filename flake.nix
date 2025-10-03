@@ -34,6 +34,9 @@
     # Theming
     stylix.url = "github:danth/stylix/master";
     rose-pine-hyprcursor.url = "github:ndom91/rose-pine-hyprcursor";
+
+    # Identity Provider
+    authentik-nix.url = "github:nix-community/authentik-nix";
   };
   outputs = { self, nixpkgs, ...}@inputs:
     let
@@ -72,6 +75,7 @@
               inputs.home-manager.nixosModules.home-manager
               inputs.impermanence.nixosModule
               inputs.opnix.nixosModules.default
+              inputs.authentik-nix.nixosModules.default
               (
                 { inputs, ... }: {
                   networking.hostName = host;

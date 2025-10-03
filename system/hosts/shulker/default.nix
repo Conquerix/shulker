@@ -21,6 +21,11 @@
           enable = true;
           extInterface = "enp6s0";
         };
+        authentik = {
+          enable = true;
+          baseUrl = "beyondsmp.com";
+          subDomain = "sso";
+        };
         pocket-id = {
           enable = true;
           baseUrl = "shulker.link";
