@@ -72,10 +72,33 @@
               inputs.home-manager.nixosModules.home-manager
               inputs.impermanence.nixosModule
               inputs.opnix.nixosModules.default
-              { 
-                home-manager.extraSpecialArgs = { inherit inputs; };
-                home-manager.sharedModules = [ (import ./home) ];
-              }
+              (
+                { inputs, ... }: {
+                  networking.hostName = host;
+
+                  # For compatibility with nix-shell, nix-build, etc.
+                  environment.etc.nixpkgs.source = inputs.nixpkgs;
+
+                  # Don't rely on the configuration to enable a flake-compatible version of Nix.
+                  nix = {
+                    extraOptions = "experimental-features = nix-command flakes";
+                    nixPath = [ "nixpkgs=/etc/nixpkgs" ];
+                    registry = {
+                      self.flake = inputs.self;
+                      nixpkgs = {
+                        from = { id = "nixpkgs"; type = "indirect"; };
+                        flake = inputs.nixpkgs;
+                      };
+                    };
+                  };
+
+                  home-manager = {
+                    useGlobalPkgs = true;
+                    extraSpecialArgs = { inherit inputs; };
+                    sharedModules = [ (import ./home) ];
+                  };
+                }
+              )
               (import ./system/core)
               (import ./system/modules)
               (import ./system/profiles)

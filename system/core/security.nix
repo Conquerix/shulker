@@ -18,6 +18,10 @@ with lib;
 
     programs._1password.enable = true;
 
+    environment.systemPackages = with pkgs; [
+      inputs.opnix.packages."x86_64-linux".default
+    ];
+
     services.onepassword-secrets = {
       enable = true;
       tokenFile = "/etc/opnix-token";

@@ -75,7 +75,15 @@
           home = true;
         };
         yubikey.enable = true;
-        nvidia.enable = true;
+        nvidia = {
+          enable = true;
+          hybrid = {
+            enable = true;
+            offload = true;
+            amdgpuBusId = "PCI:108:0:0";
+            nvidiaBusId = "PCI:1:0:0";
+          };
+        };
       };
     };
     users.conquerix.enable = true;

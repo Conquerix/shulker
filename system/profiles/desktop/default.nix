@@ -58,7 +58,7 @@ in
       ++ (with pkgs; [
         pamixer
         pavucontrol
-        firefox-wayland
+        firefox
         qt6.qtwayland
         vlc
         gnome-themes-extra
