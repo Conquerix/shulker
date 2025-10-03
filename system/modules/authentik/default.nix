@@ -80,8 +80,7 @@ in
 
     services.onepassword-secrets.secrets.authentikEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Authentik env";
+      services = [ "authentik" "authentik-migrate" "authentik-worker" ];
     };
-
-    opnix.systemdWantedBy = [ "authentik" "authentik-migrate" "authentik-worker" ];
   };
 }
