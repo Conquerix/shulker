@@ -38,6 +38,11 @@
           subDomain = "links";
           port = 23231;
         };
+        searx = {
+          enable = true;
+          base_url = "shulker.link";
+          port = 23232;
+        };
       };
     };
     users.conquerix.enable = true;
