@@ -40,7 +40,7 @@
         };
         searx = {
           enable = true;
-          base_url = "shulker.link";
+          baseUrl = "shulker.link";
           port = 23232;
         };
       };
