@@ -7,7 +7,7 @@ in
 {
   options.shulker.system.modules.affine = {
     enable = mkEnableOption "Enable affine service.";
-    impermanence = mkEnableOption "Enable impermanence."
+    impermanence = mkEnableOption "Enable impermanence.";
     baseUrl = mkOption {
       type = types.str;
       default = "example.com";
