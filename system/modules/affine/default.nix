@@ -28,11 +28,6 @@ in
       default = 8080;
       description = "Default internal port to open affine.";
     };
-    dbPort = mkOption {
-      type = types.port;
-      default = 5432;
-      description = "Default internal port to open affine's DB.";
-    };
   };
 
   config = mkIf cfg.enable {

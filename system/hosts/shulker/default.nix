@@ -49,7 +49,6 @@
           baseUrl = "shulker.link";
           subDomain = "wiki";
           port = 23233;
-          dbPort = 23234;
         };
       };
     };
