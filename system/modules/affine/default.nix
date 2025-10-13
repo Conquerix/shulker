@@ -40,7 +40,7 @@ in
     # Containers
     virtualisation.oci-containers.containers."affine_migration_job" = {
       image = "ghcr.io/toeverything/affine:stable";
-      environmentFiles = [ services.onepassword-secrets.secrets.affineEnv.path ];
+      environmentFiles = [ config.services.onepassword-secrets.secrets.affineEnv.path ];
       environment = {
         "AFFINE_INDEXER_ENABLED" = "false";
         "REDIS_SERVER_HOST" = "redis";
@@ -63,7 +63,7 @@ in
     };
     virtualisation.oci-containers.containers."affine_postgres" = {
       image = "pgvector/pgvector:pg16";
-      environmentFiles = [ services.onepassword-secrets.secrets.affineEnv.path ];
+      environmentFiles = [ config.services.onepassword-secrets.secrets.affineEnv.path ];
       environment = {
         "POSTGRES_DB" = "affine";
         "POSTGRES_HOST_AUTH_METHOD" = "trust";
@@ -118,7 +118,7 @@ in
     };
     virtualisation.oci-containers.containers."affine_server" = {
       image = "ghcr.io/toeverything/affine:stable";
-      environmentFiles = [ services.onepassword-secrets.secrets.affineEnv.path ];
+      environmentFiles = [ config.services.onepassword-secrets.secrets.affineEnv.path ];
       environment = {
         "AFFINE_INDEXER_ENABLED" = "false";
         "REDIS_SERVER_HOST" = "redis";
