@@ -67,7 +67,7 @@ in
       volumes = [ "${cfg.stateDir}/postgresql/data:/var/lib/postgresql/data:rw" ];
       log-driver = "journald";
       extraOptions = [
-        "--health-cmd=[\"pg_isready\", \"-U\", \"\", \"-d\", \"affine\"]"
+        "--health-cmd=[\"pg_isready\", \"-U\", \"affineUser\", \"-d\", \"affine\"]"
         "--health-interval=10s"
         "--health-retries=5"
         "--health-timeout=5s"
