@@ -43,6 +43,14 @@
           baseUrl = "shulker.link";
           port = 23232;
         };
+        affine = {
+          enable = true;
+          impermanence = true;
+          baseUrl = "shulker.link";
+          subDomain = "wiki";
+          port = 23233;
+          dbPort = 23234;
+        };
       };
     };
     users.conquerix.enable = true;
