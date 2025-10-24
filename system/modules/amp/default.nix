@@ -50,7 +50,7 @@ in
         "UID" = "${toString config.users.users.amp.uid}";
         "GID" = "${toString config.users.groups.amp.gid}";
       };
-      volumes = [ "${cfg.stateDir}:/home/amp/:rw" ];
+      volumes = [ "${cfg.stateDir}:/home/amp/.ampdata:rw" ];
       ports = [
         "127.0.0.1:${toString cfg.port}:8080/tcp"
         "25565:25565" # Main minecraft port
