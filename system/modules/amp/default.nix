@@ -61,7 +61,7 @@ in
         "35565:35565" # Secondary minecraft port for staging server
         "45565:45565" # Tertiary minecraft port for small test servers
       ];
-      extraOptions = [ ''--mac-address="${cfg.macAddress}"'' ];
+      extraOptions = [ ''--mac-address=${cfg.macAddress}'' ];
     };
 
     services.nginx = {
