@@ -28,6 +28,10 @@ in
       default = 8080;
       description = "Default internal port to open amp.";
     };
+    macAddress = mkOption {
+      type = types.str;
+      description = "Mac address of the container.";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -57,6 +61,7 @@ in
         "35565:35565" # Secondary minecraft port for staging server
         "45565:45565" # Tertiary minecraft port for small test servers
       ];
+      extraOptions = [ ''--mac-address="${cfg.macAddress}"'' ];
     };
 
     services.nginx = {

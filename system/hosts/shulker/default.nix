@@ -56,6 +56,7 @@
           baseUrl = "beyondsmp.com";
           subDomain = "panel";
           port = 23234;
+          macAddress = "02:42:AC:E8:01:BC";
         };
       };
     };
