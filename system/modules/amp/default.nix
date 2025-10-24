@@ -32,10 +32,11 @@ in
 
   config = mkIf cfg.enable {
 
-    users.groups.amp = { };
+    users.groups.amp.gid = 2000;
     users.users.amp = {
       isSystemUser = true;
       group = "amp";
+      uid = 2000;
     };
 
     # Containers
