@@ -179,8 +179,8 @@ in
         {
           directory = cfg.stateDir;
           mode = "u=rwx,g=,o=";
-          user = "authentik";
-          group = "authentik";
+          user = "affine";
+          group = "affine";
         }
       ];
     };

@@ -50,6 +50,13 @@
           subDomain = "wiki";
           port = 23233;
         };
+        amp = {
+          enable = true;
+          impermanence = true;
+          baseUrl = "beyondsmp.com";
+          subDomain = "panel";
+          port = 23234;
+        };
       };
     };
     users.conquerix.enable = true;
