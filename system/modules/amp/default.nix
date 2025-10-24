@@ -32,11 +32,11 @@ in
 
   config = mkIf cfg.enable {
 
-    users.groups.amp.gid = 2000;
+    users.groups.amp.gid = 986;
     users.users.amp = {
       isSystemUser = true;
       group = "amp";
-      uid = 2000;
+      uid = 989;
     };
 
     # Containers
@@ -76,7 +76,7 @@ in
       "/nix/persist".directories = [ 
         {
           directory = cfg.stateDir;
-          mode = "u=rwx,g=,o=";
+          mode = "u=rwx,g=rwx,o=";
           user = "amp";
           group = "amp";
         }
