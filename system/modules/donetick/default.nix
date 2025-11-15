@@ -39,8 +39,10 @@ in
       environment = {
         "DT_NAME" = "Shulker ToDo";
         "DT_ENV" = "selfhosted";
+        "DT_DATABASE_TYPE" = "sqlite";
         "DT_SQLITE_PATH" = "/donetick-data/donetick.db";
         "DT_IS_USER_CREATION_DISABLED" = "true";
+        "DT_IS_DONE_TICK_DOT_COM" = "false";
         "DT_SERVER_PORT" = "8080";
         "DT_OAUTH2_REDIRECT_URL" = "https://${cfg.subDomain}.${cfg.baseUrl}/auth/oauth2";
 
