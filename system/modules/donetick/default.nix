@@ -43,12 +43,11 @@ in
         "DT_SQLITE_PATH" = "/donetick-data/donetick.db";
         "DT_IS_USER_CREATION_DISABLED" = "true";
         "DT_IS_DONE_TICK_DOT_COM" = "false";
-        #"DT_SERVER_PORT" = "8080";
         "DT_OAUTH2_REDIRECT_URL" = "https://${cfg.subDomain}.${cfg.baseUrl}/auth/oauth2";
 
 
       };
-      ports = [ "127.0.0.1:${toString cfg.port}:2021/tcp" ];
+      ports = [ "${toString cfg.port}:2021" ];
       volumes = [
         "${cfg.stateDir}/data:/donetick-data"
         "${cfg.stateDir}/config:/config"
