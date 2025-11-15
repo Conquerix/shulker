@@ -47,7 +47,7 @@ in
 
 
       };
-      ports = [ "${toString cfg.port}:2021" ];
+      ports = [ "127.0.0.1:${toString cfg.port}:2021" ];
       volumes = [
         "${cfg.stateDir}/data:/donetick-data"
         "${cfg.stateDir}/config:/config"
