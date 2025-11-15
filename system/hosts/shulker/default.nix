@@ -58,6 +58,12 @@
           port = 23234;
           macAddress = "02:42:AC:E8:01:BC";
         };
+        donetick = {
+          enable = true;
+          baseUrl = "shulker.link";
+          subDomain = "todo";
+          port = 23235;
+        };
       };
     };
     users.conquerix.enable = true;

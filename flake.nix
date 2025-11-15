@@ -37,6 +37,12 @@
 
     # Identity Provider
     authentik-nix.url = "github:nix-community/authentik-nix";
+
+    # Flake for the Eden emulator
+    eden = {
+      url = "github:grantimatter/eden-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs = { self, nixpkgs, ...}@inputs:
     let
@@ -76,6 +82,7 @@
               inputs.impermanence.nixosModule
               inputs.opnix.nixosModules.default
               inputs.authentik-nix.nixosModules.default
+              inputs.eden.nixosModules.default
               (
                 { inputs, ... }: {
                   networking.hostName = host;

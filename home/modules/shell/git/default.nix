@@ -82,12 +82,12 @@ in
           if !cfg.minimal then
             [
               git-lfs
-              gitAndTools.delta
-              gitAndTools.gh
-              gitAndTools.glab
-              gitAndTools.git-filter-repo
-              gitAndTools.git-open
-              (mkIf config.shulker.home.modules.shell.gnupg.enable gitAndTools.git-crypt)
+              delta
+              gh
+              glab
+              git-filter-repo
+              git-open
+              (mkIf config.shulker.home.modules.shell.gnupg.enable git-crypt)
             ]
           else
             [ ];

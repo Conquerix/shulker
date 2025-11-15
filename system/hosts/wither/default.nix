@@ -62,6 +62,11 @@
     trezor-suite
   ];
 
+  programs.eden = {
+    enable = true;
+    enableCache = true; # Optional: Enable cache (see Cachix section)
+  };
+
   shulker = {
     system = {
       profiles.desktop.enable = true;

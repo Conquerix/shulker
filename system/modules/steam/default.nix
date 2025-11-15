@@ -39,7 +39,7 @@ in
       };
       systemPackages = with pkgs; [
         steamtinkerlaunch
-        protonup
+        protonup-ng
         protontricks
       ];
     };
