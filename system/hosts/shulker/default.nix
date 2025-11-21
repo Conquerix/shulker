@@ -86,8 +86,8 @@
   };
 
   services.wings.node = {
-    uuid = "d6e5436c-fc19-4dc7-84cd-ea02daffbe5f";
-    tokenId = "WrPBC3R3vf0HzSZV";
+    uuid = "fb07692f-4f13-47f5-b2e3-8a99b71141d6";
+    tokenId = "uHRV3hDpTejdX7Q0";
     remote = "https://panel.shulker.link";
   };
 
