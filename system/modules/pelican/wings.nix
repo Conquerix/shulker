@@ -85,8 +85,8 @@ in
       };
     };
 
-    environment.persistence = mkIf (cfg.impermanence) {
-      "/nix/persist/".directories = [ 
+    environment = mkIf (cfg.impermanence) {
+      persistence."/nix/persist/".directories = [ 
         {
           directory = "${cfg.stateDir}/archives";
           mode = "u=rwx,g=,o=";
@@ -106,7 +106,7 @@ in
           group = "pelican";
         }
       ];
-      "/nix/persist/".files = [
+      persistence."/nix/persist/".files = [
         {
           file = "${cfg.stateDir}/wings.db";
           parentDirectory = {
