@@ -60,6 +60,7 @@
         };
         donetick = {
           enable = true;
+          impermanence = true;
           baseUrl = "shulker.link";
           subDomain = "todo";
           port = 23235;
@@ -67,12 +68,14 @@
         pelican = {
           panel = {
             enable = true;
+            impermanence = true;
             baseUrl = "shulker.link";
             subDomain = "panel";
             port = 23236;
           };
           wings = {
             enable = true;
+            impermanence = true;
             baseUrl = "shulker.link";
             port = 23237;
           };
