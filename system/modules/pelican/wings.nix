@@ -65,6 +65,13 @@ in
         api.port = cfg.port;
         system.data = "${cfg.stateDir}/volumes";
         tokenPath = config.services.onepassword-secrets.secrets.pelicanWingsToken.path;
+        docker.network = {
+          interface = "172.55.0.1";
+          interfaces.v4 = {
+            subnet = "172.55.0.0/16";
+            gateway = "172.55.0.1";
+          };
+        };
         # Configure the rest in the node's config directly.
         # uuid = "<node-uuid>";
         # tokenId = "<node-token>";
