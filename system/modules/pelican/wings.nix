@@ -64,7 +64,7 @@ in
       node = {
         api.port = cfg.port;
         system.data = "${cfg.stateDir}/volumes";
-        tokenPath = config.services.onepassword-secrets.secrets.pelican-wings-token.path;
+        tokenPath = config.services.onepassword-secrets.secrets.pelicanWingsToken.path;
         # Configure the rest in the node's config directly.
         # uuid = "<node-uuid>";
         # tokenId = "<node-token>";
@@ -118,7 +118,7 @@ in
       ];
     };
 
-    services.onepassword-secrets.secrets.pelican-wings-token = {
+    services.onepassword-secrets.secrets.pelicanWingsToken = {
       reference = "op://Shulker/${config.networking.hostName}/Pelican Wings token";
       services = [ "docker" ];
     };
