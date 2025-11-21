@@ -86,38 +86,36 @@ in
     };
 
     environment.persistence = mkIf (cfg.impermanence) {
-      "/nix/persist/" = {
-        directories = [ 
-          {
-            directory = "${cfg.stateDir}/archives";
+      "/nix/persist/".directories = [ 
+        {
+          directory = "${cfg.stateDir}/archives";
+          mode = "u=rwx,g=,o=";
+          user = "pelican";
+          group = "pelican";
+        }
+        {
+          directory = "${cfg.stateDir}/backups";
+          mode = "u=rwx,g=,o=";
+          user = "pelican";
+          group = "pelican";
+        }
+        {
+          directory = "${cfg.stateDir}/volumes";
+          mode = "u=rwx,g=,o=";
+          user = "pelican";
+          group = "pelican";
+        }
+      ];
+      "/nix/persist/".files = [
+        {
+          file = "${cfg.stateDir}/wings.db";
+          parentDirectory = {
             mode = "u=rwx,g=,o=";
             user = "pelican";
             group = "pelican";
-          }
-          {
-            directory = "${cfg.stateDir}/backups";
-            mode = "u=rwx,g=,o=";
-            user = "pelican";
-            group = "pelican";
-          }
-          {
-            directory = "${cfg.stateDir}/volumes";
-            mode = "u=rwx,g=,o=";
-            user = "pelican";
-            group = "pelican";
-          }
-        ];
-        files = [
-          {
-            file = "${cfg.stateDir}/wings.db";
-            parentDirectory = {
-              mode = "u=rwx,g=,o=";
-              user = "pelican";
-              group = "pelican";
-            };
-          }
-        ];
-      };
+          };
+        }
+      ];
     };
 
     services.onepassword-secrets.secrets.pelican-wings-token = {
