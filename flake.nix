@@ -43,6 +43,12 @@
       url = "github:grantimatter/eden-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Flake for minecraft pelican panel
+    pelican-panel = {
+      url = "github:conquerix/nix-pelican-panel";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
   outputs = { self, nixpkgs, ...}@inputs:
     let
@@ -83,6 +89,8 @@
               inputs.opnix.nixosModules.default
               inputs.authentik-nix.nixosModules.default
               inputs.eden.nixosModules.default
+              inputs.pelican-panel.nixosModule.pelican-panel
+              inputs.pelican-panel.nixosModule.wings
               (
                 { inputs, ... }: {
                   networking.hostName = host;

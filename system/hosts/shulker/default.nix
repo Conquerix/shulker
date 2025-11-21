@@ -85,6 +85,12 @@
     users.conquerix.enable = true;
   };
 
+  services.wings.node = {
+    uuid = "d6e5436c-fc19-4dc7-84cd-ea02daffbe5f";
+    tokenId = "WrPBC3R3vf0HzSZV";
+    remote = "https://panel.shulker.link";
+  };
+
   boot.loader.grub.enable = true;
   boot.loader.grub.efiSupport = true;
   boot.loader.grub.device = "nodev";

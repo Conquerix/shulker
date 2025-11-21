@@ -32,31 +32,44 @@ in
 
   config = mkIf cfg.enable {
 
-    users.groups.pelican.gid = 988;
-    users.users.pelican = {
-      isSystemUser = true;
-      group = "pelican";
-      uid = 988;
-    };
+    #users.groups.pelican.gid = 988;
+    #users.users.pelican = {
+    #  isSystemUser = true;
+    #  group = "pelican";
+    #  uid = 988;
+    #};
 
-    virtualisation.oci-containers.containers."pelican-wings" = {
-      image = "ghcr.io/pelican-dev/wings:latest";
-      environment = {
-        "TZ" = "UTC";
-        "WINGS_UID" = "988";
-        "WINGS_GID" = "988";
-        "WINGS_USERNAME" = "pelican";
+    #virtualisation.oci-containers.containers."pelican-wings" = {
+    #  image = "ghcr.io/pelican-dev/wings:latest";
+    #  environment = {
+    #    "TZ" = "UTC";
+    #    "WINGS_UID" = "988";
+    #    "WINGS_GID" = "988";
+    #    "WINGS_USERNAME" = "pelican";
+    #  };
+    #  ports = [ "127.0.0.1:${toString cfg.port}:8080" "2022:2022" ];
+    #  volumes = [
+    #    "/var/run/docker.sock:/var/run/docker.sock"
+    #    "/var/lib/docker/containers/:/var/lib/docker/containers/"
+    #    "${cfg.stateDir}/etc/pelican/:/etc/pelican/"
+    #    "${cfg.stateDir}/var/lib/pelican/:/var/lib/pelican/"
+    #    "${cfg.stateDir}/var/log/pelican/:/var/log/pelican/"
+    #    "${cfg.stateDir}/tmp/pelican/:/tmp/pelican/"
+    #    "${cfg.stateDir}/etc/ssl/certs:/etc/ssl/certs:ro"
+    #  ];
+    #};
+
+    services.wings = {
+      enable = true;
+      node = {
+        api.port = cfg.port;
+        system.data = "${cfg.stateDir}/volumes";
+        tokenPath = config.services.onepassword-secrets.secrets.pelican-wings-token.path;
+        # Configure the rest in the node's config directly.
+        # uuid = "<node-uuid>";
+        # tokenId = "<node-token>";
+        # remote = "<node-remote>";
       };
-      ports = [ "127.0.0.1:${toString cfg.port}:8080" "2022:2022" ];
-      volumes = [
-        "/var/run/docker.sock:/var/run/docker.sock"
-        "/var/lib/docker/containers/:/var/lib/docker/containers/"
-        "${cfg.stateDir}/etc/pelican/:/etc/pelican/"
-        "${cfg.stateDir}/var/lib/pelican/:/var/lib/pelican/"
-        "${cfg.stateDir}/var/log/pelican/:/var/log/pelican/"
-        "${cfg.stateDir}/tmp/pelican/:/tmp/pelican/"
-        "${cfg.stateDir}/etc/ssl/certs:/etc/ssl/certs:ro"
-      ];
     };
 
     services.nginx = {
@@ -73,19 +86,39 @@ in
     };
 
     environment.persistence = mkIf (cfg.impermanence) {
-      "/nix/persist".directories = [ 
+      "/nix/persist/".directories = [ 
         {
-          directory = cfg.stateDir;
+          directory = "${cfg.stateDir}/archives";
           mode = "u=rwx,g=,o=";
           user = "pelican";
           group = "pelican";
         }
+        {
+          directory = "${cfg.stateDir}/backups";
+          mode = "u=rwx,g=,o=";
+          user = "pelican";
+          group = "pelican";
+        }
+        {
+          directory = "${cfg.stateDir}/volumes";
+          mode = "u=rwx,g=,o=";
+          user = "pelican";
+          group = "pelican";
+        }
+        {
+          file = "${cfg.stateDir}/wings.db";
+          parentDirectory = {
+            mode = "u=rwx,g=,o=";
+            user = "pelican";
+            group = "pelican";
+          };
+        }
       ];
     };
 
-    # services.onepassword-secrets.secrets.donetickEnv = {
-      # reference = "op://Shulker/${config.networking.hostName}/Donetick env";
-      # services = [ "docker" ];
-    # };
+    services.onepassword-secrets.secrets.pelican-wings-token = {
+      reference = "op://Shulker/${config.networking.hostName}/Pelican Wings token";
+      services = [ "docker" ];
+    };
   };
 }
