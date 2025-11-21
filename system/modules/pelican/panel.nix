@@ -93,7 +93,13 @@ in
     environment.persistence = mkIf (cfg.impermanence) {
       "/nix/persist".directories = [ 
         {
-          directory = cfg.stateDir;
+          directory = "${cfg.stateDir}/data";
+          mode = "u=rwx,g=rx,o=rx";
+          user = "pelican-panel";
+          group = "pelican-panel";
+        }
+        {
+          directory = "${cfg.stateDir}/logs";
           mode = "u=rwx,g=rx,o=rx";
           user = "pelican-panel";
           group = "pelican-panel";
