@@ -89,8 +89,8 @@
               inputs.opnix.nixosModules.default
               inputs.authentik-nix.nixosModules.default
               inputs.eden.nixosModules.default
-              inputs.pelican-panel.nixosModule.pelican-panel
-              inputs.pelican-panel.nixosModule.wings
+              inputs.pelican-panel.nixosModules.pelican-panel
+              inputs.pelican-panel.nixosModules.wings
               (
                 { inputs, ... }: {
                   networking.hostName = host;
