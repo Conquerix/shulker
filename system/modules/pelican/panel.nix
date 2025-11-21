@@ -9,7 +9,7 @@ let
     {
         admin off
         servers {
-            trusted_proxies static 127.0.0.1,172.17.0.1,172.20.0.1
+            trusted_proxies static 127.0.0.1 172.17.0.1 172.20.0.1
         }
     }
 
@@ -53,6 +53,13 @@ in
 
   config = mkIf cfg.enable {
 
+    users.groups.pelican-panel.gid = 82;
+    users.users.pelican-panel = {
+      isSystemUser = true;
+      group = "pelican-panel";
+      uid = 82;
+    };
+
     services.nginx = {
       enable = true;
       virtualHosts."pelican-panel" = {
@@ -87,7 +94,9 @@ in
       "/nix/persist".directories = [ 
         {
           directory = cfg.stateDir;
-          mode = "u=rwx,g=rwx,o=rwx";
+          mode = "u=rwx,g=rx,o=rx";
+          user = "pelican-panel";
+          group = "pelican-panel";
         }
       ];
     };
