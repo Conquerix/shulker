@@ -58,12 +58,12 @@ in
     };
     systemd.services."docker-affine_db_custom" = {
       enable = true;
+      after = [ "docker-affine_migration_job.service" ];
+      requires = [ "docker-affine_migration_job.service" ];
+      partOf = [ "docker-compose-affine-root.target" ];
+      wantedBy = [ "docker-compose-affine-root.target" ];
       serviceConfig = {
         Restart = "no";
-        after = [ "docker-affine_migration_job.service" ];
-        requires = [ "docker-affine_migration_job.service" ];
-        partOf = [ "docker-compose-affine-root.target" ];
-        wantedBy = [ "docker-compose-affine-root.target" ];
         ExecStart = ''${pkgs.docker}/bin/docker exec -it affine_postgres psql -U affineUser -d affine -c "UPDATE features SET configs = jsonb_set(configs::jsonb, '{memberLimit}', '1000') WHERE configs::jsonb ? 'memberLimit';" '';
       };
     };
