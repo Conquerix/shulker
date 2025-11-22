@@ -50,7 +50,10 @@ in
       extraOptions = [ "--network-alias=affine_migration" "--network=affine_default" ];
     };
     systemd.services."docker-affine_migration_job" = {
-      serviceConfig = { Restart = lib.mkOverride 90 "no"; };
+      serviceConfig = {
+        Restart = lib.mkOverride 90 "no";
+        Type = "oneshot";
+      };
       after = [ "docker-network-affine_default.service" ];
       requires = [ "docker-network-affine_default.service" ];
       partOf = [ "docker-compose-affine-root.target" ];
@@ -146,7 +149,7 @@ in
         RestartSteps = lib.mkOverride 90 9;
       };
       after = [ "docker-network-affine_default.service" "docker-affine_db_custom.service" ];
-      requires = [ "docker-network-affine_default.service" ];
+      requires = [ "docker-network-affine_default.service" "docker-affine_db_custom.service" ];
       partOf = [ "docker-compose-affine-root.target" ];
       wantedBy = [ "docker-compose-affine-root.target" ];
     };
