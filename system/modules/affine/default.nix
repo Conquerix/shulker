@@ -56,6 +56,17 @@ in
       partOf = [ "docker-compose-affine-root.target" ];
       wantedBy = [ "docker-compose-affine-root.target" ];
     };
+    systemd.services."docker-affine_db_custom" = {
+      enable = true;
+      serviceConfig = {
+        Restart = "no";
+        after = [ "docker-affine_migration_job.service" ];
+        requires = [ "docker-affine_migration_job.service" ];
+        partOf = [ "docker-compose-affine-root.target" ];
+        wantedBy = [ "docker-compose-affine-root.target" ];
+        ExecStart = ''${pkgs.docker}/bin/docker exec -it affine_postgres psql -U affineUser -d affine -c "UPDATE features SET configs = jsonb_set(configs::jsonb, '{memberLimit}', '1000') WHERE configs::jsonb ? 'memberLimit';" '';
+      };
+    };
     virtualisation.oci-containers.containers."affine_postgres" = {
       image = "pgvector/pgvector:pg16";
       environmentFiles = [ config.services.onepassword-secrets.secrets.affineEnv.path ];
@@ -134,7 +145,7 @@ in
         RestartSec = lib.mkOverride 90 "100ms";
         RestartSteps = lib.mkOverride 90 9;
       };
-      after = [ "docker-network-affine_default.service" ];
+      after = [ "docker-network-affine_default.service" "docker-affine_db_custom.service" ];
       requires = [ "docker-network-affine_default.service" ];
       partOf = [ "docker-compose-affine-root.target" ];
       wantedBy = [ "docker-compose-affine-root.target" ];
