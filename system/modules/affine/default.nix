@@ -64,7 +64,7 @@ in
       wantedBy = [ "docker-compose-affine-root.target" ];
       serviceConfig = {
         Restart = "no";
-        ExecStart = ''${pkgs.docker}/bin/docker exec -it affine_postgres psql -U affineUser -d affine -c "UPDATE features SET configs = jsonb_set(configs::jsonb, '{memberLimit}', '1000') WHERE configs::jsonb ? 'memberLimit';" '';
+        ExecStart = ''${pkgs.docker}/bin/docker exec affine_postgres psql -U affineUser -d affine -c "UPDATE features SET configs = jsonb_set(configs::jsonb, '{memberLimit}', '1000') WHERE configs::jsonb ? 'memberLimit';" '';
       };
     };
     virtualisation.oci-containers.containers."affine_postgres" = {
