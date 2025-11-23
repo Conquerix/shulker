@@ -35,8 +35,8 @@ let
     email = "conquerix@shulker.link"
 
     [server]
-    scheme = "http"
-    pub_url = "https://${cfg.subDomain}.${cfg.baseUrl}"
+    scheme = "https"
+    pub_url = "${cfg.subDomain}.${cfg.baseUrl}"
     proxy_mode = true
     trusted_proxies = ['127.0.0.1/32']
 
@@ -116,7 +116,7 @@ in
 
     services.onepassword-secrets.secrets.rauthyEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Rauthy env";
-      services = [ "docker" ];
+      services = [ "docker-rauthy" ];
       owner = "rauthy";
       group = "rauthy";
     };
