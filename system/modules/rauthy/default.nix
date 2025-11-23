@@ -35,7 +35,7 @@ let
     email = "conquerix@shulker.link"
 
     [server]
-    scheme = "https"
+    scheme = "http"
     pub_url = "${cfg.subDomain}.${cfg.baseUrl}"
     proxy_mode = true
     trusted_proxies = ['127.0.0.1/32']
