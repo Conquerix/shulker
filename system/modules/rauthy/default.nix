@@ -82,7 +82,7 @@ in
 
     virtualisation.oci-containers.containers."rauthy" = {
       image = "ghcr.io/sebadob/rauthy:latest";
-      ports = [ "127.0.0.1:${toString cfg.port}:8443" ];
+      ports = [ "127.0.0.1:${toString cfg.port}:8080" ];
       environmentFiles = [ config.services.onepassword-secrets.secrets.rauthyEnv.path ];
       volumes = [
         "${cfg.stateDir}/data:/app/data"
