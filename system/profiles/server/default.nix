@@ -43,9 +43,9 @@ in
         webroot = null;
         credentialsFile = config.services.onepassword-secrets.secrets.ovhWildcardCa.path;
       };
-      certs."beyondsmp.com" = {
-        domain = "beyondsmp.com";
-        extraDomainNames = [ "*.beyondsmp.com" ];
+      certs."amphibian.network" = {
+        domain = "amphibian.network";
+        extraDomainNames = [ "*.amphibian.network" ];
         dnsProvider = "ovh";
         dnsPropagationCheck = true;
         webroot = null;

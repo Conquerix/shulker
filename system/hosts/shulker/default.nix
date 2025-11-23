@@ -21,23 +21,6 @@
           enable = true;
           extInterface = "enp6s0";
         };
-        authentik = {
-          enable = true;
-          baseUrl = "beyondsmp.com";
-          subDomain = "sso";
-        };
-        pocket-id = {
-          enable = true;
-          baseUrl = "shulker.link";
-          subDomain = "sso";
-          port = 23230;
-        };
-        karakeep = {
-          enable = true;
-          baseUrl = "shulker.link";
-          subDomain = "links";
-          port = 23231;
-        };
         searx = {
           enable = true;
           baseUrl = "shulker.link";
@@ -46,37 +29,22 @@
         affine = {
           enable = true;
           impermanence = true;
-          baseUrl = "shulker.link";
+          baseUrl = "amphibian.network";
           subDomain = "wiki";
           port = 23233;
-        };
-        amp = {
-          enable = true;
-          impermanence = true;
-          baseUrl = "beyondsmp.com";
-          subDomain = "panel";
-          port = 23234;
-          macAddress = "02:42:AC:E8:01:BC";
-        };
-        donetick = {
-          enable = true;
-          impermanence = true;
-          baseUrl = "shulker.link";
-          subDomain = "todo";
-          port = 23235;
         };
         pelican = {
           panel = {
             enable = true;
             impermanence = true;
-            baseUrl = "shulker.link";
+            baseUrl = "amphibian.network";
             subDomain = "panel";
             port = 23236;
           };
           wings = {
             enable = true;
             impermanence = true;
-            baseUrl = "shulker.link";
+            baseUrl = "amphibian.network";
             port = 23237;
           };
         };
@@ -88,7 +56,7 @@
   services.wings.node = {
     uuid = "fb07692f-4f13-47f5-b2e3-8a99b71141d6";
     tokenId = "uHRV3hDpTejdX7Q0";
-    remote = "https://panel.shulker.link";
+    remote = "https://panel.amphibian.network";
   };
 
   boot.loader.grub.enable = true;
