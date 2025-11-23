@@ -117,7 +117,7 @@ in
     services.onepassword-secrets.secrets.rauthyEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Rauthy env";
       services = [ "docker" ];
-      user = "rauthy";
+      owner = "rauthy";
       group = "rauthy";
     };
   };
