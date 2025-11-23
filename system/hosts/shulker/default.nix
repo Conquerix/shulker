@@ -21,6 +21,13 @@
           enable = true;
           extInterface = "enp6s0";
         };
+        rauthy = {
+          enable = true;
+          impermanence = true;
+          baseUrl = "amphibian.network";
+          subDomain = "sso";
+          port = 23231;
+        };
         searx = {
           enable = true;
           baseUrl = "shulker.link";
