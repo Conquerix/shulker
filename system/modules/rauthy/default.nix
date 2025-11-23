@@ -106,7 +106,7 @@ in
     environment.persistence = mkIf (cfg.impermanence) {
       "/nix/persist".directories = [ 
         {
-          directory = cfg.stateDir;
+          directory = "${cfg.stateDir}/data";
           mode = "u=rwx,g=,o=";
           user = "rauthy";
           group = "rauthy";
