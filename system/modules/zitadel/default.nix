@@ -123,18 +123,21 @@ in
       zitadelMasterKey = {
         reference = "op://Shulker/${config.networking.hostName}/Zitadel master key";
         services = [ "zitadel" ];
+        mode = "0750";
         owner = "zitadel";
         group = "zitadel";
       };
       zitadelSettings = {
         reference = "op://Shulker/${config.networking.hostName}/Zitadel settings";
         services = [ "zitadel" ];
+        mode = "0750";
         owner = "zitadel";
         group = "zitadel";
       };
       zitadelPostgresEnv = {
         reference = "op://Shulker/${config.networking.hostName}/Zitadel Postgres env";
         services = [ "zitadel" ];
+        mode = "0750";
         owner = "zitadel";
         group = "zitadel";
       };
