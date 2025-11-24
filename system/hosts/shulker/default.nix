@@ -21,12 +21,13 @@
           enable = true;
           extInterface = "enp6s0";
         };
-        rauthy = {
+        zitadel = {
           enable = true;
           impermanence = true;
           baseUrl = "amphibian.network";
           subDomain = "sso";
-          port = 23231;
+          port = 23230;
+          dbPort = 23231;
         };
         searx = {
           enable = true;
