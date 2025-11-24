@@ -88,7 +88,7 @@ in
 
     virtualisation.oci-containers.containers.zitadel-db = {
       image = "postgres:17";
-      ports = [ "${cfg.dbPort}:5432" ];
+      ports = [ "${toString cfg.dbPort}:5432" ];
       environmentFiles = [ config.services.onepassword-secrets.secrets.zitadelPostgresEnv.path ];
       volumes = [
         "${cfg.stateDir}/db:/var/lib/postgresql/data"
