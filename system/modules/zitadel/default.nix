@@ -37,6 +37,8 @@ in
 
   config = mkIf cfg.enable {
 
+    users.users.zitadel.extraGroups = [ "onepassword-secrets" ];
+
     services.zitadel = {
       enable = true;
       openFirewall = true;
