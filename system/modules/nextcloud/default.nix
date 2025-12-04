@@ -29,6 +29,7 @@ in
 
     services.nextcloud = {
       enable = true;
+      package = pkgs.nextcloud32;
       #imaginary.enable = true;
       hostName = "nextcloud";
       home = cfg.stateDir;
