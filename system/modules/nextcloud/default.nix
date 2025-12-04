@@ -29,7 +29,7 @@ in
 
     services.nextcloud = {
       enable = true;
-      imaginary.enable = true;
+      #imaginary.enable = true;
       hostName = "nextcloud";
       home = cfg.stateDir;
       secretFile = config.services.onepassword-secrets.secrets.nextcloudSecretFile.path;
