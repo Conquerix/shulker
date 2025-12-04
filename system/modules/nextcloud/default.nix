@@ -48,6 +48,12 @@ in
       };
     };
 
+    services.nextcloud-whiteboard-server = {
+      enable = true;
+      settings.NEXTCLOUD_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
+      secrets = [ /etc/nextcloud-whiteboard-secret ];
+    };
+
     services.nginx = {
       enable = true;
       virtualHosts."nextcloud" = {
@@ -58,6 +64,15 @@ in
         #  proxyWebsockets = true;
         #  proxyPass = "http://127.0.0.1:${toString cfg.port}";
         #};
+      };
+      virtualHosts."nextcloud-whiteboard" = {
+        serverName = "whiteboard-${cfg.subDomain}.${cfg.baseUrl}";
+        forceSSL = true;
+        useACMEHost = cfg.baseUrl;
+        locations."/" = {
+          proxyWebsockets = true;
+          proxyPass = "http://127.0.0.1:3002"; # Can't customize the port :(
+        };
       };
     };
 
@@ -78,24 +93,16 @@ in
       ];
     };
 
-    services.onepassword-secrets.secrets.nextcloudSecretFile = {
-      reference = "op://Shulker/${config.networking.hostName}/Nextcloud secret";
-      services = [ "docker" ];
-      mode = "0750";
-      owner = "nextcloud";
-      group = "nextcloud";
-    };
-
-    services.onepassword-secrets.secrets.nextcloudDbSecretFile = {
-      reference = "op://Shulker/${config.networking.hostName}/Nextcloud db secret";
-      services = [ "docker" ];
-      mode = "0750";
-      owner = "nextcloud";
-      group = "nextcloud";
-    };
-
     services.onepassword-secrets.secrets.nextcloudAdminPassFile = {
       reference = "op://Shulker/${config.networking.hostName}/Nextcloud admin pass";
+      services = [ "docker" ];
+      mode = "0750";
+      owner = "nextcloud";
+      group = "nextcloud";
+    };
+
+    services.onepassword-secrets.secrets.nextcloudWhiteboardSecret = {
+      reference = "op://Shulker/${config.networking.hostName}/Nextcloud whiteboard secret";
       services = [ "docker" ];
       mode = "0750";
       owner = "nextcloud";
