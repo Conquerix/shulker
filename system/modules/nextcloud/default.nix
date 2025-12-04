@@ -34,7 +34,7 @@ in
       hostName = "nextcloud";
       https = true;
       home = cfg.stateDir;
-      secretFile = config.services.onepassword-secrets.secrets.nextcloudSecretFile.path;
+      #secretFile = config.services.onepassword-secrets.secrets.nextcloudSecretFile.path;
       settings = {
         trusted_proxies = [ "localhost" "127.0.0.1" ];
         trusted_domains = [ "${cfg.subDomain}.${cfg.baseUrl}" ];
