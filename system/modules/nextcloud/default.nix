@@ -32,6 +32,7 @@ in
       package = pkgs.nextcloud32;
       #imaginary.enable = true;
       hostName = "nextcloud";
+      https = true;
       home = cfg.stateDir;
       secretFile = config.services.onepassword-secrets.secrets.nextcloudSecretFile.path;
       settings = {
