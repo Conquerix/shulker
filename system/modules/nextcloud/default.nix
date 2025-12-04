@@ -39,9 +39,10 @@ in
         trusted_proxies = [ "localhost" "127.0.0.1" ];
         trusted_domains = [ "${cfg.subDomain}.${cfg.baseUrl}" ];
       };
+      database.createLocally = true;
       config = {
         dbpassFile = config.services.onepassword-secrets.secrets.nextcloudDbSecretFile.path;
-        dbtype = "sqlite";
+        dbtype = "pgsql";
         adminpassFile = config.services.onepassword-secrets.secrets.nextcloudAdminPassFile.path;
       };
     };
@@ -66,6 +67,12 @@ in
           mode = "u=rwx,g=rwx,o=";
           user = "nextcloud";
           group = "nextcloud";
+        }
+        {
+          directory = config.services.postgresql.dataDir;
+          mode = "u=rwx,g=rwx,o=";
+          user = "postgres";
+          group = "postgres";
         }
       ];
     };
