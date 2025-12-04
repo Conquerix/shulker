@@ -79,6 +79,7 @@ in
     services.onepassword-secrets.secrets.nextcloudSecretFile = {
       reference = "op://Shulker/${config.networking.hostName}/Nextcloud secret";
       services = [ "docker" ];
+      mode = "0750";
       owner = "nextcloud";
       group = "nextcloud";
     };
@@ -86,6 +87,7 @@ in
     services.onepassword-secrets.secrets.nextcloudDbSecretFile = {
       reference = "op://Shulker/${config.networking.hostName}/Nextcloud db secret";
       services = [ "docker" ];
+      mode = "0750";
       owner = "nextcloud";
       group = "nextcloud";
     };
@@ -93,6 +95,7 @@ in
     services.onepassword-secrets.secrets.nextcloudAdminPassFile = {
       reference = "op://Shulker/${config.networking.hostName}/Nextcloud admin pass";
       services = [ "docker" ];
+      mode = "0750";
       owner = "nextcloud";
       group = "nextcloud";
     };
