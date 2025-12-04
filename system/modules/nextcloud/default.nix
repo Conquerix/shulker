@@ -36,7 +36,6 @@ in
       home = cfg.stateDir;
       extraAppsEnable = false;
       appstoreEnable = true;
-      #secretFile = config.services.onepassword-secrets.secrets.nextcloudSecretFile.path;
       settings = {
         trusted_proxies = [ "127.0.0.1/32" ];
         trusted_domains = [ "${cfg.subDomain}.${cfg.baseUrl}" ];
@@ -51,7 +50,7 @@ in
     services.nextcloud-whiteboard-server = {
       enable = true;
       settings.NEXTCLOUD_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
-      secrets = [ /etc/nextcloud-whiteboard-secret ];
+      secrets = [ config.services.onepassword-secrets.secrets.nextcloudWhiteboardSecret.path ];
     };
 
     services.nginx = {
@@ -95,7 +94,7 @@ in
 
     services.onepassword-secrets.secrets.nextcloudAdminPassFile = {
       reference = "op://Shulker/${config.networking.hostName}/Nextcloud admin pass";
-      services = [ "docker" ];
+      services = [ "nextcloud-setup" "nextcloud-update-db" ];
       mode = "0750";
       owner = "nextcloud";
       group = "nextcloud";
@@ -103,7 +102,7 @@ in
 
     services.onepassword-secrets.secrets.nextcloudWhiteboardSecret = {
       reference = "op://Shulker/${config.networking.hostName}/Nextcloud whiteboard secret";
-      services = [ "docker" ];
+      services = [ "nextcloud-whiteboard-server" ];
       mode = "0750";
       owner = "nextcloud";
       group = "nextcloud";
