@@ -62,7 +62,7 @@ in
       "/nix/persist".directories = [
         {
           directory = cfg.stateDir;
-          mode = "u=rwx,g=,o=";
+          mode = "u=rwx,g=rwx,o=";
           user = "nextcloud";
           group = "nextcloud";
         }
