@@ -21,6 +21,12 @@
           enable = true;
           extInterface = "enp6s0";
         };
+        nextcloud = {
+          enable = true;
+          impermanence = true;
+          baseUrl = "amphibian.network";
+          subDomain = "cloud";
+        };
         zitadel = {
           enable = true;
           impermanence = true;
