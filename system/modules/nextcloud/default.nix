@@ -38,7 +38,7 @@ in
       appstoreEnable = true;
       #secretFile = config.services.onepassword-secrets.secrets.nextcloudSecretFile.path;
       settings = {
-        trusted_proxies = [ "localhost" "127.0.0.1" ];
+        trusted_proxies = [ "127.0.0.1/32" ];
         trusted_domains = [ "${cfg.subDomain}.${cfg.baseUrl}" ];
       };
       database.createLocally = true;
