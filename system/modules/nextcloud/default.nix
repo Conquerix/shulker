@@ -41,7 +41,6 @@ in
       };
       database.createLocally = true;
       config = {
-        dbpassFile = config.services.onepassword-secrets.secrets.nextcloudDbSecretFile.path;
         dbtype = "pgsql";
         adminpassFile = config.services.onepassword-secrets.secrets.nextcloudAdminPassFile.path;
       };
