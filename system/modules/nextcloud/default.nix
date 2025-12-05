@@ -39,6 +39,7 @@ in
       settings = {
         trusted_proxies = [ "127.0.0.1/32" ];
         trusted_domains = [ "${cfg.subDomain}.${cfg.baseUrl}" ];
+        log_type = "file";
       };
       database.createLocally = true;
       config = {
