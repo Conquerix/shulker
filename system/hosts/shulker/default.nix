@@ -59,6 +59,7 @@
         nextcloud = {
           enable = true;
           impermanence = true;
+          mailReverseProxy = true;
           baseUrl = "amphibian.network";
           mainSubDomain = "cloud";
           aioSubDomain = "aio";

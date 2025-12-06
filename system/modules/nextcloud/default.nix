@@ -8,6 +8,7 @@ in
   options.shulker.system.modules.nextcloud = {
     enable = mkEnableOption "Enable nextcloud service.";
     impermanence = mkEnableOption "Enable impermanence.";
+    mailReverseProxy = mkEnableOption "Enable nginx virtual host for mail setup.";
     baseUrl = mkOption {
       type = types.str;
       default = "example.com";
@@ -138,6 +139,15 @@ in
         locations."/" = {
           proxyWebsockets = true;
           proxyPass = "https://127.0.0.1:${toString cfg.aioPort}";
+        };
+      };
+      virtualHosts."nextcloud-mail" = mkIf cfg.mailReverseProxy {
+        serverName = "mail.${cfg.baseUrl}";
+        forceSSL = true;
+        useACMEHost = cfg.baseUrl;
+        locations."/" = {
+          proxyWebsockets = true;
+          proxyPass = "https://127.0.0.1:10003";
         };
       };
     };
