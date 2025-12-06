@@ -147,7 +147,7 @@ in
         useACMEHost = cfg.baseUrl;
         locations."/" = {
           proxyWebsockets = true;
-          proxyPass = "https://127.0.0.1:10003";
+          proxyPass = "http://127.0.0.1:10003";
         };
       };
     };
