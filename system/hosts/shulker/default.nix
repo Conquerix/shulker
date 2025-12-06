@@ -57,7 +57,7 @@
           };
         };
         nextcloud = {
-          #enable = true;
+          enable = true;
           impermanence = true;
           baseUrl = "amphibian.network";
           mainSubDomain = "cloud";
