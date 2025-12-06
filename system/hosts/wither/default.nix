@@ -59,7 +59,6 @@
   environment.systemPackages = with pkgs; [
     chromium
     keymapp
-    trezor-suite
   ];
 
   programs.eden = {

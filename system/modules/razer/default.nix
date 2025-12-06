@@ -12,7 +12,7 @@ in
 
   config = mkIf cfg.enable {
 
-    hardware.razer = {
+    hardware.openrazer = {
       enable = cfg.enable;
       batteryNotifier.enable = cfg.batteryNotifier;
       users = [ "conquerix" ];
