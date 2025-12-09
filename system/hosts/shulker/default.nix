@@ -21,25 +21,10 @@
           enable = true;
           extInterface = "enp6s0";
         };
-        zitadel = {
-          enable = true;
-          impermanence = true;
-          baseUrl = "amphibian.network";
-          subDomain = "sso";
-          port = 23230;
-          dbPort = 23231;
-        };
         searx = {
           enable = true;
           baseUrl = "shulker.link";
           port = 23232;
-        };
-        affine = {
-          enable = true;
-          impermanence = true;
-          baseUrl = "amphibian.network";
-          subDomain = "wiki";
-          port = 23233;
         };
         pelican = {
           panel = {
@@ -59,7 +44,6 @@
         nextcloud = {
           enable = true;
           impermanence = true;
-          mailReverseProxy = true;
           baseUrl = "amphibian.network";
           mainSubDomain = "cloud";
           aioSubDomain = "aio";
