@@ -16,7 +16,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    nixpkgs.config.allowUnfree = true;
+    #nixpkgs.config.allowUnfree = true;
     programs.vscode = {
       enable = true;
       package = pkgs.vscodium;

@@ -16,6 +16,7 @@
     # ========= Utilities =========
     #
     impermanence.url = "github:nix-community/impermanence";
+    
     # Declarative partitioning and formatting
     disko = {
       url = "github:nix-community/disko";
@@ -35,12 +36,9 @@
     stylix.url = "github:danth/stylix/master";
     rose-pine-hyprcursor.url = "github:ndom91/rose-pine-hyprcursor";
 
-    # Identity Provider
-    authentik-nix.url = "github:nix-community/authentik-nix";
-
     # Flake for the Eden emulator
     eden = {
-      url = "github:grantimatter/eden-flake";
+      url = "github:conquerix/eden-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -87,7 +85,6 @@
               inputs.home-manager.nixosModules.home-manager
               inputs.impermanence.nixosModule
               inputs.opnix.nixosModules.default
-              inputs.authentik-nix.nixosModules.default
               inputs.eden.nixosModules.default
               inputs.pelican-panel.nixosModules.pelican-panel
               inputs.pelican-panel.nixosModules.wings

@@ -22,10 +22,18 @@ in
         "Include" = "~/.ssh/config.local";
       };
       extraConfig = mkIf (cfg._1password) ''IdentityAgent ~/.1password/agent.sock '';
+      enableDefaultConfig = false;
       matchBlocks."*" = {
-        controlMaster = "auto";
-        controlPath = "~/.ssh/control/%C";
+        controlMaster = "no";
+        controlPath = "~/.ssh/master-%r@%n:%p";
         hashKnownHosts = true;
+        forwardAgent = false;
+        addKeysToAgent = "no";
+        compression = false;
+        serverAliveInterval = 0;
+        serverAliveCountMax = 3;
+        userKnownHostsFile = "~/.ssh/known_hosts";
+        controlPersist = "no";
       };
     };
   };

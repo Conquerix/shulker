@@ -58,7 +58,7 @@ with lib;
 
     home.stateVersion = "22.05";
 
-    nixpkgs.config.allowUnfree = true;
+    #nixpkgs.config.allowUnfree = true;
     home = {
       enableDebugInfo = true;
       packages = with pkgs; [
