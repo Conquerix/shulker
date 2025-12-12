@@ -1,4 +1,8 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 
 with lib;
 let
@@ -93,7 +97,7 @@ in
     };
 
     environment = mkIf (cfg.impermanence) {
-      persistence."/nix/persist".directories = [ 
+      persistence."/nix/persist".directories = [
         {
           directory = "${cfg.stateDir}/archives";
           mode = "u=rwx,g=,o=";

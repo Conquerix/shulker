@@ -1,13 +1,11 @@
 {
   config,
-  inputs,
   lib,
   pkgs,
   ...
 }:
 
 let
-  isUnstable = config.boot.zfs.package == pkgs.zfsUnstable;
   zfsCompatibleKernelPackages = lib.filterAttrs (
     name: kernelPackages:
     (builtins.match "linux_[0-9]+_[0-9]+" name) != null
@@ -44,7 +42,7 @@ with lib;
     };
 
     hardware.enableRedistributableFirmware = true;
-    
+
     virtualisation.oci-containers.backend = "docker";
     virtualisation.docker = {
       enable = true;

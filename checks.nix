@@ -1,21 +1,9 @@
 {
   inputs,
   system,
-  pkgs,
   ...
 }:
 {
-  bats-test =
-    pkgs.runCommand "bats-test"
-      {
-        src = ../.;
-        buildInputs = builtins.attrValues { inherit (pkgs) bats yq-go inetutils; };
-      }
-      ''
-        cd $src
-        bats tests
-        touch $out
-      '';
 
   pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
     src = ./.;

@@ -1,8 +1,5 @@
 {
   pkgs,
-  lib,
-  inputs,
-  config,
   ...
 }:
 
@@ -36,9 +33,12 @@
     SUBSYSTEMS=="usb", ATTRS{idVendor}=="3297", MODE:="0666", SYMLINK+="ignition_dfu"
   '';
 
-
   programs.adb.enable = true;
-  environment.systemPackages = with pkgs; [ chromium keymapp obsidian ];
+  environment.systemPackages = with pkgs; [
+    chromium
+    keymapp
+    obsidian
+  ];
 
   programs.eden = {
     enable = true;

@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 with lib;
 let
@@ -18,6 +23,9 @@ in
       users = [ "conquerix" ];
     };
 
-    environment.systemPackages = with pkgs; [ razergenie polychromatic ];
+    environment.systemPackages = with pkgs; [
+      razergenie
+      polychromatic
+    ];
   };
 }

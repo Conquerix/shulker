@@ -1,7 +1,4 @@
 {
-  lib,
-  pkgs,
-  config,
   ...
 }:
 
@@ -21,7 +18,7 @@
           enable = true;
           extInterface = "enp6s0";
         };
-        searx = {
+        wallos = {
           enable = true;
           baseUrl = "shulker.link";
           port = 23232;

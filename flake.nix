@@ -16,7 +16,7 @@
     # ========= Utilities =========
     #
     impermanence.url = "github:nix-community/impermanence";
-    
+
     # Declarative partitioning and formatting
     disko = {
       url = "github:nix-community/disko";
@@ -48,7 +48,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
-  outputs = { self, nixpkgs, ...}@inputs:
+  outputs =
+    { self, nixpkgs, ... }@inputs:
     let
       inherit (self) outputs;
 
@@ -89,7 +90,8 @@
               inputs.pelican-panel.nixosModules.pelican-panel
               inputs.pelican-panel.nixosModules.wings
               (
-                { inputs, ... }: {
+                { inputs, ... }:
+                {
                   networking.hostName = host;
 
                   # For compatibility with nix-shell, nix-build, etc.
@@ -102,7 +104,10 @@
                     registry = {
                       self.flake = inputs.self;
                       nixpkgs = {
-                        from = { id = "nixpkgs"; type = "indirect"; };
+                        from = {
+                          id = "nixpkgs";
+                          type = "indirect";
+                        };
                         flake = inputs.nixpkgs;
                       };
                     };

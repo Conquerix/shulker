@@ -1,11 +1,15 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 with lib;
 let
   cfg = config.shulker.system.modules.pelican.panel;
 
-  caddyFile = pkgs.writeText "Caddyfile" 
-    ''
+  caddyFile = pkgs.writeText "Caddyfile" ''
     {
         admin off
         servers {
@@ -23,7 +27,7 @@ let
         }
         file_server
     }
-    '';
+  '';
 in
 {
   options.shulker.system.modules.pelican.panel = {
@@ -73,7 +77,6 @@ in
       };
     };
 
-
     # Containers
     virtualisation.oci-containers.containers."pelican-panel" = {
       image = "ghcr.io/pelican-dev/panel:latest";
@@ -91,7 +94,7 @@ in
     };
 
     environment.persistence = mkIf (cfg.impermanence) {
-      "/nix/persist".directories = [ 
+      "/nix/persist".directories = [
         {
           directory = "${cfg.stateDir}/data";
           mode = "u=rwx,g=rx,o=rx";
@@ -108,8 +111,8 @@ in
     };
 
     # services.onepassword-secrets.secrets.pelican.panelEnv = {
-      # reference = "op://Shulker/${config.networking.hostName}/Pelican panel env";
-      # services = [ "docker" ];
+    # reference = "op://Shulker/${config.networking.hostName}/Pelican panel env";
+    # services = [ "docker" ];
     # };
   };
 }

@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  inputs,
   ...
 }:
 
@@ -18,7 +17,19 @@ in
 
     users.users.conquerix = {
       isNormalUser = true;
-      extraGroups = [ "audio" "video" "docker" "games" "locate" "networkmanager" "wheel" "plugdev" "adbusers" "kvm" "disk" ];
+      extraGroups = [
+        "audio"
+        "video"
+        "docker"
+        "games"
+        "locate"
+        "networkmanager"
+        "wheel"
+        "plugdev"
+        "adbusers"
+        "kvm"
+        "disk"
+      ];
       hashedPassword = "$6$Na7d9SJRCkC6FyK7$3K.rYNPXX1.aeJe8f.2ylE2ITGLgxqv3CFvVYRsTiarQjFNZ.p2QZ/MIu1n6qz6wOO44lXU6wc9kmgIV.wboC/";
       uid = 1000;
       shell = pkgs.bash;
@@ -45,7 +56,7 @@ in
           app = {
             discord.enable = true;
             libreoffice.enable = true;
-            vscodium.enable = true;
+            vscode.enable = true;
           };
           dev = {
             cc.enable = true;
@@ -64,6 +75,17 @@ in
         };
 
         profiles.development.enable = true;
+      };
+
+      services.linux-wallpaperengine = {
+        enable = true;
+        assetsPath = "/home/conquerix/.local/share/Steam/steamapps/common/wallpaper_engine";
+        wallpapers = [
+          {
+            monitor = "HDMI-2";
+            wallpaperId = "3485875486";
+          }
+        ];
       };
     };
   };

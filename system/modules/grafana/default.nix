@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -96,7 +95,6 @@ in
     #  '';
     #  services = [ "grafana" ];
     #};
-
 
   };
 }

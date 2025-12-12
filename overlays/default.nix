@@ -2,7 +2,7 @@
 # This file defines overlays/custom modifications to upstream packages
 #
 
-{ inputs, ... }:
+{ ... }:
 
 let
   # Adds my custom packages
@@ -33,7 +33,5 @@ in
   default =
     final: prev:
 
-    (additions final prev)
-    // (modifications final prev)
-    // (linuxModifications final prev)
+    (additions final prev) // (modifications final prev) // (linuxModifications final prev);
 }
