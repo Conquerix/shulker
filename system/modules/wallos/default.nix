@@ -19,7 +19,7 @@ in
     };
     subDomain = mkOption {
       type = types.str;
-      default = "wallos-aio";
+      default = "wallos";
       description = "Subdomain where wallos aio will be accessible.";
     };
     port = mkOption {
