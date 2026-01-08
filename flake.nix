@@ -6,6 +6,9 @@
     #
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    nix-darwin.url = "github:nix-darwin/nix-darwin/master";
+    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+
     hardware.url = "github:nixos/nixos-hardware";
     home-manager = {
       url = "github:nix-community/home-manager/master";

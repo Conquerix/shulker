@@ -28,6 +28,7 @@
   };
 
   environment.systemPackages = with pkgs; [
+    fastmail-desktop
     spotify
     spotify-tray
     thunderbird
