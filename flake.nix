@@ -52,14 +52,22 @@
     };
   };
   outputs =
-    { self, nixpkgs, ... }@inputs:
+    {
+      self,
+      nixpkgs,
+      nix-darwin,
+      ...
+    }@inputs:
     let
       inherit (self) outputs;
 
       #
       # ========= Architectures =========
       #
-      forAllSystems = nixpkgs.lib.genAttrs [ "x86_64-linux" ];
+      forAllSystems = nixpkgs.lib.genAttrs [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
 
       # ========== Extend lib with lib.custom ==========
       # NOTE: This approach allows lib.custom to propagate into hm
@@ -86,51 +94,39 @@
           value = nixpkgs.lib.nixosSystem {
             specialArgs = { inherit inputs outputs lib; };
             modules = [
+              ({ networking.hostName = host; })
               inputs.home-manager.nixosModules.home-manager
               inputs.impermanence.nixosModule
               inputs.opnix.nixosModules.default
               inputs.eden.nixosModules.default
               inputs.pelican-panel.nixosModules.pelican-panel
               inputs.pelican-panel.nixosModules.wings
-              (
-                { inputs, ... }:
-                {
-                  networking.hostName = host;
-
-                  # For compatibility with nix-shell, nix-build, etc.
-                  environment.etc.nixpkgs.source = inputs.nixpkgs;
-
-                  # Don't rely on the configuration to enable a flake-compatible version of Nix.
-                  nix = {
-                    extraOptions = "experimental-features = nix-command flakes";
-                    nixPath = [ "nixpkgs=/etc/nixpkgs" ];
-                    registry = {
-                      self.flake = inputs.self;
-                      nixpkgs = {
-                        from = {
-                          id = "nixpkgs";
-                          type = "indirect";
-                        };
-                        flake = inputs.nixpkgs;
-                      };
-                    };
-                  };
-
-                  home-manager = {
-                    useGlobalPkgs = true;
-                    extraSpecialArgs = { inherit inputs; };
-                    sharedModules = [ (import ./home) ];
-                  };
-                }
-              )
-              (import ./system/core)
-              (import ./system/modules)
-              (import ./system/profiles)
+              (import ./system/modules/common)
+              (import ./system/modules/nixos)
+              (import ./system/profiles/nixos)
               (import ./system/users)
-              (import ./system/hosts/${host})
+              (import ./system/hosts/nixos/${host})
             ];
           };
-        }) (builtins.attrNames (builtins.readDir ./system/hosts))
+        }) (builtins.attrNames (builtins.readDir ./system/hosts/nixos))
+      );
+
+      darwinConfigurations = builtins.listToAttrs (
+        map (host: {
+          name = host;
+          value = nix-darwin.lib.darwinSystem {
+            specialArgs = { inherit inputs outputs lib; };
+            modules = [
+              ({ networking.hostName = host; })
+              inputs.home-manager.darwinModules.home-manager
+              (import ./system/modules/common)
+              (import ./system/modules/darwin)
+              (import ./system/profiles/darwin)
+              (import ./system/users)
+              (import ./system/hosts/darwin/${host})
+            ];
+          };
+        }) (builtins.attrNames (builtins.readDir ./system/hosts/darwin))
       );
 
       #
