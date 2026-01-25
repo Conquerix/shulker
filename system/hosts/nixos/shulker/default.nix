@@ -18,11 +18,6 @@
           enable = true;
           extInterface = "enp6s0";
         };
-        wallos = {
-          enable = true;
-          baseUrl = "shulker.link";
-          port = 23232;
-        };
         pelican = {
           panel = {
             enable = true;
