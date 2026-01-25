@@ -23,6 +23,7 @@ with lib;
 {
   config = {
     system.stateVersion = "22.05";
+    shulker.global.type = "nixos";
     boot = {
       kernelPackages = latestKernelPackage;
 

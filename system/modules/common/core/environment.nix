@@ -6,6 +6,13 @@
 }:
 with lib;
 {
+  options.shulker.global = {
+    type = mkOption {
+      type = types.str;
+      description = "Type of host, either 'nixos' or 'darwin'.";
+    };
+  };
+
   config = {
     nixpkgs.config.allowUnfree = true;
 

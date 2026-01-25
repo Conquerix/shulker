@@ -15,8 +15,8 @@
   };
 
   imports = [
-    ./common.nix
-    #(lib.mkIf cfg.nixos ./nixos.nix)
-    #(lib.mkIf cfg.darwin ./darwin.nix)
+    #./common.nix
+    ./nixos.nix
+    ./darwin.nix
   ];
 }

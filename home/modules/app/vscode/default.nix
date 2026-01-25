@@ -54,8 +54,8 @@ in
             {
               name = "oled-neon-theme";
               publisher = "gustavoinacio";
-              version = "0.0.3";
-              sha256 = "sha256-EenTsFS17WBDpjpIOdupdL9NAL3QmQvTr77XvaDGIQE=";
+              version = "0.0.9";
+              sha256 = "sha256-Jjl4GBidxhd95uCb4iBcnNGXBxAG21rNB7JdZpd0phY=";
             }
           ];
         userSettings = {

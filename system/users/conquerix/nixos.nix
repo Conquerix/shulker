@@ -10,7 +10,7 @@ let
 in
 {
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf (cfg.enable && config.shulker.global.type == "nixos") {
     users.users.conquerix = {
       isNormalUser = true;
       extraGroups = [

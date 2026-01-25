@@ -7,6 +7,9 @@
     system = {
       profiles.macbook.enable = true;
     };
-    users.conquerix.enable = true;
+    users.conquerix = {
+      enable = true;
+      darwin = true;
+    };
   };
 }

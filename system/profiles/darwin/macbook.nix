@@ -15,6 +15,7 @@ in
   };
 
   config = mkIf cfg.enable {
+    security.pam.services.sudo_local.touchIdAuth = true;
     fonts.packages = with pkgs; [
       nerd-fonts.jetbrains-mono
       nerd-fonts.ubuntu-mono
