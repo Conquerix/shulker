@@ -14,10 +14,6 @@
       profiles.server.enable = true;
       modules = {
         impermanence.enable = true;
-        wireguard = {
-          enable = true;
-          extInterface = "enp6s0";
-        };
         pelican = {
           panel = {
             enable = true;
