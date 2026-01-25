@@ -18,11 +18,6 @@ with lib;
     services.resolved = {
       enable = true;
       domains = [ "~." ];
-      extraConfig = ''
-        DNSStubListener=no
-      '';
-      #dnssec = "true";
-      #dnsovertls = "true";
     };
 
     #Fix dns lookups at boot time when wireguard is enabled
