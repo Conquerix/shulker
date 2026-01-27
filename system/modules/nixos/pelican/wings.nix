@@ -36,32 +36,11 @@ in
 
   config = mkIf cfg.enable {
 
-    #users.groups.pelican.gid = 988;
-    #users.users.pelican = {
-    #  isSystemUser = true;
-    #  group = "pelican";
-    #  uid = 988;
-    #};
-
-    #virtualisation.oci-containers.containers."pelican-wings" = {
-    #  image = "ghcr.io/pelican-dev/wings:latest";
-    #  environment = {
-    #    "TZ" = "UTC";
-    #    "WINGS_UID" = "988";
-    #    "WINGS_GID" = "988";
-    #    "WINGS_USERNAME" = "pelican";
-    #  };
-    #  ports = [ "127.0.0.1:${toString cfg.port}:8080" "2022:2022" ];
-    #  volumes = [
-    #    "/var/run/docker.sock:/var/run/docker.sock"
-    #    "/var/lib/docker/containers/:/var/lib/docker/containers/"
-    #    "${cfg.stateDir}/etc/pelican/:/etc/pelican/"
-    #    "${cfg.stateDir}/var/lib/pelican/:/var/lib/pelican/"
-    #    "${cfg.stateDir}/var/log/pelican/:/var/log/pelican/"
-    #    "${cfg.stateDir}/tmp/pelican/:/tmp/pelican/"
-    #    "${cfg.stateDir}/etc/ssl/certs:/etc/ssl/certs:ro"
-    #  ];
-    #};
+    networking.firewall = {
+      enable = true;
+      allowedTCPPorts = [ 2022 ];
+      allowedUDPPorts = [ 2022 ];
+    };
 
     services.wings = {
       enable = true;
