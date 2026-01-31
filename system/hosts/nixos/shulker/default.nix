@@ -14,6 +14,7 @@
       profiles.server.enable = true;
       modules = {
         impermanence.enable = true;
+        backup.enable = true;
         pelican = {
           panel = {
             enable = true;

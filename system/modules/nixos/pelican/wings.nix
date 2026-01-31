@@ -46,7 +46,12 @@ in
       enable = true;
       node = {
         api.port = cfg.port;
-        system.data = "${cfg.stateDir}/volumes";
+        system = {
+          root_directory = "${cfg.stateDir}";
+          backup_directory = "${cfg.stateDir}/backups";
+          archive_directory = "${cfg.stateDir}/archives";
+          data = "${cfg.stateDir}/volumes";
+        };
         tokenPath = config.services.onepassword-secrets.secrets.pelicanWingsToken.path;
         docker.network = {
           interface = "172.55.0.1";
@@ -107,6 +112,17 @@ in
         }
       ];
     };
+
+    shulker.system.modules.backup.dirs = [
+      "${cfg.stateDir}/backups"
+      "${cfg.stateDir}/archives"
+    ];
+    services.borgmatic.settings.sqlite_databases = [
+      {
+        name = "pelican-wings-db";
+        path = "${cfg.stateDir}/wings.db";
+      }
+    ];
 
     services.onepassword-secrets.secrets.pelicanWingsToken = {
       reference = "op://Shulker/${config.networking.hostName}/Pelican Wings token";

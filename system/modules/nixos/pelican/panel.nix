@@ -110,6 +110,14 @@ in
       ];
     };
 
+    shulker.system.modules.backup.dirs = [ cfg.stateDir ];
+    services.borgmatic.settings.sqlite_databases = [
+      {
+        name = "pelican-panel-db";
+        path = "${cfg.stateDir}/data/database/database.sqlite";
+      }
+    ];
+
     # services.onepassword-secrets.secrets.pelican.panelEnv = {
     # reference = "op://Shulker/${config.networking.hostName}/Pelican panel env";
     # services = [ "docker" ];
