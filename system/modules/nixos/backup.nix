@@ -31,6 +31,9 @@ in
             path = "ssh://u515568-sub2@u515568-sub2.your-storagebox.de:23/./borg-repository";
           }
         ];
+        keep_daily = 7;
+        keep_weekly = 4;
+        keep_monthly = 6;
       };
     };
     services.onepassword-secrets.secrets.hetznerBorgPassword = {
