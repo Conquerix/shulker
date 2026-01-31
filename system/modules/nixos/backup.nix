@@ -34,10 +34,9 @@ in
         ];
       };
     };
-  };
-
-  services.onepassword-secrets.secrets.pelican.hetznerBorgPassword = {
-    reference = "op://Shulker/${config.networking.hostName}/Hetzner StorageBox borgbackup password";
-    services = [ "borgmatic" ];
+    services.onepassword-secrets.secrets.pelican.hetznerBorgPassword = {
+      reference = "op://Shulker/${config.networking.hostName}/Hetzner StorageBox borgbackup password";
+      services = [ "borgmatic" ];
+    };
   };
 }
