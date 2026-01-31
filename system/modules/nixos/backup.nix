@@ -7,6 +7,31 @@
 with lib;
 let
   cfg = config.shulker.system.modules.backup;
+
+  repository =
+    with lib.types;
+    submodule {
+      options = {
+        path = lib.mkOption {
+          type = str;
+          description = ''
+            Path to the repository
+          '';
+        };
+        label = lib.mkOption {
+          type = str;
+          description = ''
+            Label to the repository
+          '';
+        };
+        encryption = lib.mkOption {
+          type = str;
+          description = ''
+            Encryption mode of the repository
+          '';
+        };
+      };
+    };
 in
 {
   options.shulker.system.modules.backup = {
@@ -16,6 +41,11 @@ in
       default = [ ];
       description = "List of directories and files to backup.";
     };
+  };
+
+  options.services.borgmatic.settings.repositories = lib.mkForce lib.mkOption {
+    type = listOf repository;
+    default = [ ];
   };
 
   config = mkIf cfg.enable {
