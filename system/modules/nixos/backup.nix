@@ -12,7 +12,7 @@ in
   options.shulker.system.modules.backup = {
     enable = mkEnableOption "Enable backups using borgmatic";
     dirs = lib.mkOption {
-      type = lib.listOf str;
+      type = types.listOf types.str;
       default = [ ];
       description = "List of directories and files to backup.";
     };
