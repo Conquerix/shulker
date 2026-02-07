@@ -23,10 +23,10 @@ with lib;
     services.newt = {
       enable = true;
       settings.endpoint = cfg.endpoint;
-      environmentFile = config.services.onepassword-secrets.secrets.pelican.newtEnv.path;
+      environmentFile = config.services.onepassword-secrets.secrets.newtEnv.path;
     };
 
-    services.onepassword-secrets.secrets.pelican.newtEnv = {
+    services.onepassword-secrets.secrets.newtEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Newt env";
       services = [ "newt" ];
       owner = "newt";
