@@ -19,6 +19,10 @@
           enable = true;
           impermanence = true;
         };
+        newt = {
+          enable = true;
+          endpoint = "proxy.amphibian.network";
+        };
         pelican = {
           panel = {
             enable = true;
