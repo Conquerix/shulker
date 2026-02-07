@@ -29,8 +29,8 @@ with lib;
     services.onepassword-secrets.secrets.newtEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Newt env";
       services = [ "newt" ];
-      owner = "newt";
-      group = "newt";
+      # owner = "newt";
+      # group = "newt";
     };
   };
 }
