@@ -236,11 +236,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1769867402,
-        "narHash": "sha256-HKcQQJaU51JBSatecH3sfyedNOcVqxrjr7b2oue8PFI=",
+        "lastModified": 1770508157,
+        "narHash": "sha256-MQZE+OCR8kZ4cLSfaCWWcCptBq7G/PyyjwH7m2OIO0o=",
         "owner": "conquerix",
         "repo": "nix-pelican-panel",
-        "rev": "9b58ed6a1b86d840091479fd46e659a60768a959",
+        "rev": "1fc3836eaf874485376f077abf6c8f86d1d8d5ba",
         "type": "github"
       },
       "original": {
