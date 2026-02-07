@@ -42,6 +42,7 @@ with lib;
     };
 
     systemd.services.newt.serviceConfig.DynamicUser = mkForce false;
+    systemd.services.newt.environment.HOME = cfg.stateDir;
 
     services.onepassword-secrets.secrets.newtEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Newt env";
