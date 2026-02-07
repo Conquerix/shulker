@@ -57,6 +57,12 @@ in
               version = "0.0.9";
               sha256 = "sha256-Jjl4GBidxhd95uCb4iBcnNGXBxAG21rNB7JdZpd0phY=";
             }
+            {
+              name = "opencode";
+              publisher = "sst-dev";
+              version = "0.0.13";
+              sha256 = "sha256-6adXUaoh/OP5yYItH3GAQ7GpupfmTGaxkKP6hYUMYNQ=";
+            }
           ];
         userSettings = {
           "window.titleBarStyle" = "custom";

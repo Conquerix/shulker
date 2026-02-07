@@ -92,7 +92,13 @@
         map (host: {
           name = host;
           value = nixpkgs.lib.nixosSystem {
-            specialArgs = { inherit inputs outputs lib; };
+            specialArgs = {
+              inherit
+                inputs
+                outputs
+                lib
+                ;
+            };
             modules = [
               ({ networking.hostName = host; })
               inputs.home-manager.nixosModules.home-manager
@@ -127,30 +133,6 @@
             ];
           };
         }) (builtins.attrNames (builtins.readDir ./system/hosts/darwin))
-      );
-
-      #
-      # ========= Packages =========
-      #
-      # Expose custom packages
-
-      /*
-        NOTE: This is only for exposing packages exterally; ie, `nix build .#packages.x86_64-linux.cd-gitroot`
-        For internal use, these packages are added through the default overlay in `overlays/default.nix`
-      */
-
-      packages = forAllSystems (
-        system:
-        let
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = [ self.overlays.default ];
-          };
-        in
-        nixpkgs.lib.packagesFromDirectoryRecursive {
-          callPackage = nixpkgs.lib.callPackageWith pkgs;
-          directory = ./pkgs;
-        }
       );
 
       #

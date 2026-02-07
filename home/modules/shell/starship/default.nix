@@ -21,7 +21,5 @@ in
       enableZshIntegration = true;
       package = pkgs.starship;
     };
-
-    xdg.configFile."starship".source = ../../../config/.config/starship;
   };
 }

@@ -14,7 +14,7 @@ in
     users.users.conquerix = {
       home = /Users/conquerix;
       uid = 1000;
-      shell = pkgs.bash;
+      shell = pkgs.zsh;
       openssh.authorizedKeys.keys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOcuA0ZxQyqfHlWrbdVT9Hu7/IQwZuh4aQa6X1gIHOSV"
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILCQToe+S6lXjwMCrcg9smHlb8tEp2613jW/lOkfSSm1"
@@ -27,11 +27,14 @@ in
         ryubing
       ];
 
+      programs.ghostty.package = lib.mkIf cfg.darwin pkgs.ghostty-bin;
+
       shulker.home = {
         modules = {
           app = {
             discord.enable = true;
             vscode.enable = true;
+            ghostty.enable = true;
           };
           dev = {
             nix.enable = true;
@@ -40,6 +43,8 @@ in
           shell = {
             direnv.enable = true;
             zsh.enable = true;
+            opencode.enable = true;
+            starship.enable = true;
           };
         };
       };
