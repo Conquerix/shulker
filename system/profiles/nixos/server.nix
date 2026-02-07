@@ -67,7 +67,7 @@ in
     systemd.network.enable = true;
 
     services.nginx = {
-      enable = true;
+      # enable = true;
       recommendedGzipSettings = true;
       recommendedOptimisation = true;
       recommendedTlsSettings = true;

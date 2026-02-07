@@ -68,17 +68,17 @@ in
       };
     };
 
-    services.nginx = {
-      enable = true;
-      virtualHosts."gitea" = {
-        serverName = "${cfg.subDomain}.${cfg.baseUrl}";
-        forceSSL = true;
-        useACMEHost = cfg.baseUrl;
-        locations."/" = {
-          proxyPass = "http://127.0.0.1:${toString cfg.httpPort}";
-        };
-      };
-    };
+    # services.nginx = {
+    #   enable = true;
+    #   virtualHosts."gitea" = {
+    #     serverName = "${cfg.subDomain}.${cfg.baseUrl}";
+    #     forceSSL = true;
+    #     useACMEHost = cfg.baseUrl;
+    #     locations."/" = {
+    #       proxyPass = "http://127.0.0.1:${toString cfg.httpPort}";
+    #     };
+    #   };
+    # };
 
     environment.persistence = mkIf (cfg.impermanence) {
       "/nix/persist".directories = [

@@ -67,18 +67,18 @@ in
       };
     };
 
-    services.nginx = {
-      enable = true;
-      virtualHosts."pelican-wings" = {
-        serverName = "${cfg.subDomain}.${cfg.baseUrl}";
-        forceSSL = true;
-        useACMEHost = cfg.baseUrl;
-        locations."/" = {
-          proxyWebsockets = true;
-          proxyPass = "http://127.0.0.1:${toString cfg.port}";
-        };
-      };
-    };
+    # services.nginx = {
+    #   enable = true;
+    #   virtualHosts."pelican-wings" = {
+    #     serverName = "${cfg.subDomain}.${cfg.baseUrl}";
+    #     forceSSL = true;
+    #     useACMEHost = cfg.baseUrl;
+    #     locations."/" = {
+    #       proxyWebsockets = true;
+    #       proxyPass = "http://127.0.0.1:${toString cfg.port}";
+    #     };
+    #   };
+    # };
 
     environment = mkIf (cfg.impermanence) {
       persistence."/nix/persist".directories = [

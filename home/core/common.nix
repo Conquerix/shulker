@@ -73,13 +73,8 @@ with lib;
         wget
         # List directory contents in tree-like format.
         tree
-        # Interactive process viewer.
-        htop
         # Mote interactive top (btm)
         bottom
-        # Compress/uncompress `.zip` files.
-        unzip
-        zip
         # Man pages
         man
         man-pages
@@ -87,8 +82,6 @@ with lib;
         stdman
         # grep alternative.
         ripgrep
-        # ls alternative.
-        eza
         # Simple, fast and user-friendly alternative to find.
         fd
         # sed alternative

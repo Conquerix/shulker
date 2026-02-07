@@ -58,7 +58,6 @@ with lib;
       micro
       openssl
       zip
-      bat
       htop
       gping # better ping
       eza # better ls

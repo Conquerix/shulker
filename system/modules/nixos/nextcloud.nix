@@ -125,26 +125,26 @@ in
       wantedBy = [ "multi-user.target" ];
     };
 
-    services.nginx = {
-      enable = true;
-      virtualHosts."nextcloud" = {
-        serverName = "${cfg.mainSubDomain}.${cfg.baseUrl}";
-        forceSSL = true;
-        useACMEHost = cfg.baseUrl;
-        locations."/" = {
-          proxyWebsockets = true;
-          proxyPass = "http://127.0.0.1:${toString cfg.mainPort}";
-        };
-      };
-      virtualHosts."nextcloud-aio" = {
-        serverName = "${cfg.aioSubDomain}.${cfg.baseUrl}";
-        forceSSL = true;
-        useACMEHost = cfg.baseUrl;
-        locations."/" = {
-          proxyWebsockets = true;
-          proxyPass = "https://127.0.0.1:${toString cfg.aioPort}";
-        };
-      };
-    };
+    # services.nginx = {
+    #   enable = true;
+    #   virtualHosts."nextcloud" = {
+    #     serverName = "${cfg.mainSubDomain}.${cfg.baseUrl}";
+    #     forceSSL = true;
+    #     useACMEHost = cfg.baseUrl;
+    #     locations."/" = {
+    #       proxyWebsockets = true;
+    #       proxyPass = "http://127.0.0.1:${toString cfg.mainPort}";
+    #     };
+    #   };
+    #   virtualHosts."nextcloud-aio" = {
+    #     serverName = "${cfg.aioSubDomain}.${cfg.baseUrl}";
+    #     forceSSL = true;
+    #     useACMEHost = cfg.baseUrl;
+    #     locations."/" = {
+    #       proxyWebsockets = true;
+    #       proxyPass = "https://127.0.0.1:${toString cfg.aioPort}";
+    #     };
+    #   };
+    # };
   };
 }

@@ -64,18 +64,18 @@ in
       uid = 82;
     };
 
-    services.nginx = {
-      enable = true;
-      virtualHosts."pelican-panel" = {
-        serverName = "${cfg.subDomain}.${cfg.baseUrl}";
-        forceSSL = true;
-        useACMEHost = cfg.baseUrl;
-        locations."/" = {
-          proxyWebsockets = true;
-          proxyPass = "http://127.0.0.1:${toString cfg.port}";
-        };
-      };
-    };
+    # services.nginx = {
+    #   enable = true;
+    #   virtualHosts."pelican-panel" = {
+    #     serverName = "${cfg.subDomain}.${cfg.baseUrl}";
+    #     forceSSL = true;
+    #     useACMEHost = cfg.baseUrl;
+    #     locations."/" = {
+    #       proxyWebsockets = true;
+    #       proxyPass = "http://127.0.0.1:${toString cfg.port}";
+    #     };
+    #   };
+    # };
 
     # Containers
     virtualisation.oci-containers.containers."pelican-panel" = {

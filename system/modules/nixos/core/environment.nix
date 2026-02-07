@@ -47,6 +47,7 @@ with lib;
     virtualisation.docker = {
       enable = true;
       enableOnBoot = true;
+      autoPrune.enable = true;
     };
 
     systemd.settings.Manager.DefaultLimitNOFILE = "4096";
