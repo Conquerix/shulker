@@ -21,7 +21,7 @@ with lib;
     };
   };
 
-  config = lib.mkIf config.pangolin.enable {
+  config = lib.mkIf cfg.enable {
 
     # Gerbil container
     virtualisation.oci-containers.containers."gerbil" = {
