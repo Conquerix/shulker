@@ -62,8 +62,6 @@ in
             zsh.enable = true;
           };
         };
-
-        profiles.development.enable = true;
       };
     };
   };
