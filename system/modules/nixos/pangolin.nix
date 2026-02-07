@@ -9,6 +9,7 @@
 let
   cfg = config.shulker.system.modules.pangolin;
 in
+with lib;
 {
   options.shulker.system.modules.pangolin = {
     enable = lib.mkEnableOption "Enable pangolin";
