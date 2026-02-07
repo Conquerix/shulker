@@ -21,7 +21,7 @@
         };
         newt = {
           enable = true;
-          endpoint = "proxy.amphibian.network";
+          endpoint = "https://proxy.amphibian.network";
         };
         pelican = {
           panel = {
