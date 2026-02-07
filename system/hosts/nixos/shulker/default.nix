@@ -15,6 +15,10 @@
       modules = {
         impermanence.enable = true;
         backup.enable = true;
+        pangolin = {
+          enable = true;
+          impermanence = true;
+        };
         pelican = {
           panel = {
             enable = true;
