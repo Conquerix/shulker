@@ -46,14 +46,12 @@ in
         modules = {
           app = {
             discord.enable = true;
-            libreoffice.enable = true;
             vscode.enable = true;
           };
           dev = {
             cc.enable = true;
             nix.enable = true;
             python.enable = true;
-            ocaml.enable = true;
           };
           shell = {
             direnv.enable = true;
