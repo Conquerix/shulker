@@ -18,6 +18,11 @@ with lib;
       default = "example.com";
       description = "Url where pangolin is accessible.";
     };
+    stateDir = mkOption {
+      type = types.str;
+      default = "/var/lib/newt";
+      description = "State Directory.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -30,7 +35,7 @@ with lib;
     environment.persistence = mkIf (cfg.impermanence) {
       "/nix/persist".directories = [
         {
-          directory = "/var/lib/private/newt";
+          directory = "${cfg.stateDir}";
           mode = "u=rwx,g=rx,o=rx";
         }
       ];
