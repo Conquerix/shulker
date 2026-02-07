@@ -62,7 +62,6 @@
         };
         steam.enable = true;
         yubikey.enable = true;
-        wireguard.enable = true;
       };
     };
     users.conquerix.enable = true;

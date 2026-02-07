@@ -1,4 +1,3 @@
-# https://cmacr.ae/post/2020-05-09-managing-firefox-on-macos-with-nix/
 {
   config,
   lib,

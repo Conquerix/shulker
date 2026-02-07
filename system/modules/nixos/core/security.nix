@@ -19,7 +19,7 @@ with lib;
     programs._1password.enable = true;
 
     environment.systemPackages = with pkgs; [
-      inputs.opnix.packages."x86_64-linux".default
+      inputs.opnix.packages."${pkgs.system}".default
     ];
 
     services.onepassword-secrets = {

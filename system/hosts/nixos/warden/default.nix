@@ -57,28 +57,6 @@
   };
   boot.supportedFilesystems."fuse.sshfs" = true;
 
-  #networking.wireguard.interfaces = {
-  #  # "wg0" is the network interface name. You can name the interface arbitrarily.
-  #  wg-proton = {
-  #    # Determines the IP address and subnet of the server's end of the tunnel interface.
-  #    ips = [ "10.2.0.2/32" ];
-  #    # The port that WireGuard listens to. Must be accessible by the client.
-  #    listenPort = 51820;
-  #    # Path to the private key file.
-  #    privateKeyFile = config.services.onepassword-secrets.secrets.protonVpnWireguardPrivateKey.path;
-  #    peers = [
-  #      { # Shulker server
-  #        publicKey = "FFj4mVAwo5puyuimT7xsEdQqXwqQmuA0DBjQJpQmSg0=";
-  #        allowedIPs = [ "10.2.0.0/32" ];
-  #        endpoint = "79.127.184.158:51820";
-  #        persistentKeepalive = 25;
-  #      }
-  #    ];
-  #  };
-  #};
-
-  #services.onepassword-secrets.secrets.protonVpnWireguardPrivateKey.reference = "op://Shulker/${config.networking.hostName}/Proton VPN Wireguard Private Key";
-
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
@@ -97,39 +75,6 @@
       profiles.server.enable = true;
       modules = {
         impermanence.enable = true;
-        wireguard.enable = true;
-        coder = {
-          enable = true;
-          baseUrl = "shulker.link";
-          stateDir = "/storage/flash/coder";
-          port = 23231;
-          oidcIssuer = "https://sso.shulker.link";
-          oidcClientID = "bf21c43e-c845-425d-82ad-89916c7e8034";
-        };
-        jellyfin = {
-          enable = true;
-          baseUrl = "shulker.link";
-          subDomain = "vod";
-          stateDir = "/storage/flash/jellyfin";
-        };
-        jellyseerr = {
-          enable = true;
-          baseUrl = "shulker.link";
-        };
-        sonarr = {
-          enable = true;
-          baseUrl = "shulker.link";
-          stateDir = "/storage/flash/sonarr";
-        };
-        radarr = {
-          enable = true;
-          baseUrl = "shulker.link";
-          stateDir = "/storage/flash/radarr";
-        };
-        prowlarr = {
-          enable = true;
-          baseUrl = "shulker.link";
-        };
       };
     };
   };

@@ -65,6 +65,7 @@
   fileSystems."/home" = {
     device = "/nix/persist/home";
     fsType = "none";
+    options = [ "bind" ];
   };
 
   swapDevices = [ ];

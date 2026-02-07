@@ -9,22 +9,11 @@
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
-    hardware.url = "github:nixos/nixos-hardware";
-    home-manager = {
-      url = "github:nix-community/home-manager/master";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     #
     # ========= Utilities =========
     #
     impermanence.url = "github:nix-community/impermanence";
 
-    # Declarative partitioning and formatting
-    disko = {
-      url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     # Pre-commit
     pre-commit-hooks = {
       url = "github:cachix/git-hooks.nix";
@@ -35,9 +24,6 @@
       url = "github:conquerix/opnix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Theming
-    stylix.url = "github:danth/stylix/master";
-    rose-pine-hyprcursor.url = "github:ndom91/rose-pine-hyprcursor";
 
     # Flake for the Eden emulator
     eden = {
@@ -72,9 +58,7 @@
       # ========== Extend lib with lib.custom ==========
       # NOTE: This approach allows lib.custom to propagate into hm
       # see: https://github.com/nix-community/home-manager/pull/3454
-      lib = nixpkgs.lib.extend (
-        self: super: { custom = import ./lib { inherit (nixpkgs) inputs lib; }; }
-      );
+      lib = nixpkgs.lib.extend (self: super: { custom = import ./lib { inherit (nixpkgs) lib; }; });
 
     in
     {
@@ -143,13 +127,7 @@
       # Nix formatter available through 'nix fmt' https://github.com/NixOS/nixfmt
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-rfc-style);
       # Pre-commit checks
-      checks = forAllSystems (
-        system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-        in
-        import ./checks.nix { inherit inputs system pkgs; }
-      );
+      checks = forAllSystems (system: import ./checks.nix { inherit inputs system; });
       #
       # ========= DevShell =========
       #

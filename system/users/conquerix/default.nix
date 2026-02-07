@@ -11,11 +11,10 @@
     enable = lib.mkEnableOption "Enable conquerix' profile";
     nixos = lib.mkEnableOption "Enable if on nixos";
     darwin = lib.mkEnableOption "Enable if on darwin";
-    minecraft = lib.mkEnableOption "Add minecraft stuff";
   };
 
   imports = [
-    #./common.nix
+    ./common.nix
     ./nixos.nix
     ./darwin.nix
   ];

@@ -23,7 +23,5 @@ in
       nerd-fonts.hack
       jetbrains-mono
     ];
-    environment.systemPackages = with pkgs; [
-    ];
   };
 }

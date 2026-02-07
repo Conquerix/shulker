@@ -11,7 +11,7 @@ let
 in
 {
   options.shulker.system.modules.razer = {
-    enable = mkEnableOption "Razer periperals support";
+    enable = mkEnableOption "Razer peripherals support";
     batteryNotifier = mkEnableOption "Enable notifications on low battery";
   };
 

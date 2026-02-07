@@ -11,7 +11,7 @@ in
 {
   options.shulker.system.modules.gitea = {
     enable = mkEnableOption "Enable gitea service";
-    impermanence = mkEnableOption "Wether to enable impermanence on state directories.";
+    impermanence = mkEnableOption "Whether to enable impermanence on state directories.";
     baseUrl = mkOption {
       type = types.str;
       default = "example.com";

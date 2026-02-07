@@ -90,11 +90,11 @@ in
         "acme-lockfiles"
         "acme-selfsigned-ca"
         "acme-shulker.fr"
-        "acme-beyond.smp"
+        "acme-amphibian.network"
         "acme-shulker.link"
         "acme-the-inbetween.net"
         "acme-selfsigned-shulker.fr"
-        "acme-selfsigned-beyond.smp"
+        "acme-selfsigned-amphibian.network"
         "acme-selfsigned-shulker.link"
         "acme-selfsigned-the-inbetween.net"
       ];

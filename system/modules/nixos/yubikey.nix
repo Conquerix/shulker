@@ -12,7 +12,6 @@ in
 {
   options.shulker.system.modules.yubikey = {
     enable = mkEnableOption "yubikey support";
-    istty = mkEnableOption "Set pinentry to curses if no display";
   };
 
   config = mkIf cfg.enable {
@@ -31,7 +30,6 @@ in
     programs.gnupg.agent = {
       enable = true;
       enableSSHSupport = true;
-      #pinentryPackage = if cfg.istty then "curses" else "qt";
     };
 
     #programs.ssh.startAgent = true;

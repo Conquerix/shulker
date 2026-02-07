@@ -1,5 +1,4 @@
 {
-  config,
   lib,
   pkgs,
   inputs,
@@ -98,8 +97,6 @@ with lib;
         dua
         # A modern replacement for ps
         procs
-        # Encrypted files in Git repositories
-        git-crypt
       ];
     };
 
@@ -112,13 +109,12 @@ with lib;
     # Install man output for any Nix packages.
     programs.man.enable = true;
 
+    programs.bat.enable = true;
+    programs.zoxide.enable = true;
+
     shulker.home.modules = {
-      shell.bash.enable = true;
-      shell.bat.enable = true;
-      shell.git.enable = true;
-      # shell.gnupg.enable = true;
       # shell.ssh.enable = true;
-      # shell.starship.enable = true;
+      shell.starship.enable = true;
       # shell.xdg.enable = true;
     };
   };

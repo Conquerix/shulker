@@ -51,7 +51,6 @@ with lib;
 
     systemd.settings.Manager.DefaultLimitNOFILE = "4096";
 
-    time.timeZone = "Europe/Paris";
     console.keyMap = "fr";
     i18n.defaultLocale = "en_US.UTF-8";
 
