@@ -12,6 +12,7 @@ with lib;
 {
   options.shulker.system.modules.newt = {
     enable = lib.mkEnableOption "Enable newt";
+    impermanence = mkEnableOption "Enable impermanence.";
     endpoint = mkOption {
       type = types.str;
       default = "example.com";
@@ -26,13 +27,20 @@ with lib;
       environmentFile = config.services.onepassword-secrets.secrets.newtEnv.path;
     };
 
+    environment.persistence = mkIf (cfg.impermanence) {
+      "/nix/persist".directories = [
+        {
+          directory = "/var/lib/private/newt";
+          mode = "u=rwx,g=rx,o=rx";
+        }
+      ];
+    };
+
     systemd.services.newt.serviceConfig.DynamicUser = mkForce false;
 
     services.onepassword-secrets.secrets.newtEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Newt env";
       services = [ "newt" ];
-      # owner = "newt";
-      # group = "newt";
     };
   };
 }
