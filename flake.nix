@@ -101,6 +101,7 @@
             };
             modules = [
               ({ networking.hostName = host; })
+              ({ nixpkgs.overlays = [ outputs.overlays.default ]; })
               inputs.home-manager.nixosModules.home-manager
               inputs.impermanence.nixosModule
               inputs.opnix.nixosModules.default
@@ -124,6 +125,7 @@
             specialArgs = { inherit inputs outputs lib; };
             modules = [
               ({ networking.hostName = host; })
+              ({ nixpkgs.overlays = [ outputs.overlays.default ]; })
               inputs.home-manager.darwinModules.home-manager
               (import ./system/modules/common)
               (import ./system/modules/darwin)
