@@ -79,6 +79,7 @@ with lib;
       lazydocker
     ];
 
+    programs.zsh.enable = true;
     programs.starship.enable = true;
   };
 }
