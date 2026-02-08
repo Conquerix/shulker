@@ -79,7 +79,7 @@ in
 
     # Containers
     virtualisation.oci-containers.containers."pelican-panel" = {
-      image = "ghcr.io/pelican-dev/panel:latest";
+      image = "ghcr.io/pelican-dev/panel:v1.0.0-beta31";
       environment = {
         XDG_DATA_HOME = "/pelican-data";
         APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";

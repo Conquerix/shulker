@@ -128,7 +128,10 @@ in
 
     services.onepassword-secrets.secrets.pelicanWingsToken = {
       reference = "op://Shulker/${config.networking.hostName}/Pelican Wings token";
-      services = [ "docker" ];
+      services = [
+        "wings"
+        "wings-config-setup"
+      ];
     };
   };
 }
