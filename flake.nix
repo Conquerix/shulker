@@ -95,7 +95,6 @@
               inputs.impermanence.nixosModule
               inputs.opnix.nixosModules.default
               inputs.eden.nixosModules.default
-              inputs.pelican-panel.nixosModules.pelican-panel
               inputs.pelican-panel.nixosModules.wings
               (import ./system/modules/common)
               (import ./system/modules/nixos)

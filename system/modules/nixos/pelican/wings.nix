@@ -42,6 +42,8 @@ in
       allowedUDPPorts = [ 2022 ];
     };
 
+    systemd.services.wings.serviceConfig.StateDirectory = mkForce cfg.stateDir;
+
     services.wings = {
       enable = true;
       node = {
