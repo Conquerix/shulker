@@ -89,6 +89,7 @@ in
       volumes = [
         "${cfg.stateDir}/data:/pelican-data"
         "${cfg.stateDir}/logs:/var/www/html/storage/logs"
+        "${cfg.stateDir}/plugins:/var/www/html/plugins"
         "${caddyFile}:/etc/caddy/Caddyfile"
       ];
     };
@@ -103,6 +104,12 @@ in
         }
         {
           directory = "${cfg.stateDir}/logs";
+          mode = "u=rwx,g=rx,o=rx";
+          user = "pelican-panel";
+          group = "pelican-panel";
+        }
+        {
+          directory = "${cfg.stateDir}/plugins";
           mode = "u=rwx,g=rx,o=rx";
           user = "pelican-panel";
           group = "pelican-panel";
