@@ -10,7 +10,6 @@ let
   isNixOS = config.shulker.global.type == "nixos";
 in
 {
-
   config = lib.mkIf (cfg.enable && isNixOS) {
     users.users.conquerix = {
       isNormalUser = true;
@@ -34,7 +33,6 @@ in
       home.packages = with pkgs; [
         spotify
         prismlauncher
-        ferium
         packwiz
         wineWowPackages.waylandFull
         libvlc

@@ -25,7 +25,6 @@ in
       shulker.home = {
         modules = {
           app = {
-            discord.enable = true;
             vscode.enable = true;
             ghostty.enable = true;
           };

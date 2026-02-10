@@ -49,10 +49,6 @@
     system = {
       profiles.desktop.enable = true;
       modules = {
-        razer = {
-          enable = true;
-          batteryNotifier = true;
-        };
         steam = {
           enable = true;
           protonGE = true;

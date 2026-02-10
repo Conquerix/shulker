@@ -11,7 +11,6 @@ in
 {
   options.shulker.system.modules.impermanence = {
     enable = mkEnableOption "Ephemeral root (& home) support";
-
     home = mkEnableOption "Link /home to /nix/persist/home";
   };
 
@@ -40,9 +39,7 @@ in
         "/etc/machine-id"
         {
           file = config.services.onepassword-secrets.tokenFile;
-          parentDirectory = {
-            mode = "u=rw,g=,o=";
-          };
+          parentDirectory.mode = "u=rw,g=,o=";
         }
       ];
     };

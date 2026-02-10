@@ -1,11 +1,6 @@
+{ ... }:
 {
-  ...
-}:
-
-{
-  imports = [
-    ./hardware.nix
-  ];
+  imports = [ ./hardware.nix ];
 
   zramSwap.enable = true;
 
@@ -34,16 +29,12 @@
           wings = {
             enable = true;
             impermanence = true;
-            baseUrl = "amphibian.network";
             port = 23237;
           };
         };
         nextcloud = {
           enable = true;
           impermanence = true;
-          baseUrl = "amphibian.network";
-          mainSubDomain = "cloud";
-          aioSubDomain = "aio";
           mainPort = 23238;
           aioPort = 23239;
         };

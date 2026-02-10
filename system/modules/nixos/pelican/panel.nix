@@ -64,19 +64,6 @@ in
       uid = 82;
     };
 
-    # services.nginx = {
-    #   enable = true;
-    #   virtualHosts."pelican-panel" = {
-    #     serverName = "${cfg.subDomain}.${cfg.baseUrl}";
-    #     forceSSL = true;
-    #     useACMEHost = cfg.baseUrl;
-    #     locations."/" = {
-    #       proxyWebsockets = true;
-    #       proxyPass = "http://127.0.0.1:${toString cfg.port}";
-    #     };
-    #   };
-    # };
-
     # Containers
     virtualisation.oci-containers.containers."pelican-panel" = {
       image = "ghcr.io/pelican-dev/panel:v1.0.0-beta31";
@@ -124,10 +111,5 @@ in
         path = "${cfg.stateDir}/data/database/database.sqlite";
       }
     ];
-
-    # services.onepassword-secrets.secrets.pelican.panelEnv = {
-    # reference = "op://Shulker/${config.networking.hostName}/Pelican panel env";
-    # services = [ "docker" ];
-    # };
   };
 }

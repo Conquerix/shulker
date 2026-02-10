@@ -1,4 +1,4 @@
-{ pkgs, config, ... }:
+{ pkgs, ... }:
 
 {
   imports = [ ./hardware.nix ];
@@ -12,7 +12,6 @@
   networking.hostId = "2118dc3b";
 
   networking.firewall = {
-    enable = true;
     allowedTCPPorts = [
       8096
       1900
@@ -22,40 +21,6 @@
       1900
     ];
   };
-
-  virtualisation.oci-containers.containers = {
-    flaresolverr = {
-      image = "ghcr.io/flaresolverr/flaresolverr:latest";
-      ports = [ "8191:8191" ];
-      environment.LOG_LEVEL = "info";
-    };
-  };
-
-  fileSystems."/remote/torrents" = {
-    device = "conquerix@spinel.usbx.me:/home/conquerix/downloads/rtorrent";
-    fsType = "fuse.sshfs";
-    options = [
-      "identityfile=${config.services.onepassword-secrets.secrets.sshed25519HostKey.path}"
-      "idmap=user"
-      "x-systemd.automount" # mount the filesystem automatically on first access
-      "allow_other" # don't restrict access to only the user which `mount`s it (because that's probably systemd who mounts it, not you)
-      "user" # allow manual `mount`ing, as ordinary user.
-      "_netdev"
-    ];
-  };
-  fileSystems."/remote/usenet" = {
-    device = "conquerix@spinel.usbx.me:/home/conquerix/downloads/sabnzbd/complete";
-    fsType = "fuse.sshfs";
-    options = [
-      "identityfile=${config.services.onepassword-secrets.secrets.sshed25519HostKey.path}"
-      "idmap=user"
-      "x-systemd.automount" # mount the filesystem automatically on first access
-      "allow_other" # don't restrict access to only the user which `mount`s it (because that's probably systemd who mounts it, not you)
-      "user" # allow manual `mount`ing, as ordinary user.
-      "_netdev"
-    ];
-  };
-  boot.supportedFilesystems."fuse.sshfs" = true;
 
   hardware.graphics = {
     enable = true;
@@ -73,9 +38,7 @@
     users.conquerix.enable = true;
     system = {
       profiles.server.enable = true;
-      modules = {
-        impermanence.enable = true;
-      };
+      modules.impermanence.enable = true;
     };
   };
 }

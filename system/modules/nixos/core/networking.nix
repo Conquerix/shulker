@@ -20,12 +20,6 @@ with lib;
       domains = [ "~." ];
     };
 
-    #Fix dns lookups at boot time when wireguard is enabled
-    networking.dhcpcd.denyInterfaces = [
-      "wg*"
-      "tailscale*"
-    ];
-
     # Disable this to try and solve the network manager wait online failed after each rebuild.
     systemd.network.wait-online.enable = false;
     boot.initrd.systemd.network.wait-online.enable = false;

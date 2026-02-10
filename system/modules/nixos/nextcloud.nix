@@ -13,21 +13,6 @@ in
   options.shulker.system.modules.nextcloud = {
     enable = mkEnableOption "Enable nextcloud service.";
     impermanence = mkEnableOption "Enable impermanence.";
-    baseUrl = mkOption {
-      type = types.str;
-      default = "example.com";
-      description = "Default url where nextcloud will be accessible.";
-    };
-    mainSubDomain = mkOption {
-      type = types.str;
-      default = "nextcloud";
-      description = "Default subdomain where nextcloud will be accessible.";
-    };
-    aioSubDomain = mkOption {
-      type = types.str;
-      default = "nextcloud-aio";
-      description = "Default subdomain where nextcloud aio will be accessible.";
-    };
     mainPort = mkOption {
       type = types.port;
       default = 8080;
@@ -54,9 +39,7 @@ in
         "/var/run/docker.sock:/var/run/docker.sock:ro"
         "nextcloud_aio_mastercontainer:/mnt/docker-aio-config:rw"
       ];
-      ports = [
-        "127.0.0.1:${toString cfg.aioPort}:8080/tcp"
-      ];
+      ports = [ "127.0.0.1:${toString cfg.aioPort}:8080/tcp" ];
       log-driver = "journald";
       extraOptions = [
         "--network-alias=nextcloud-aio-mastercontainer"
@@ -78,12 +61,8 @@ in
         "docker-network-nextcloud-aio.service"
         "docker-volume-nextcloud_aio_mastercontainer.service"
       ];
-      partOf = [
-        "docker-compose-nextcloud-aio-root.target"
-      ];
-      wantedBy = [
-        "docker-compose-nextcloud-aio-root.target"
-      ];
+      partOf = [ "docker-compose-nextcloud-aio-root.target" ];
+      wantedBy = [ "docker-compose-nextcloud-aio-root.target" ];
     };
 
     # Networks
@@ -94,9 +73,7 @@ in
         RemainAfterExit = true;
         ExecStop = "docker network rm -f nextcloud-aio";
       };
-      script = ''
-        docker network inspect nextcloud-aio || docker network create nextcloud-aio --opt=com.docker.network.driver.mtu=1440
-      '';
+      script = "docker network inspect nextcloud-aio || docker network create nextcloud-aio --opt=com.docker.network.driver.mtu=1440";
       partOf = [ "docker-compose-nextcloud-aio-root.target" ];
       wantedBy = [ "docker-compose-nextcloud-aio-root.target" ];
     };
@@ -108,9 +85,7 @@ in
         Type = "oneshot";
         RemainAfterExit = true;
       };
-      script = ''
-        docker volume inspect nextcloud_aio_mastercontainer || docker volume create nextcloud_aio_mastercontainer
-      '';
+      script = "docker volume inspect nextcloud_aio_mastercontainer || docker volume create nextcloud_aio_mastercontainer";
       partOf = [ "docker-compose-nextcloud-aio-root.target" ];
       wantedBy = [ "docker-compose-nextcloud-aio-root.target" ];
     };
@@ -124,27 +99,5 @@ in
       };
       wantedBy = [ "multi-user.target" ];
     };
-
-    # services.nginx = {
-    #   enable = true;
-    #   virtualHosts."nextcloud" = {
-    #     serverName = "${cfg.mainSubDomain}.${cfg.baseUrl}";
-    #     forceSSL = true;
-    #     useACMEHost = cfg.baseUrl;
-    #     locations."/" = {
-    #       proxyWebsockets = true;
-    #       proxyPass = "http://127.0.0.1:${toString cfg.mainPort}";
-    #     };
-    #   };
-    #   virtualHosts."nextcloud-aio" = {
-    #     serverName = "${cfg.aioSubDomain}.${cfg.baseUrl}";
-    #     forceSSL = true;
-    #     useACMEHost = cfg.baseUrl;
-    #     locations."/" = {
-    #       proxyWebsockets = true;
-    #       proxyPass = "https://127.0.0.1:${toString cfg.aioPort}";
-    #     };
-    #   };
-    # };
   };
 }

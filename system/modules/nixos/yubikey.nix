@@ -32,8 +32,6 @@ in
       enableSSHSupport = true;
     };
 
-    #programs.ssh.startAgent = true;
-
     programs.ssh.agentPKCS11Whitelist = "${pkgs.opensc}/lib/opensc-pkcs11.so";
 
     services = {

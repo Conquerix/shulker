@@ -12,16 +12,6 @@ in
   options.shulker.system.modules.pelican.wings = {
     enable = mkEnableOption "Enable Pelican wings service.";
     impermanence = mkEnableOption "Enable impermanence.";
-    baseUrl = mkOption {
-      type = types.str;
-      default = "example.com";
-      description = "Default url where pelican wings will be accessible.";
-    };
-    subDomain = mkOption {
-      type = types.str;
-      default = "wings";
-      description = "Default subdomain where pelican wings will be accessible.";
-    };
     stateDir = mkOption {
       type = types.str;
       default = "/var/lib/pelican/wings";
@@ -68,19 +58,6 @@ in
         # remote = "<node-remote>";
       };
     };
-
-    # services.nginx = {
-    #   enable = true;
-    #   virtualHosts."pelican-wings" = {
-    #     serverName = "${cfg.subDomain}.${cfg.baseUrl}";
-    #     forceSSL = true;
-    #     useACMEHost = cfg.baseUrl;
-    #     locations."/" = {
-    #       proxyWebsockets = true;
-    #       proxyPass = "http://127.0.0.1:${toString cfg.port}";
-    #     };
-    #   };
-    # };
 
     environment = mkIf (cfg.impermanence) {
       persistence."/nix/persist".directories = [
