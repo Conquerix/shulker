@@ -36,7 +36,7 @@ in
       dataDir = cfg.stateDir;
       settings = {
         TRUST_PROXY = true;
-        APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
+        APP_URL = cfg.appUrl;
         HOST = "127.0.0.1";
         PORT = cfg.port;
         APP_NAME = "Shulker SSO";
