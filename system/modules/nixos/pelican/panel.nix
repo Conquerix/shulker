@@ -33,15 +33,10 @@ in
   options.shulker.system.modules.pelican.panel = {
     enable = mkEnableOption "Enable pelican panel service.";
     impermanence = mkEnableOption "Enable impermanence.";
-    baseUrl = mkOption {
+    appUrl = mkOption {
       type = types.str;
       default = "example.com";
-      description = "Default url where pelican panel will be accessible.";
-    };
-    subDomain = mkOption {
-      type = types.str;
-      default = "panel";
-      description = "Default subdomain where pelican panel will be accessible.";
+      description = "Url where pelican panel will be accessible.";
     };
     stateDir = mkOption {
       type = types.str;
@@ -51,7 +46,7 @@ in
     port = mkOption {
       type = types.port;
       default = 8080;
-      description = "Default internal port to open pelican panel.";
+      description = "Internal port to open pelican panel.";
     };
   };
 
@@ -69,7 +64,7 @@ in
       image = "ghcr.io/pelican-dev/panel:v1.0.0-beta31";
       environment = {
         XDG_DATA_HOME = "/pelican-data";
-        APP_URL = "https://${cfg.subDomain}.${cfg.baseUrl}";
+        APP_URL = cfg.appUrl;
         ADMIN_EMAIL = "conquerix@shulker.link";
       };
       ports = [ "127.0.0.1:${toString cfg.port}:80" ];
@@ -81,7 +76,7 @@ in
       ];
     };
 
-    environment.persistence = mkIf (cfg.impermanence) {
+    environment.persistence = mkIf cfg.impermanence {
       "/nix/persist".directories = [
         {
           directory = "${cfg.stateDir}/data";

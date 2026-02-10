@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -21,7 +20,7 @@ in
       extraOptionOverrides = {
         "Include" = "~/.ssh/config.local";
       };
-      extraConfig = mkIf (cfg._1password) ''IdentityAgent ~/.1password/agent.sock '';
+      extraConfig = mkIf cfg._1password "IdentityAgent ~/.1password/agent.sock ";
       enableDefaultConfig = false;
       matchBlocks."*" = {
         controlMaster = "no";

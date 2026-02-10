@@ -137,7 +137,7 @@ with lib;
       wantedBy = [ "multi-user.target" ];
     };
 
-    environment.persistence = mkIf (cfg.impermanence) {
+    environment.persistence = mkIf cfg.impermanence {
       "/nix/persist".directories = [
         {
           directory = "${cfg.stateDir}";

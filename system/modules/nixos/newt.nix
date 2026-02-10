@@ -32,7 +32,7 @@ with lib;
       environmentFile = config.services.onepassword-secrets.secrets.newtEnv.path;
     };
 
-    environment.persistence = mkIf (cfg.impermanence) {
+    environment.persistence = mkIf cfg.impermanence {
       "/nix/persist".directories = [
         {
           directory = "${cfg.stateDir}";

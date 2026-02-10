@@ -68,7 +68,7 @@ in
       };
     };
 
-    environment.persistence = mkIf (cfg.impermanence) {
+    environment.persistence = mkIf cfg.impermanence {
       "/nix/persist".directories = [
         {
           directory = cfg.stateDir;

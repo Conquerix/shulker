@@ -32,7 +32,7 @@ in
         "/root/.ssh"
         "/var/lib/docker"
         "/var/lib/tailscale"
-        (mkIf (cfg.home) "/home")
+        (mkIf cfg.home "/home")
       ];
 
       files = [

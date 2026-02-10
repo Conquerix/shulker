@@ -18,12 +18,17 @@
           enable = true;
           endpoint = "https://proxy.shulker.link";
         };
+        pocket-id = {
+          enable = true;
+          impermanence = true;
+          appUrl = "https://sso.shulker.link";
+          port = 23231;
+        };
         pelican = {
           panel = {
             enable = true;
             impermanence = true;
-            baseUrl = "amphibian.network";
-            subDomain = "panel";
+            appUrl = "https://panel.amphibian.network";
             port = 23236;
           };
           wings = {
