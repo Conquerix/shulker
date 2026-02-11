@@ -32,12 +32,6 @@ in
 
   config = mkIf cfg.enable {
 
-    users.groups.beszel-hub = { };
-    users.users.beszel-hub = {
-      isSystemUser = true;
-      group = "beszel-hub";
-    };
-
     systemd.services.beszel-hub = {
       description = "Beszel Server Monitoring Web App";
 
@@ -54,9 +48,7 @@ in
         ExecStart = ''
           ${pkgs.beszel}/bin/beszel-hub serve --http='127.0.0.1:${toString cfg.port}'
         '';
-
         WorkingDirectory = cfg.stateDir;
-        User = "beszel-hub";
         Restart = "always";
         RestartSec = "3s";
       };
@@ -67,8 +59,6 @@ in
         {
           directory = "${cfg.stateDir}";
           mode = "u=rwx,g=rx,o=rx";
-          user = "beszel-hub";
-          group = "beszel-hub";
         }
       ];
     };
