@@ -24,6 +24,12 @@
           appUrl = "https://sso.shulker.link";
           port = 23231;
         };
+        beszel.hub = {
+          enable = true;
+          impermanence = true;
+          appUrl = "https://monitor.shulker.link";
+          port = 23232;
+        };
         pelican = {
           panel = {
             enable = true;
