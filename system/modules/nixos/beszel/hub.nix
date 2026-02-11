@@ -37,21 +37,51 @@ in
       group = "beszel-hub";
     };
 
-    services.beszel.hub = {
-      enable = true;
-      port = cfg.port;
-      dataDir = cfg.stateDir;
+    systemd.services.beszel-hub = {
+      description = "Beszel Server Monitoring Web App";
+
+      wantedBy = [ "multi-user.target" ];
+      wants = [ "network-online.target" ];
+      after = [ "network-online.target" ];
       environment = {
         APP_URL = cfg.appUrl;
         USER_EMAIL = "conquerix@shulker.link";
         USER_PASSWORD = "changeme!";
       };
-    };
 
-    systemd.services.beszel-hub.serviceConfig = {
-      DynamicUser = mkForce false;
-      StateDirectory = mkForce cfg.stateDir;
-      RuntimeDirectory = mkForce cfg.stateDir;
+      serviceConfig = {
+        ExecStart = ''
+          ${cfg.package}/bin/beszel-hub serve --http='127.0.0.1:${toString cfg.port}'
+        '';
+
+        WorkingDirectory = cfg.stateDir;
+
+        DynamicUser = true;
+        User = "beszel-hub";
+        LockPersonality = true;
+        NoNewPrivileges = true;
+        PrivateDevices = true;
+        PrivateTmp = true;
+        PrivateUsers = true;
+        ProtectClock = true;
+        ProtectControlGroups = "strict";
+        ProtectHome = "read-only";
+        ProtectHostname = true;
+        ProtectKernelLogs = true;
+        ProtectKernelModules = true;
+        ProtectKernelTunables = true;
+        ProtectSystem = "strict";
+        DevicePolicy = "closed";
+        Restart = "on-failure";
+        RestartSec = "30s";
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        RestrictNamespaces = true;
+        SystemCallArchitectures = "native";
+        SystemCallErrorNumber = "EPERM";
+        SystemCallFilter = [ "@system-service" ];
+        UMask = 27;
+      };
     };
 
     environment.persistence = mkIf cfg.impermanence {
