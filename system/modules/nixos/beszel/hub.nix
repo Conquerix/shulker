@@ -48,7 +48,11 @@ in
       };
     };
 
-    systemd.services.beszel-hub.serviceConfig.DynamicUser = mkForce false;
+    systemd.services.beszel-hub.serviceConfig = {
+      DynamicUser = mkForce false;
+      StateDirectory = mkForce cfg.stateDir;
+      RuntimeDirectory = mkForce cfg.stateDir;
+    };
 
     environment.persistence = mkIf cfg.impermanence {
       "/nix/persist".directories = [
