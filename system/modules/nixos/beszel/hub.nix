@@ -51,7 +51,7 @@ in
 
       serviceConfig = {
         ExecStart = ''
-          ${cfg.package}/bin/beszel-hub serve --http='127.0.0.1:${toString cfg.port}'
+          ${pkgs.beszel}/bin/beszel-hub serve --http='127.0.0.1:${toString cfg.port}'
         '';
 
         WorkingDirectory = cfg.stateDir;
