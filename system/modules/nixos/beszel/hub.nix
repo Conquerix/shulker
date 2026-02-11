@@ -35,7 +35,6 @@ in
       enable = true;
       port = cfg.port;
       dataDir = cfg.stateDir;
-      environmentFile = config.services.onepassword-secrets.secrets.beszelHubEnv.path;
       environment = {
         APP_URL = cfg.appUrl;
       };
