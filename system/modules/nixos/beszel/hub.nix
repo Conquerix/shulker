@@ -31,6 +31,12 @@ in
 
   config = mkIf cfg.enable {
 
+    users.groups.beszel-hub = { };
+    users.users.beszel-hub = {
+      isSystemUser = true;
+      group = "beszel-hub";
+    };
+
     services.beszel.hub = {
       enable = true;
       port = cfg.port;
@@ -41,6 +47,8 @@ in
         USER_PASSWORD = "changeme!";
       };
     };
+
+    systemd.services.beszel-hub.serviceConfig.DynamicUser = mkForce false;
 
     environment.persistence = mkIf cfg.impermanence {
       "/nix/persist".directories = [
