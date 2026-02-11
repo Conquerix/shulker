@@ -52,11 +52,15 @@ in
     };
 
     shulker.system.modules.backup.dirs = [ cfg.stateDir ];
-    # services.borgmatic.settings.sqlite_databases = [
-    #   {
-    #     name = "beszel-hub-db";
-    #     path = "${cfg.stateDir}/data/database/database.sqlite";
-    #   }
-    # ];
+    services.borgmatic.settings.sqlite_databases = [
+      {
+        name = "beszel-hub-db";
+        path = "${cfg.stateDir}/beszel-data/data.db";
+      }
+      {
+        name = "beszel-hub-aux-db";
+        path = "${cfg.stateDir}/beszel-data/auxiliary.db";
+      }
+    ];
   };
 }
