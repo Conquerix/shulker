@@ -56,32 +56,9 @@ in
         '';
 
         WorkingDirectory = cfg.stateDir;
-
-        DynamicUser = true;
         User = "beszel-hub";
-        LockPersonality = true;
-        NoNewPrivileges = true;
-        PrivateDevices = true;
-        PrivateTmp = true;
-        PrivateUsers = true;
-        ProtectClock = true;
-        ProtectControlGroups = "strict";
-        ProtectHome = "read-only";
-        ProtectHostname = true;
-        ProtectKernelLogs = true;
-        ProtectKernelModules = true;
-        ProtectKernelTunables = true;
-        ProtectSystem = "strict";
-        DevicePolicy = "closed";
-        Restart = "on-failure";
-        RestartSec = "30s";
-        RestrictRealtime = true;
-        RestrictSUIDSGID = true;
-        RestrictNamespaces = true;
-        SystemCallArchitectures = "native";
-        SystemCallErrorNumber = "EPERM";
-        SystemCallFilter = [ "@system-service" ];
-        UMask = 27;
+        Restart = "always";
+        RestartSec = "3s";
       };
     };
 
