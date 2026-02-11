@@ -38,11 +38,7 @@ in
       wantedBy = [ "multi-user.target" ];
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
-      environment = {
-        APP_URL = cfg.appUrl;
-        USER_EMAIL = "conquerix@shulker.link";
-        USER_PASSWORD = "changeme!";
-      };
+      environment.APP_URL = cfg.appUrl;
 
       serviceConfig = {
         ExecStart = ''
