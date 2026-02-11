@@ -37,6 +37,8 @@ in
       dataDir = cfg.stateDir;
       environment = {
         APP_URL = cfg.appUrl;
+        USER_EMAIL = "conquerix@shulker.link";
+        USER_PASSWORD = "changeme!";
       };
     };
 
