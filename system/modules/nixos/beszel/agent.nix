@@ -25,13 +25,11 @@ in
 
   config = mkIf cfg.enable {
 
-    networking.firewall = {
-      enable = true;
-      allowedTCPPorts = [ 2022 ];
-      allowedUDPPorts = [ 2022 ];
+    users.groups.beszel-agent = { };
+    users.users.beszel-agent = {
+      isSystemUser = true;
+      group = "beszel-agent";
     };
-
-    systemd.services.agent.serviceConfig.StateDirectory = mkForce cfg.stateDir;
 
     services.beszel.agent = {
       enable = true;
@@ -44,6 +42,8 @@ in
         HUB_URL = cfg.hubEndpoint;
       };
     };
+
+    systemd.services.beszel-agent.DynamicUser = false;
 
     environment = mkIf cfg.impermanence {
       persistence."/nix/persist".directories = [
