@@ -43,7 +43,7 @@ in
       };
     };
 
-    systemd.services.beszel-agent.DynamicUser = false;
+    systemd.services.beszel-agent.serviceConfig.DynamicUser = false;
 
     environment = mkIf cfg.impermanence {
       persistence."/nix/persist".directories = [
