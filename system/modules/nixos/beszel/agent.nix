@@ -21,6 +21,11 @@ in
       type = types.str;
       description = "URL of the Beszel hub.";
     };
+    extraFilesystems = mkOption {
+      type = types.str;
+      default = "/nix";
+      description = "Comma separated list of extra filesystems to monitor";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -38,7 +43,7 @@ in
         KEY_FILE = config.services.onepassword-secrets.secrets.beszelAgentKeyFile.path;
         TOKEN_FILE = config.services.onepassword-secrets.secrets.beszelAgentTokenFile.path;
         DATA_DIR = cfg.stateDir;
-        FILESYSTEM = "/nix";
+        EXTRA_FILESYSTEMS = cfg.extraFilesystems;
         HUB_URL = cfg.hubEndpoint;
       };
     };
