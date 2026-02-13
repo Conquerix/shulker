@@ -34,7 +34,7 @@
           enable = true;
           impermanence = true;
           hubEndpoint = "https://monitor.shulker.link";
-          extraFilesystems = "/nix,/nix/persist";
+          extraFilesystems = "/nix__Nix Store,/nix/persist__Persistent Partition";
         };
         pelican = {
           panel = {
