@@ -30,6 +30,11 @@
           appUrl = "https://monitor.shulker.link";
           port = 23232;
         };
+        beszel.agent = {
+          enable = true;
+          impermanence = true;
+          hubEndpoint = "https://monitor.shulker.link";
+        };
         pelican = {
           panel = {
             enable = true;
