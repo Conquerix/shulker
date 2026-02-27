@@ -56,6 +56,7 @@ in
           directory = "${cfg.stateDir}";
           mode = "u=rwx,g=,o=";
           user = "beszel-agent";
+          group = "beszel-agent";
         }
       ];
     };
