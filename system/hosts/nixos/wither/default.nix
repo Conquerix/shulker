@@ -58,6 +58,12 @@
           home = true;
         };
         yubikey.enable = true;
+        ollama = {
+          enable = true;
+          impermanence = true;
+          acceleration = "cuda";
+          host = "0.0.0.0";
+        };
         nvidia = {
           enable = true;
           hybrid = {

@@ -38,7 +38,6 @@ in
       default = "/var/lib/ollama";
       description = "State directory for ollama models and data.";
     };
-    openFirewall = mkEnableOption "Open the firewall port for ollama.";
   };
 
   config = mkIf cfg.enable {
@@ -48,7 +47,7 @@ in
       port = cfg.port;
       host = cfg.host;
       acceleration = cfg.acceleration;
-      openFirewall = cfg.openFirewall;
+      openFirewall = true;
     };
 
     environment.persistence = mkIf cfg.impermanence {
