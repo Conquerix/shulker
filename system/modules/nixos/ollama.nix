@@ -43,7 +43,7 @@ in
       group = "ollama";
     };
 
-    systemd.services.ollama.serviceConfig.DynamicUser = false;
+    systemd.services.ollama.serviceConfig.DynamicUser = lib.mkForce false;
 
     environment.persistence = mkIf cfg.impermanence {
       "/nix/persist".directories = [
