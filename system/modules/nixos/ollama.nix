@@ -38,6 +38,11 @@ in
       host = cfg.host;
       home = cfg.stateDir;
       openFirewall = true;
+      loadModels = [
+        "qwen3-coder-next"
+        "qwen3.5:35b"
+        "qwen3.5:122b"
+      ];
       package = pkgs.ollama-cuda;
       user = "ollama";
       group = "ollama";
