@@ -17,7 +17,7 @@ with lib;
 
     services.resolved = {
       enable = true;
-      domains = [ "~." ];
+      settings.Resolve.Domains = [ "~." ];
     };
 
     # Disable this to try and solve the network manager wait online failed after each rebuild.

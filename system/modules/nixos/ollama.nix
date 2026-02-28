@@ -39,6 +39,8 @@ in
       home = cfg.stateDir;
       openFirewall = true;
       package = pkgs.ollama-cuda;
+      user = "ollama";
+      group = "ollama";
     };
 
     environment.persistence = mkIf cfg.impermanence {
@@ -46,6 +48,8 @@ in
         {
           directory = cfg.stateDir;
           mode = "u=rwx,g=rx,o=";
+          user = "ollama";
+          group = "ollama";
         }
       ];
     };
