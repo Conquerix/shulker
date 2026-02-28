@@ -60,7 +60,6 @@
         ollama = {
           enable = true;
           impermanence = true;
-          acceleration = "cuda";
           host = "0.0.0.0";
         };
         nvidia = {

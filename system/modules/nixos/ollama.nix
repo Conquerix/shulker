@@ -12,17 +12,6 @@ in
   options.shulker.system.modules.ollama = {
     enable = mkEnableOption "Enable ollama service";
     impermanence = mkEnableOption "Whether to enable impermanence on state directories.";
-    acceleration = mkOption {
-      type = types.nullOr (
-        types.enum [
-          "cuda"
-          "rocm"
-          "false"
-        ]
-      );
-      default = null;
-      description = "Hardware acceleration backend to use (null for auto-detection).";
-    };
     port = mkOption {
       type = types.port;
       default = 11434;
@@ -46,8 +35,9 @@ in
       enable = true;
       port = cfg.port;
       host = cfg.host;
-      acceleration = cfg.acceleration;
+      home = cfg.stateDir;
       openFirewall = true;
+      package = pkgs.ollama-cuda;
     };
 
     environment.persistence = mkIf cfg.impermanence {
