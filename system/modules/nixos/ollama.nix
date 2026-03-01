@@ -41,6 +41,7 @@ in
       loadModels = [
         "qwen3-coder-next"
         "qwen3.5:35b"
+        "qwen3.5:27b"
         "qwen3.5:122b"
       ];
       package = pkgs.ollama-cuda;
