@@ -49,7 +49,7 @@ in
           dev = {
             cc.enable = true;
             nix.enable = true;
-            python.enable = true;
+            #python.enable = true;
           };
           shell = {
             direnv.enable = true;
