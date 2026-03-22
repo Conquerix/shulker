@@ -18,6 +18,8 @@ in
       home.packages = with pkgs; [
         spotify
         ryubing
+        nixfmt
+        lldb
       ];
 
       programs.ghostty.package = pkgs.ghostty-bin;
@@ -25,12 +27,12 @@ in
       shulker.home = {
         modules = {
           app = {
-            vscode.enable = true;
+            #vscode.enable = true;
             ghostty.enable = true;
           };
           dev = {
             nix.enable = true;
-            python.enable = true;
+            #python.enable = true;
           };
           shell = {
             direnv.enable = true;

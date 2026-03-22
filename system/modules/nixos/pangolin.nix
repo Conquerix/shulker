@@ -66,7 +66,7 @@ with lib;
       volumes = [ "${cfg.stateDir}/config:/app/config:rw" ];
       log-driver = "journald";
       extraOptions = [
-        "--health-cmd=[\"curl\", \"-f\", \"http://localhost:3001/api/v1/\"]"
+        ''--health-cmd=["/usr/bin/curl", "-f", "http://localhost:3001/api/v1/"]''
         "--health-interval=10s"
         "--health-retries=15"
         "--health-timeout=10s"
