@@ -21,7 +21,7 @@ with lib;
     };
 
     # Disable this to try and solve the network manager wait online failed after each rebuild.
-    #systemd.network.wait-online.enable = false;
-    #boot.initrd.systemd.network.wait-online.enable = false;
+    systemd.network.wait-online.enable = true;
+    boot.initrd.systemd.network.wait-online.enable = true;
   };
 }
