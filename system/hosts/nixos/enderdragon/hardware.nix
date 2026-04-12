@@ -38,14 +38,12 @@
   fileSystems."/nix" = {
     device = "main_pool/nix";
     fsType = "zfs";
-    options = [ "zfsutil" ];
     neededForBoot = true;
   };
 
   fileSystems."/nix/persist" = {
     device = "main_pool/persist";
     fsType = "zfs";
-    options = [ "zfsutil" ];
     neededForBoot = true;
   };
 
