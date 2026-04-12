@@ -22,6 +22,10 @@ with lib;
       inputs.opnix.packages."${pkgs.system}".default
     ];
 
+    systemd.services.opnix-secrets = {
+      after = [ "systemd-networkd.service" ];
+      wants = [ "systemd-networkd.service" ];
+    };
     services.onepassword-secrets = {
       enable = true;
       tokenFile = "/etc/opnix-token";
