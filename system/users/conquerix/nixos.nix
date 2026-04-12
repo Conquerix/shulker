@@ -34,7 +34,7 @@ in
         spotify
         prismlauncher
         packwiz
-        wineWowPackages.waylandFull
+        wineWow64Packages.waylandFull
         libvlc
         easyeffects
         ryubing
