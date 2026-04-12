@@ -9,7 +9,10 @@
       profiles.server.enable = true;
       modules = {
         impermanence.enable = true;
-        backup.enable = true;
+        backup = {
+          enable = true;
+          hetznerStorageBoxAccount = "u515568-sub2";
+        };
         pangolin = {
           enable = true;
           impermanence = true;

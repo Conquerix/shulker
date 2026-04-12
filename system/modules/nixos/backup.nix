@@ -16,6 +16,10 @@ in
       default = [ ];
       description = "List of directories and files to backup.";
     };
+    hetznerStorageBoxAccount = lib.mkOption {
+      type = types.str;
+      description = "Hetzner storagebox account of the machine.";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -28,7 +32,7 @@ in
         repositories = [
           {
             label = "Hetzner Storage Box";
-            path = "ssh://u515568-sub2@u515568-sub2.your-storagebox.de:23/./borg-repository";
+            path = "ssh://${cfg.hetznerStorageBoxAccount}@${cfg.hetznerStorageBoxAccount}.your-storagebox.de:23/./borg-repository";
           }
         ];
         keep_daily = 7;
