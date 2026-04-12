@@ -20,9 +20,6 @@ in
       networkmanager.enable = false;
       useNetworkd = true;
     };
-    systemd.network = {
-      enable = true;
-      wait-online.enable = true;
-    };
+    systemd.network.enable = true;
   };
 }
