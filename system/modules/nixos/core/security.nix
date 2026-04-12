@@ -23,8 +23,9 @@ with lib;
     ];
 
     systemd.services.opnix-secrets = {
-      after = [ "systemd-networkd.service" ];
-      wants = [ "systemd-networkd.service" ];
+      requires = [ "network-online.target" ];
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
     };
     services.onepassword-secrets = {
       enable = true;
