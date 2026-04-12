@@ -48,16 +48,7 @@
   };
 
   fileSystems."/boot" = {
-    device = "/dev/nvme1n1p3";
-    fsType = "vfat";
-    options = [
-      "fmask=0022"
-      "dmask=0022"
-    ];
-  };
-
-  fileSystems."/boot-fallback" = {
-    device = "/dev/disk/by-uuid/12CE-A600";
+    device = "/dev/disk/by-id/nvme-WD_BLACK_SN7100_2TB_254432801564-part3";
     fsType = "vfat";
     options = [
       "fmask=0022"
