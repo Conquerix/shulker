@@ -31,7 +31,7 @@ in
         "/etc/secrets"
         "/root/.ssh"
         "/var/lib/docker"
-        "/var/lib/tailscale"
+        "/var/lib/opnix/secrets"
         (mkIf cfg.home "/home")
       ];
 
