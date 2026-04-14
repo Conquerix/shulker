@@ -82,6 +82,7 @@ in
         };
         admin = {
           SEND_NOTIFICATION_EMAIL_ON_NEW_USER = true;
+          DISABLE_REGULAR_ORG_CREATION = true;
         };
         oauth2_client = {
           ENABLE_AUTO_REGISTRATION = true;
