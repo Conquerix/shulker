@@ -69,17 +69,17 @@ in
     };
 
     services.onepassword-secrets.secrets.pocketIdEncryptionKey = {
-      reference = "op://Shulker/${config.networking.hostName}/Pocket ID Encryption Key";
+      reference = "op://Shulker/${config.networking.hostName}/Pocket ID/Pocket ID Encryption Key";
       services = [ "pocket-id" ];
     };
 
     services.onepassword-secrets.secrets.pocketIdMaxminLicenseKey = {
-      reference = "op://Shulker/${config.networking.hostName}/Pocket ID Maxmind License Key";
+      reference = "op://Shulker/${config.networking.hostName}/Pocket ID/Pocket ID Maxmind License Key";
       services = [ "pocket-id" ];
     };
 
     services.onepassword-secrets.secrets.pocketIdSMTPPassword = {
-      reference = "op://Shulker/${config.networking.hostName}/Pocket ID SMTP Password";
+      reference = "op://Shulker/${config.networking.hostName}/Pocket ID/Pocket ID SMTP Password";
       services = [ "pocket-id" ];
     };
 

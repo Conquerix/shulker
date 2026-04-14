@@ -104,7 +104,7 @@ in
     ];
 
     services.onepassword-secrets.secrets.pelicanWingsToken = {
-      reference = "op://Shulker/${config.networking.hostName}/Pelican Wings token";
+      reference = "op://Shulker/${config.networking.hostName}/Pelican/Pelican Wings token";
       services = [
         "wings"
         "wings-config-setup"

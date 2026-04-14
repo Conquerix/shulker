@@ -41,7 +41,7 @@ in
       };
     };
     services.onepassword-secrets.secrets.hetznerBorgPassword = {
-      reference = "op://Shulker/${config.networking.hostName}/Hetzner StorageBox borgbackup password";
+      reference = "op://Shulker/${config.networking.hostName}/Backups/Hetzner StorageBox borgbackup password";
       services = [ "borgmatic" ];
     };
   };

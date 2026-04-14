@@ -45,7 +45,7 @@ with lib;
     systemd.services.newt.environment.HOME = mkForce cfg.stateDir;
 
     services.onepassword-secrets.secrets.newtEnv = {
-      reference = "op://Shulker/${config.networking.hostName}/Newt env";
+      reference = "op://Shulker/${config.networking.hostName}/Pangolin/Newt env";
       services = [ "newt" ];
     };
   };

@@ -67,13 +67,13 @@ in
     ];
 
     services.onepassword-secrets.secrets.beszelAgentKeyFile = {
-      reference = "op://Shulker/${config.networking.hostName}/Beszel Agent Key";
+      reference = "op://Shulker/${config.networking.hostName}/Beszel/Beszel Agent Key";
       services = [ "beszel-agent" ];
       owner = "beszel-agent";
     };
 
     services.onepassword-secrets.secrets.beszelAgentTokenFile = {
-      reference = "op://Shulker/${config.networking.hostName}/Beszel Agent Token";
+      reference = "op://Shulker/${config.networking.hostName}/Beszel/Beszel Agent Token";
       services = [ "beszel-agent" ];
       owner = "beszel-agent";
     };
