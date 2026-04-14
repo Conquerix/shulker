@@ -96,7 +96,7 @@ in
         };
         mailer = {
           ENABLED = true;
-          PROTOCOL = "smtp";
+          PROTOCOL = "smtps";
           SMTP_ADDR = "smtp.fastmail.com";
           SMTP_PORT = 465;
           USER = "service@shulker.link";
