@@ -65,12 +65,6 @@ in
       "${cfg.stateDir}/backups"
       "${cfg.stateDir}/archives"
     ];
-    services.borgmatic.settings.sqlite_databases = [
-      {
-        name = "beszel-agent-db";
-        path = "${cfg.stateDir}/agent.db";
-      }
-    ];
 
     services.onepassword-secrets.secrets.beszelAgentKeyFile = {
       reference = "op://Shulker/${config.networking.hostName}/Beszel Agent Key";

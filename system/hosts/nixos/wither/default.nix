@@ -42,6 +42,7 @@
   };
 
   shulker = {
+    users.conquerix.enable = true;
     system = {
       profiles.desktop.enable = true;
       modules = {
@@ -71,6 +72,5 @@
         sunshine.enable = true;
       };
     };
-    users.conquerix.enable = true;
   };
 }

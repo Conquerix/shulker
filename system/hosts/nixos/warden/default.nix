@@ -11,17 +11,6 @@
   # For zfs.
   networking.hostId = "2118dc3b";
 
-  networking.firewall = {
-    allowedTCPPorts = [
-      8096
-      1900
-    ];
-    allowedUDPPorts = [
-      8096
-      1900
-    ];
-  };
-
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
@@ -38,7 +27,36 @@
     users.conquerix.enable = true;
     system = {
       profiles.server.enable = true;
-      modules.impermanence.enable = true;
+      modules = {
+        impermanence.enable = true;
+        backup = {
+          enable = true;
+          hetznerStorageBoxAccount = "u515568-sub4";
+        };
+        newt = {
+          enable = true;
+          endpoint = "https://proxy.shulker.link";
+        };
+        beszel.agent = {
+          enable = true;
+          impermanence = true;
+          hubEndpoint = "https://monitor.shulker.link";
+          extraFilesystems = "/nix__Nix Store,/nix/persist__Persistent Partition";
+        };
+        pelican = {
+          wings = {
+            enable = true;
+            impermanence = true;
+            port = 23231;
+          };
+        };
+      };
     };
+  };
+
+  services.wings.node = {
+    uuid = "a01624a4-535b-4d83-8f2b-995388035a14";
+    tokenId = "dwEserUfPiX164nw";
+    remote = "https://panel.amphibian.network";
   };
 }

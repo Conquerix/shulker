@@ -5,6 +5,7 @@
   zramSwap.enable = true;
 
   shulker = {
+    users.conquerix.enable = true;
     system = {
       profiles.server.enable = true;
       modules = {
@@ -32,7 +33,6 @@
         };
       };
     };
-    users.conquerix.enable = true;
   };
 
   services.wings.node = {

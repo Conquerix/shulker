@@ -50,6 +50,7 @@
   };
 
   shulker = {
+    users.conquerix.enable = true;
     system = {
       profiles.desktop = {
         enable = true;
@@ -64,6 +65,5 @@
         yubikey.enable = true;
       };
     };
-    users.conquerix.enable = true;
   };
 }
