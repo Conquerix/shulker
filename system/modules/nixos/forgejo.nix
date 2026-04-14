@@ -50,7 +50,15 @@ in
         interval = "06:00";
         age = "3d";
       };
-      secrets.security = mkForce { };
+      secrets = {
+        security = {
+          SECRET_KEY = config.services.onepassword-secrets.secrets.forgejoSecretKey.path;
+          INTERNAL_TOKEN = config.services.onepassword-secrets.secrets.forgejoInternalToken.path;
+        };
+        mailer = {
+          PASSWD = config.services.onepassword-secrets.secrets.forgejoSMTPPassword.path;
+        };
+      };
       settings = {
         DEFAULT = {
           APP_NAME = "Amphibian Git forge.";
@@ -75,10 +83,6 @@ in
         admin = {
           SEND_NOTIFICATION_EMAIL_ON_NEW_USER = true;
         };
-        security = {
-          SECRET_KEY_URI = "file://${config.services.onepassword-secrets.secrets.forgejoSecretKey.path}";
-          INTERNAL_TOKEN_URI = "file://${config.services.onepassword-secrets.secrets.forgejoInternalToken.path}";
-        };
         oauth2_client = {
           ENABLE_AUTO_REGISTRATION = true;
           UPDATE_AVATAR = true;
@@ -96,7 +100,6 @@ in
           SMTP_ADDR = "smtp.fastmail.com";
           SMTP_PORT = 465;
           USER = "service@shulker.link";
-          PASSWD_URI = "file://${config.services.onepassword-secrets.secrets.forgejoSMTPPassword.path}";
           FROM = "Git Amphibian Network <${cfg.subDomain}@${cfg.baseUrl}>";
         };
         session = {
