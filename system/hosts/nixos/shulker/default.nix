@@ -34,6 +34,13 @@
           appUrl = "https://monitor.shulker.link";
           port = 23232;
         };
+        forgejo = {
+          enable = true;
+          impermanence = true;
+          baseUrl = "amphibian.network";
+          subDomain = "git";
+          httpPort = 23233;
+        };
         beszel.agent = {
           enable = true;
           impermanence = true;
