@@ -52,8 +52,8 @@ in
       };
       secrets = {
         security = {
-          SECRET_KEY = config.services.onepassword-secrets.secrets.forgejoSecretKey.path;
-          INTERNAL_TOKEN = config.services.onepassword-secrets.secrets.forgejoInternalToken.path;
+          SECRET_KEY = mkForce config.services.onepassword-secrets.secrets.forgejoSecretKey.path;
+          INTERNAL_TOKEN = mkForce config.services.onepassword-secrets.secrets.forgejoInternalToken.path;
         };
         mailer = {
           PASSWD = config.services.onepassword-secrets.secrets.forgejoSMTPPassword.path;
