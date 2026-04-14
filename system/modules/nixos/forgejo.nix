@@ -50,6 +50,7 @@ in
         interval = "06:00";
         age = "3d";
       };
+      secrets = mkForce { };
       settings = {
         DEFAULT = {
           APP_NAME = "Amphibian Git forge.";
