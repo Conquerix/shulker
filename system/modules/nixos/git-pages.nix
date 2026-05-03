@@ -35,9 +35,6 @@ let
               "${toString port}:80/tcp"
             ];
             log-driver = "journald";
-            extraOptions = [
-              "--network-alias=git-pages-${name}-web"
-            ];
             # Generate a minimal Nginx config to serve the correct path and follow the symlink
             cmd = [
               "/bin/sh"
