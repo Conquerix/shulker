@@ -13,48 +13,68 @@ let
 
   # Build container and service attrs from the repo list
   containers = listToAttrs (
-    imap0 (
-      i: repo:
-      let
-        name = sanitizeName repo.name;
-        port = if repo.port != 0 then repo.port else (cfg.basePort + i);
-        statePath = "${cfg.stateDir}/${name}";
-        pullInt = if repo.pullInterval != null then repo.pullInterval else cfg.pullInterval;
-      in
-      if repo.sync then
-        # Git-sync container
-        nameValuePair "git-pages-${name}-sync" {
-          image = "registry.k8s.io/git-sync/git-sync:v4.0.0";
-          volumes = [
-            "${statePath}/tmp:/tmp/git:rw"
-          ];
-          environment = {
-            GITSYNC_REPO = repo.url;
-            GITSYNC_BRANCH = repo.branch;
-            GITSYNC_DEST = "${repo.path}/html";
-            GITSYNC_PERIOD = pullInt;
+    flatten (
+      imap0 (
+        i: repo:
+        let
+          name = sanitizeName repo.name;
+          port = if repo.port != 0 then repo.port else (cfg.basePort + i);
+          statePath = "${cfg.stateDir}/${name}";
+          pullInt = if repo.pullInterval != null then repo.pullInterval else cfg.pullInterval;
+
+          # Optional subpath logic for Nginx root
+          nginxSubPath = if repo.path != "" then "/${repo.path}" else "";
+
+          webContainer = nameValuePair "git-pages-${name}-web" {
+            image = "docker.io/library/nginx:alpine";
+            volumes = [
+              # Mount the parent directory so Nginx can follow the symlink dynamically
+              "${statePath}:/var/www:ro"
+            ];
+            ports = [
+              "${toString port}:80/tcp"
+            ];
+            log-driver = "journald";
+            extraOptions = [
+              "--network-alias=git-pages-${name}-web"
+            ];
+            # Generate a minimal Nginx config to serve the correct path and follow the symlink
+            cmd = [
+              "/bin/sh"
+              "-c"
+              ''
+                echo 'server { listen 80; root /var/www/site${nginxSubPath}; location / { try_files $uri $uri/ =404; } }' > /etc/nginx/conf.d/default.conf
+                exec nginx -g "daemon off;"
+              ''
+            ];
           };
-          log-driver = "journald";
-          extraOptions = [
-            "--network-alias=git-pages-${name}-sync"
-          ];
-        }
-      else
-        # Nginx web container
-        nameValuePair "git-pages-${name}-web" {
-          image = "docker.io/library/nginx:alpine";
-          volumes = [
-            "${statePath}/html:/usr/share/nginx/html:ro"
-          ];
-          ports = [
-            "${toString port}:80/tcp"
-          ];
-          log-driver = "journald";
-          extraOptions = [
-            "--network-alias=git-pages-${name}-web"
-          ];
-        }
-    ) cfg.repos
+
+          syncContainer = nameValuePair "git-pages-${name}-sync" {
+            image = "registry.k8s.io/git-sync/git-sync:v4.0.0";
+            volumes = [
+              "${statePath}:/tmp/git:rw"
+            ];
+            environment = {
+              GITSYNC_REPO = repo.url;
+              GITSYNC_BRANCH = repo.branch;
+              # git-sync creates a symlink named after GITSYNC_DEST pointing to the active revision
+              GITSYNC_DEST = "site";
+              GITSYNC_PERIOD = pullInt;
+            };
+            log-driver = "journald";
+          };
+        in
+        if repo.sync then
+          # If sync is true, return BOTH containers
+          [
+            syncContainer
+            webContainer
+          ]
+        else
+          # Otherwise just the web container
+          [ webContainer ]
+      ) cfg.repos
+    )
   );
 
   systemdServices = listToAttrs (
@@ -70,8 +90,9 @@ let
           RestartSec = mkOverride 90 "100ms";
           RestartSteps = mkOverride 90 9;
         };
-        after = [ "docker-git-pages-${name}-sync.service" ];
-        requires = [ "docker-git-pages-${name}-sync.service" ];
+        # Only require/wait for sync if this repo actually uses git-sync
+        after = optional repo.sync "docker-git-pages-${name}-sync.service";
+        requires = optional repo.sync "docker-git-pages-${name}-sync.service";
         partOf = [ "docker-compose-git-pages-root.target" ];
         wantedBy = [ "docker-compose-git-pages-root.target" ];
       }
@@ -79,22 +100,26 @@ let
   );
 
   syncSystemdServices = listToAttrs (
-    map (
-      repo:
-      let
-        name = sanitizeName repo.name;
-      in
-      nameValuePair "docker-git-pages-${name}-sync" {
-        serviceConfig = {
-          Restart = mkOverride 90 "always";
-          RestartMaxDelaySec = mkOverride 90 "1m";
-          RestartSec = mkOverride 90 "100ms";
-          RestartSteps = mkOverride 90 9;
-        };
-        partOf = [ "docker-compose-git-pages-root.target" ];
-        wantedBy = [ "docker-compose-git-pages-root.target" ];
-      }
-    ) cfg.repos
+    flatten (
+      map (
+        repo:
+        let
+          name = sanitizeName repo.name;
+        in
+        optional repo.sync (
+          nameValuePair "docker-git-pages-${name}-sync" {
+            serviceConfig = {
+              Restart = mkOverride 90 "always";
+              RestartMaxDelaySec = mkOverride 90 "1m";
+              RestartSec = mkOverride 90 "100ms";
+              RestartSteps = mkOverride 90 9;
+            };
+            partOf = [ "docker-compose-git-pages-root.target" ];
+            wantedBy = [ "docker-compose-git-pages-root.target" ];
+          }
+        )
+      ) cfg.repos
+    )
   );
 in
 {
