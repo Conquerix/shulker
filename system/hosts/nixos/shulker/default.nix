@@ -115,23 +115,16 @@
           ];
         };
       };
-      systemd.services.initrd-zfs-profile = {
-        description = "Write ZFS load-key profile for initrd SSH shell";
+      systemd.services.zfs-setup-root-profile = {
+        description = "Prepare root .profile for ZFS unlocking via SSH";
         wantedBy = [ "initrd.target" ];
-        serviceConfig = {
-          Type = "oneshot";
-        };
+        before = [ "initrd-root-fs.target" ];
+        unitConfig.DefaultDependencies = false;
         script = ''
-          cat <<'EOF' > /root/.profile
-          if pgrep -x "zfs" > /dev/null
-          then
-            zfs load-key -a
-            killall zfs
-          else
-            echo "zfs not running -- maybe the pool is taking some time to load for some unforseen reason."
-          fi
-          EOF
+          mkdir -p /var/empty
+          echo "systemd-tty-ask-password-agent --watch" > /var/empty/.profile
         '';
+        serviceConfig.Type = "oneshot";
       };
     };
   };
