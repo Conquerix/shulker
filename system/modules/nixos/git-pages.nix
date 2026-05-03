@@ -28,20 +28,19 @@ let
           webContainer = nameValuePair "git-pages-${name}-web" {
             image = "docker.io/library/nginx:alpine";
             volumes = [
-              # Mount the parent directory so Nginx can follow the symlink dynamically
               "${statePath}:/var/www:ro"
             ];
             ports = [
               "${toString port}:80/tcp"
             ];
             log-driver = "journald";
-            # Generate a minimal Nginx config to serve the correct path and follow the symlink
+            # Inject Nginx configuration to point to the git-sync symlink
             cmd = [
               "/bin/sh"
               "-c"
               ''
                 echo 'server { listen 80; root /var/www/site${nginxSubPath}; location / { try_files $uri $uri/ =404; } }' > /etc/nginx/conf.d/default.conf
-                exec nginx -g "daemon off;"
+                exec /docker-entrypoint.sh nginx -g "daemon off;"
               ''
             ];
           };
@@ -49,26 +48,27 @@ let
           syncContainer = nameValuePair "git-pages-${name}-sync" {
             image = "registry.k8s.io/git-sync/git-sync:v4.0.0";
             volumes = [
-              "${statePath}:/tmp/git:rw"
+              "${statePath}:/git:rw"
             ];
-            environment = {
-              GITSYNC_REPO = repo.url;
-              GITSYNC_BRANCH = repo.branch;
-              # git-sync creates a symlink named after GITSYNC_DEST pointing to the active revision
-              GITSYNC_DEST = "site";
-              GITSYNC_PERIOD = pullInt;
-            };
+            # Fix Permission Denied: Run as root so it can write to the host-mounted volume
+            user = "root:root";
+            # Fix v4 Pathing: Use explicit v4 arguments instead of deprecated env vars
+            cmd = [
+              "--repo=${repo.url}"
+              "--branch=${repo.branch}"
+              "--period=${pullInt}"
+              "--link=site" # Replaces the old GITSYNC_DEST
+              "--root=/git" # Explicitly set the root to match our volume mount
+            ];
             log-driver = "journald";
           };
         in
         if repo.sync then
-          # If sync is true, return BOTH containers
           [
             syncContainer
             webContainer
           ]
         else
-          # Otherwise just the web container
           [ webContainer ]
       ) cfg.repos
     )
@@ -87,7 +87,6 @@ let
           RestartSec = mkOverride 90 "100ms";
           RestartSteps = mkOverride 90 9;
         };
-        # Only require/wait for sync if this repo actually uses git-sync
         after = optional repo.sync "docker-git-pages-${name}-sync.service";
         requires = optional repo.sync "docker-git-pages-${name}-sync.service";
         partOf = [ "docker-compose-git-pages-root.target" ];
@@ -184,11 +183,9 @@ in
   };
 
   config = mkIf cfg.enable {
-
     virtualisation.oci-containers.containers = containers;
     systemd.services = systemdServices // syncSystemdServices;
 
-    # Root service
     systemd.targets."docker-compose-git-pages-root" = {
       unitConfig = {
         Description = "Git-Pages Static Site containers";
