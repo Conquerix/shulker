@@ -4,6 +4,9 @@
   ...
 }:
 
+# To create an admin user without the install wizard
+# sudo -u forgejo forgejo admin user create --admin --email "admin@amphibian.network" --username "root" --password "changeMe!" --config /var/lib/forgejo/custom/conf/app.ini
+
 with lib;
 let
   cfg = config.shulker.system.modules.forgejo;

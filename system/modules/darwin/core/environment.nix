@@ -14,5 +14,9 @@ with lib;
         AttentionPrefBundleIDs = false;
       };
     };
+
+    environment.systemPath = [
+      "~/.local/bin"
+    ];
   };
 }
