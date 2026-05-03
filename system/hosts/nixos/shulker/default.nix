@@ -66,6 +66,18 @@
           mainPort = 23238;
           aioPort = 23239;
         };
+        git-pages = {
+          enable = true;
+          impermanence = true;
+          repos = [
+            {
+              name = "amphibian-website";
+              url = "https://git.amphibian.network/Amphibian/website.git";
+              branch = "main";
+              port = 23240;
+            }
+          ];
+        };
       };
     };
   };
@@ -102,8 +114,15 @@
             "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOcuA0ZxQyqfHlWrbdVT9Hu7/IQwZuh4aQa6X1gIHOSV"
           ];
         };
-        postCommands = ''
-          cat <<EOF > /root/.profile
+      };
+      systemd.services.initrd-zfs-profile = {
+        description = "Write ZFS load-key profile for initrd SSH shell";
+        wantedBy = [ "initrd.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+        };
+        script = ''
+          cat <<'EOF' > /root/.profile
           if pgrep -x "zfs" > /dev/null
           then
             zfs load-key -a
