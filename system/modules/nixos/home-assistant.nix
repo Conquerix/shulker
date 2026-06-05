@@ -39,7 +39,6 @@ in
       log-driver = "journald";
       extraOptions = [
         "--network=host"
-        "--restart=unless-stopped"
       ];
     };
 
