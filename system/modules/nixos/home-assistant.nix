@@ -26,6 +26,13 @@ in
 
   config = mkIf cfg.enable {
 
+    networking.firewall = {
+      enable = true;
+      allowedTCPPorts = [
+        8123
+      ];
+    };
+
     virtualisation.oci-containers.containers."home-assistant" = {
       image = "ghcr.io/home-assistant/home-assistant:stable";
       privileged = true;
