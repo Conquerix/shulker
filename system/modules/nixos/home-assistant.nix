@@ -39,6 +39,7 @@ in
       volumes = [
         "${cfg.stateDir}:/config:rw"
         "/run/dbus:/run/dbus:ro"
+        "/dev:/dev"
       ];
       environment = {
         TZ = cfg.timezone;
