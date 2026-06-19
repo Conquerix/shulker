@@ -36,6 +36,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # SteamOS-like "Steam Machine" experience (gamescope gaming mode)
+    jovian = {
+      url = "github:Jovian-Experiments/Jovian-NixOS";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Flake for minecraft pelican panel
     pelican-panel = {
       url = "github:conquerix/nix-pelican-panel";
@@ -95,6 +101,7 @@
               inputs.impermanence.nixosModule
               inputs.opnix.nixosModules.default
               inputs.eden.nixosModules.default
+              inputs.jovian.nixosModules.default
               inputs.pelican-panel.nixosModules.wings
               (import ./system/modules/common)
               (import ./system/modules/nixos)

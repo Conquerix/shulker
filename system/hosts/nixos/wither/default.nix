@@ -13,12 +13,6 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  programs.gamemode.enable = true;
-
-  # GDM auto-login for conquerix
-  services.xserver.displayManager.gdm.autoLogin.enable = true;
-  services.xserver.displayManager.gdm.autoLogin.user = "conquerix";
-
   networking.hostId = "7fbe10c9";
 
   services.udev.extraRules = ''
@@ -44,12 +38,15 @@
   shulker = {
     users.conquerix.enable = true;
     system = {
-      profiles.desktop.enable = true;
+      # SteamOS-like Steam Machine: boots into Gaming Mode, GNOME for "Switch to
+      # Desktop". Pulls in the desktop profile + Steam (Proton-GE) itself.
+      profiles.steam-machine = {
+        enable = true;
+        user = "conquerix";
+        desktopSession = "gnome";
+        amdGpu = true; # AMD iGPU drives the display; Nvidia dGPU is for offload
+      };
       modules = {
-        steam = {
-          enable = true;
-          protonGE = true;
-        };
         impermanence = {
           enable = true;
           home = true;
