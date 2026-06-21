@@ -30,6 +30,7 @@ in
       enable = true;
       allowedTCPPorts = [
         8123
+        21064
       ];
     };
 
