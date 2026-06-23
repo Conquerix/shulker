@@ -66,7 +66,9 @@ in
     hardware.nvidia.powerManagement.enable = true;
     hardware.nvidia.open = true;
     services.xserver.videoDrivers = [ "nvidia" ];
-    hardware.nvidia.modesetting.enable = false;
+    # Required for Wayland (gamescope / GNOME-Wayland) and for the Nvidia GPU to
+    # drive the display directly. Disabling this causes tearing and glitches.
+    hardware.nvidia.modesetting.enable = true;
     hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
     hardware.nvidia.prime = mkIf cfg.hybrid.enable {
       offload.enable = cfg.hybrid.offload;

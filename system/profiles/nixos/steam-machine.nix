@@ -63,6 +63,10 @@ in
           autoStart = cfg.autoStart;
           user = cfg.user;
           desktopSession = cfg.desktopSession;
+          # Make the HDR toggle appear in Steam > Settings > Display so gamescope
+          # renders an HDR output. Sunshine then captures that HDR framebuffer
+          # and streams it (HEVC Main10 / AV1) to HDR-capable Moonlight clients.
+          environment.STEAM_GAMESCOPE_HDR_SUPPORTED = "1";
         };
         decky-loader.enable = cfg.decky;
         hardware.has.amd.gpu = cfg.amdGpu;

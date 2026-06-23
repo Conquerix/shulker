@@ -44,7 +44,9 @@
         enable = true;
         user = "conquerix";
         desktopSession = "gnome";
-        amdGpu = true; # AMD iGPU drives the display; Nvidia dGPU is for offload
+        # Nvidia-only: the monitor is plugged into the Nvidia card, so the dGPU
+        # drives the display directly. No AMD GPU tuning needed.
+        amdGpu = false;
       };
       modules = {
         impermanence = {
@@ -57,15 +59,10 @@
           impermanence = true;
           host = "0.0.0.0";
         };
-        nvidia = {
-          enable = true;
-          hybrid = {
-            enable = true;
-            offload = true;
-            amdgpuBusId = "PCI:108:0:0";
-            nvidiaBusId = "PCI:1:0:0";
-          };
-        };
+        # Nvidia-only: the dGPU renders and scans out to the monitor directly.
+        # No PRIME hybrid/offload, so no cross-GPU frame copy (less latency, no
+        # tearing). The AMD iGPU stays present but unused.
+        nvidia.enable = true;
         sunshine.enable = true;
       };
     };
