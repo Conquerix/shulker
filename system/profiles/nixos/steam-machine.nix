@@ -67,12 +67,9 @@ in
           # renders an HDR output. Sunshine then captures that HDR framebuffer
           # and streams it (HEVC Main10 / AV1) to HDR-capable Moonlight clients.
           # environment.STEAM_GAMESCOPE_HDR_SUPPORTED = "1";
-          # Disable VRR/adaptive-sync in Gaming Mode. On Nvidia + TVs, VRR is a
-          # common cause of brightness flicker on static content (menus/desktop).
-          # gamescope is Vulkan and drives the DRM connector itself, so the GL
-          # __GL_VRR_ALLOWED/__GL_GSYNC_ALLOWED vars do NOT affect it — this is the
-          # flag that actually stops gamescope advertising/enabling VRR.
-          environment.STEAM_GAMESCOPE_VRR_SUPPORTED = "0";
+          environment.__GL_VRR_ALLOWED = "1";
+          environment.__GL_GSYNC_ALLOWED = "1";
+          environment.STEAM_GAMESCOPE_VRR_SUPPORTED = "1";
         };
         decky-loader.enable = cfg.decky;
         hardware.has.amd.gpu = cfg.amdGpu;
