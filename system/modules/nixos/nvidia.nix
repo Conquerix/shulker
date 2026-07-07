@@ -69,6 +69,11 @@ in
     # Required for Wayland (gamescope / GNOME-Wayland) and for the Nvidia GPU to
     # drive the display directly. Disabling this causes tearing and glitches.
     hardware.nvidia.modesetting.enable = true;
+    # modesetting alone only sets nvidia_drm.modeset=1. Wayland compositors
+    # (gamescope especially) also need the DRM framebuffer so they can enumerate
+    # the display's native modes and get clean scanout. Without fbdev=1 gamescope
+    # on Nvidia typically picks the wrong resolution/refresh and tears/flickers.
+    boot.kernelParams = [ "nvidia_drm.fbdev=1" ];
     hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.stable;
     hardware.nvidia.prime = mkIf cfg.hybrid.enable {
       offload.enable = cfg.hybrid.offload;
