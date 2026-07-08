@@ -44,9 +44,10 @@
         enable = true;
         user = "conquerix";
         desktopSession = "gnome";
-        # Nvidia-only: the monitor is plugged into the Nvidia card, so the dGPU
-        # drives the display directly. No AMD GPU tuning needed.
-        amdGpu = false;
+        # The AMD iGPU drives the display and runs gamescope; enable Jovian's
+        # AMD GPU tuning. Jovian on Nvidia direct scanout was too buggy, so the
+        # Nvidia dGPU is now used via PRIME offload only (see nvidia module below).
+        amdGpu = true;
       };
       modules = {
         impermanence = {
@@ -59,10 +60,19 @@
           impermanence = true;
           host = "0.0.0.0";
         };
-        # Nvidia-only: the dGPU renders and scans out to the monitor directly.
-        # No PRIME hybrid/offload, so no cross-GPU frame copy (less latency, no
-        # tearing). The AMD iGPU stays present but unused.
-        nvidia.enable = true;
+        # Hybrid: the AMD iGPU drives the display and gamescope scans out on it;
+        # the Nvidia dGPU is used on demand via PRIME render offload (run games
+        # with `nvidia-offload` / `__NV_PRIME_RENDER_OFFLOAD=1`). Bus IDs from
+        # `lshw -c display` (re-verify if the hardware/slots ever change).
+        nvidia = {
+          enable = true;
+          hybrid = {
+            enable = true;
+            offload = true;
+            amdgpuBusId = "PCI:108:0:0";
+            nvidiaBusId = "PCI:1:0:0";
+          };
+        };
         sunshine.enable = true;
       };
     };
