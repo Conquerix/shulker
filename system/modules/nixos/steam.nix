@@ -20,7 +20,20 @@ in
       enable = true;
       remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
       dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
+      # Steam Input can't inject input into Wayland sessions via XTEST; extest
+      # translates it. Needed for controller-as-mouse on the desktop (see
+      # ValveSoftware/steam-for-linux#13251).
+      extest.enable = true;
     };
+
+    # The stock Valve hidraw rules match ATTRS{idVendor}=="28de", which only
+    # exists on USB-parented devices — a Steam Controller paired over
+    # Bluetooth never matches, so Steam can't open its hidraw node. Valve's
+    # own rules add this BT device-path match; needed for the 2026 Steam
+    # Controller (ValveSoftware/steam-for-linux#13251).
+    services.udev.extraRules = ''
+      KERNEL=="hidraw*", KERNELS=="*28DE:*", MODE="0660", TAG+="uaccess"
+    '';
 
     environment = mkIf cfg.protonGE {
       sessionVariables = rec {

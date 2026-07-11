@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   ...
 }:
@@ -51,20 +52,37 @@
     enableCache = true; # Optional: Enable cache (see Cachix section)
   };
 
+  # TV-couch usability: log straight into GNOME and start Steam in Big Picture.
+  # The desktop profile disables autologin (multi-user default), so force it
+  # back on for this single-seat living-room box.
+  services.displayManager.autoLogin = {
+    enable = lib.mkForce true;
+    user = "conquerix";
+  };
+  environment.etc."xdg/autostart/steam-bigpicture.desktop".text = ''
+    [Desktop Entry]
+    Type=Application
+    Name=Steam (Big Picture)
+    Exec=steam -bigpicture
+  '';
+
+  # GameMode lets games request CPU/GPU performance tweaks on the fly
+  # (was provided by the steam-machine profile before).
+  programs.gamemode.enable = true;
+
   shulker = {
     users.conquerix.enable = true;
     system = {
-      # SteamOS-like Steam Machine: boots into Gaming Mode, GNOME for "Switch to
-      # Desktop". Pulls in the desktop profile + Steam (Proton-GE) itself.
-      profiles.steam-machine = {
-        enable = true;
-        user = "conquerix";
-        desktopSession = "gnome";
-        # Nvidia-only: the TV is plugged into the Nvidia card's HDMI 2.1 port
-        # and the dGPU drives the display directly, so no AMD GPU tuning.
-        amdGpu = false;
-      };
+      # Normal GNOME desktop. The Jovian steam-machine profile is parked for
+      # now: gamescope glitches on Nvidia scanout (GNOME on the same driver,
+      # cable and mode is clean, so it's gamescope-specific). Steam runs in
+      # Big Picture on the desktop instead (autologin + autostart above).
+      profiles.desktop.enable = true;
       modules = {
+        steam = {
+          enable = true;
+          protonGE = true;
+        };
         impermanence = {
           enable = true;
           home = true;
