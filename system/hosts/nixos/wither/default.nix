@@ -19,6 +19,16 @@
   # iGPU back (e.g. to retry AMD scanout).
   boot.blacklistedKernelModules = [ "amdgpu" ];
 
+  # Diagnostic: the S95F image glitches like a broken signal. Force the
+  # conservative HDMI signal mode (plain TMDS instead of HDMI 2.1 FRL, 8-bit
+  # instead of deep color) — the same mode the AMD iGPU used. Caps output at
+  # 4K@60. If the image is clean with this, the glitching is FRL link quality
+  # (cable / One Connect box); remove both params to get 4K@120+/VRR back.
+  boot.kernelParams = [
+    "nvidia_modeset.disable_hdmi_frl=1"
+    "nvidia_modeset.hdmi_deepcolor=0"
+  ];
+
   networking.hostId = "7fbe10c9";
 
   services.udev.extraRules = ''
