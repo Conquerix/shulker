@@ -53,6 +53,7 @@ in
         alttab-mod # Better Alt+Tab
         vitals # CPU temp, etc
         pop-shell # Better than forge right above ?
+        no-overview # Start on the desktop instead of the Activities overview
       ]
       ++ (with pkgs; [
         pamixer
