@@ -13,6 +13,12 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  # Nvidia-only display path: keep the AMD iGPU out of the picture entirely.
+  # As a second DRM device it is a source of wrong-GPU bugs (gamescope/mutter
+  # binding the iGPU, Vulkan enumerating it first). Drop this line to get the
+  # iGPU back (e.g. to retry AMD scanout).
+  boot.blacklistedKernelModules = [ "amdgpu" ];
+
   networking.hostId = "7fbe10c9";
 
   services.udev.extraRules = ''
@@ -44,10 +50,9 @@
         enable = true;
         user = "conquerix";
         desktopSession = "gnome";
-        # The AMD iGPU drives the display and runs gamescope; enable Jovian's
-        # AMD GPU tuning. Jovian on Nvidia direct scanout was too buggy, so the
-        # Nvidia dGPU is now used via PRIME offload only (see nvidia module below).
-        amdGpu = true;
+        # Nvidia-only: the TV is plugged into the Nvidia card's HDMI 2.1 port
+        # and the dGPU drives the display directly, so no AMD GPU tuning.
+        amdGpu = false;
       };
       modules = {
         impermanence = {
@@ -60,19 +65,14 @@
           impermanence = true;
           host = "0.0.0.0";
         };
-        # Hybrid: the AMD iGPU drives the display and gamescope scans out on it;
-        # the Nvidia dGPU is used on demand via PRIME render offload (run games
-        # with `nvidia-offload` / `__NV_PRIME_RENDER_OFFLOAD=1`). Bus IDs from
-        # `lshw -c display` (re-verify if the hardware/slots ever change).
-        nvidia = {
-          enable = true;
-          hybrid = {
-            enable = true;
-            offload = true;
-            amdgpuBusId = "PCI:108:0:0";
-            nvidiaBusId = "PCI:1:0:0";
-          };
-        };
+        # Nvidia-only: the dGPU renders and scans out to the TV directly over
+        # HDMI 2.1 — needed for 4K@120+/VRR on the S95F, which amdgpu cannot do
+        # (no HDMI 2.1 on the open driver). The earlier direct-scanout attempt
+        # predated driver 595/explicit sync and ran with the iGPU still active;
+        # both are addressed now (amdgpu blacklisted above). PRIME bus IDs for
+        # reference if hybrid is ever needed again: amdgpu PCI:108:0:0,
+        # nvidia PCI:1:0:0.
+        nvidia.enable = true;
         sunshine.enable = true;
       };
     };

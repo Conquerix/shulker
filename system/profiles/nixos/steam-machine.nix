@@ -67,9 +67,14 @@ in
           # renders an HDR output. Sunshine then captures that HDR framebuffer
           # and streams it (HEVC Main10 / AV1) to HDR-capable Moonlight clients.
           # environment.STEAM_GAMESCOPE_HDR_SUPPORTED = "1";
-          environment.__GL_VRR_ALLOWED = "1";
-          environment.__GL_GSYNC_ALLOWED = "1";
-          environment.STEAM_GAMESCOPE_VRR_SUPPORTED = "1";
+          # VRR/tearing notes: the stock gamescope-session script already exports
+          # STEAM_GAMESCOPE_VRR_SUPPORTED=1 and STEAM_GAMESCOPE_TEARING_SUPPORTED=1
+          # (this attrset is sourced *after* it, as overrides). The toggles only
+          # show up in Steam > Settings > Display when the display link actually
+          # supports VRR. gamescope is Vulkan and drives the DRM connector itself,
+          # so __GL_VRR_ALLOWED/__GL_GSYNC_ALLOWED have no effect on it. If VRR
+          # causes OLED brightness flicker, switch it off in the Steam UI toggle
+          # rather than here.
         };
         decky-loader.enable = cfg.decky;
         hardware.has.amd.gpu = cfg.amdGpu;
