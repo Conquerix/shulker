@@ -4,6 +4,32 @@
   ...
 }:
 
+let
+  # gamescope from pinned master: the 3.16.24 release has a cluster of
+  # nested-backend bugs we hit on this box (game composited tiny at (0,0)
+  # after closing the Steam overlay/QAM, input focus not returning to the
+  # game, presentation stall after a fullscreen window resize). Master has
+  # direct fixes: a563226d "do not forcefully snap focus windows to (0,0)",
+  # 727c0856/dac83bb6 _NET_ACTIVE_WINDOW keyboard-focus fixes, 9dad5bd2
+  # swapchain use-after-free. Drop back to pkgs.gamescope once a release
+  # containing these ships in nixpkgs.
+  gamescope-master = pkgs.gamescope.overrideAttrs (old: {
+    version = "3.16.24-unstable-2026-07-13";
+    src = pkgs.fetchFromGitHub {
+      owner = "ValveSoftware";
+      repo = "gamescope";
+      rev = "16a44df7b4a067daf62a38d73d87a0a9cdca45a3";
+      fetchSubmodules = true;
+      hash = "sha256-lBmH3MOyG5/8Ogiyt/HFczy8QoeU3kOfOZ/C4fKUUTo=";
+    };
+    # Keep nixpkgs' packaging patches (*.patch: shader path, reaper path) but
+    # drop its upstream-commit backports (*.diff) — they target 3.16.24 and
+    # don't apply on master.
+    patches = builtins.filter (
+      p: lib.hasSuffix ".patch" (p.name or (builtins.baseNameOf p))
+    ) old.patches;
+  });
+in
 {
   imports = [ ./hardware.nix ];
 
@@ -117,10 +143,10 @@
       # smaller than the output and composites them tiny in the top-left
       # corner. Practical rule: run games at native 3840x2160 (no transform
       # to lose, no resize needed). Revisit both on gamescope bumps.
-      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 165 --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
+      ExecStart = "${gamescope-master}/bin/gamescope -W 3840 -H 2160 -r 165 --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
       ExecStartPost = "${pkgs.writeShellScript "gamescope-force-sdr" ''
         for _ in $(seq 30); do
-          if ${pkgs.gamescope}/bin/gamescopectl hdr_enabled 0 2>/dev/null; then
+          if ${gamescope-master}/bin/gamescopectl hdr_enabled 0 2>/dev/null; then
             exit 0
           fi
           sleep 1
@@ -153,12 +179,14 @@
     }
   ];
 
-  # The session wrapper above pins its own pkgs.gamescope; this additionally
-  # puts gamescope on PATH for manual/per-game use (`gamescope ... --
-  # %command%`, e.g. to override the session defaults for one title).
-  # capSysNice stays off: setcap binaries can't run from Steam's bwrap
-  # sandbox.
-  programs.gamescope.enable = true;
+  # The session wrapper above pins the same package; this additionally puts
+  # gamescope on PATH for manual/per-game use (`gamescope ... -- %command%`,
+  # e.g. to override the session defaults for one title). capSysNice stays
+  # off: setcap binaries can't run from Steam's bwrap sandbox.
+  programs.gamescope = {
+    enable = true;
+    package = gamescope-master;
+  };
 
   # GameMode lets games request CPU/GPU performance tweaks on the fly
   # (was provided by the steam-machine profile before).
