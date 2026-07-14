@@ -174,14 +174,24 @@ in
       # corner. Practical rule: run games at native 3840x2160 (no transform
       # to lose, no resize needed). Revisit both on gamescope bumps.
       ExecStart = "${gamescope-master}/bin/gamescope -W 3840 -H 2160 -r 165 --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
-      ExecStartPost = "${pkgs.writeShellScript "gamescope-force-sdr" ''
+      # Runtime convar pins, applied once the control socket is up:
+      # - hdr_enabled 0: keep the composite pipeline SDR (see above). Note
+      #   Steam re-enables it when an HDR-capable game launches and the
+      #   pipeline wedges; the durable half of that fix is the HDR toggle
+      #   turned OFF in gaming mode Settings > Display (user-level setting).
+      # - adaptive_sync_ignore_overlay 1: after the QAM closes, Steam's
+      #   overlay layer keeps repainting invisibly; with VRR each repaint
+      #   forces a commit decoupled from game frames — lingering judder
+      #   (seen in Clair Obscur). Pace VRR commits on the game only.
+      ExecStartPost = "${pkgs.writeShellScript "gamescope-convar-pins" ''
         for _ in $(seq 30); do
           if ${gamescope-master}/bin/gamescopectl hdr_enabled 0 2>/dev/null; then
+            ${gamescope-master}/bin/gamescopectl adaptive_sync_ignore_overlay 1 2>/dev/null
             exit 0
           fi
           sleep 1
         done
-        # Non-fatal: better a possibly-HDR gamescope than a restart loop.
+        # Non-fatal: better an unpinned gamescope than a restart loop.
         exit 0
       ''}";
       Restart = "always";
