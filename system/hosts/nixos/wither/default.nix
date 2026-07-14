@@ -92,7 +92,12 @@
       # gamescope's 16-bit composite formats (AB48/XB48), so the flag delivers
       # no HDR while switching internal paths onto the broken formats. Retry
       # after gamescope/driver/mutter bumps.
-      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --backend sdl --fullscreen --steam -- ${pkgs.steam}/bin/steam -bigpicture";
+      # SteamOS session flags instead of plain -bigpicture: in -bigpicture
+      # mode Steam raises its UI over the game inside gamescope's Xwayland
+      # when the overlay/QAM opens but never refocuses the game on close —
+      # permanent black "in-game" backdrop. -steamos3/-steampal/-steamdeck
+      # make Steam drive gamescope's window focus like on a Steam Deck.
+      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --backend sdl --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal -steamdeck";
       Restart = "always";
       RestartSec = 5;
     };
