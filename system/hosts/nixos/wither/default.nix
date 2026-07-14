@@ -109,7 +109,12 @@
       # compositing kicks in (opening the Steam overlay/QAM over a game).
       # Game HDR was never exposed anyway (bExposeHDRSupport: false); revisit
       # after driver/mutter bumps.
-      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 165 --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
+      # --force-windows-fullscreen: after closing the Steam overlay/QAM,
+      # gamescope sometimes re-composites the game at a stale tiny geometry
+      # in the top-left corner (window still reports _NET_WM_STATE_FULLSCREEN
+      # and stays focused — the layer transform is what's wrong). Forcing all
+      # windows to the nested display size makes that state unrepresentable.
+      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 165 --force-windows-fullscreen --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
       ExecStartPost = "${pkgs.writeShellScript "gamescope-force-sdr" ''
         for _ in $(seq 30); do
           if ${pkgs.gamescope}/bin/gamescopectl hdr_enabled 0 2>/dev/null; then
