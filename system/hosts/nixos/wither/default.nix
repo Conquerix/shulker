@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   ...
@@ -19,16 +20,6 @@
   # binding the iGPU, Vulkan enumerating it first). Drop this line to get the
   # iGPU back (e.g. to retry AMD scanout).
   boot.blacklistedKernelModules = [ "amdgpu" ];
-
-  # Diagnostic: the S95F image glitches like a broken signal. Force the
-  # conservative HDMI signal mode (plain TMDS instead of HDMI 2.1 FRL, 8-bit
-  # instead of deep color) — the same mode the AMD iGPU used. Caps output at
-  # 4K@60. If the image is clean with this, the glitching is FRL link quality
-  # (cable / One Connect box); remove both params to get 4K@120+/VRR back.
-  boot.kernelParams = [
-    "nvidia_modeset.disable_hdmi_frl=1"
-    "nvidia_modeset.hdmi_deepcolor=0"
-  ];
 
   networking.hostId = "7fbe10c9";
 
@@ -59,12 +50,61 @@
     enable = lib.mkForce true;
     user = "conquerix";
   };
-  environment.etc."xdg/autostart/steam-bigpicture.desktop".text = ''
-    [Desktop Entry]
-    Type=Application
-    Name=Steam (Big Picture)
-    Exec=steam -bigpicture
-  '';
+
+  # Steam runs as a supervised user service instead of an xdg autostart entry:
+  # a crash relaunches into Big Picture instead of leaving an empty desktop. A
+  # deliberate quit sticks (Restart=on-failure, clean exit = 0). GNOME imports
+  # DISPLAY/WAYLAND_DISPLAY into the user manager before
+  # graphical-session.target goes active, so the session env is available.
+  #
+  # Big Picture is wrapped in *nested* gamescope (SteamOS gaming mode as a
+  # fullscreen GNOME window): every game automatically runs inside gamescope's
+  # embedded Xwayland — upscaling, frame caps, HDR — no per-game launch
+  # options needed. Nested = Wayland backend; GNOME keeps the DRM connector,
+  # so this sidesteps the gamescope-on-Nvidia scanout glitching that parked
+  # Jovian. VRR is mutter's job here (gamescope VRR flags are inert nested).
+  # If steamwebhelper flickers inside gamescope, drop the gamescope wrapper
+  # from ExecStart and use per-game gamescope launch options instead.
+  systemd.user.services.steam-bigpicture = {
+    description = "Steam (Big Picture)";
+    wantedBy = [ "graphical-session.target" ];
+    partOf = [ "graphical-session.target" ];
+    after = [ "graphical-session.target" ];
+    serviceConfig = {
+      # steam from the programs.steam wrapper, not raw pkgs.steam: keeps
+      # extest preload and the Proton-GE compat paths.
+      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --hdr-enabled --fullscreen --steam -- ${config.programs.steam.package}/bin/steam -bigpicture";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+  };
+
+  # Console-mode GNOME: no blanking, locking, or notification popups over
+  # games — screen-off is the TV's/Steam's job, like a real console. These are
+  # defaults (system db); changes made in Settings on the box still win.
+  programs.dconf.profiles.user.databases = [
+    {
+      settings = {
+        # VRR is behind a mutter experimental flag (fine on Nvidia with
+        # explicit sync). Per-monitor toggle then appears in Settings >
+        # Displays and has to be flipped once.
+        "org/gnome/mutter".experimental-features = [ "variable-refresh-rate" ];
+        "org/gnome/desktop/session".idle-delay = lib.gvariant.mkUint32 0;
+        "org/gnome/desktop/screensaver".lock-enabled = false;
+        "org/gnome/settings-daemon/plugins/power".sleep-inactive-ac-type = "nothing";
+        "org/gnome/desktop/notifications".show-banners = false;
+        # Couch-readable UI at TV distance.
+        "org/gnome/desktop/interface".text-scaling-factor = 1.25;
+      };
+    }
+  ];
+
+  # The session wrapper above pins its own pkgs.gamescope; this additionally
+  # puts gamescope on PATH for manual/per-game use (`gamescope ... --
+  # %command%`, e.g. to override the session defaults for one title).
+  # capSysNice stays off: setcap binaries can't run from Steam's bwrap
+  # sandbox.
+  programs.gamescope.enable = true;
 
   # GameMode lets games request CPU/GPU performance tweaks on the fly
   # (was provided by the steam-machine profile before).
