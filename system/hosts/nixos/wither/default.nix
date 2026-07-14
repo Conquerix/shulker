@@ -78,7 +78,20 @@
       # needed on the plain GNOME desktop, where it stays enabled. Proton-GE
       # still resolves via STEAM_EXTRA_COMPAT_TOOLS_PATHS (session var from
       # the steam module).
-      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --hdr-enabled --fullscreen --steam -- ${pkgs.steam}/bin/steam -bigpicture";
+      #
+      # --force-composition: without it, nested gamescope "bypasses" (forwards
+      # the game buffer straight to mutter) and re-composites when the Steam
+      # overlay/QAM opens; the switch back desyncs explicit-sync buffer
+      # tracking on Nvidia ("Compositor released us but we were not acquired")
+      # and the game goes permanently black. Always compositing avoids the
+      # transition; the extra blit is nothing at 4K on this GPU.
+      #
+      # No --hdr-enabled (yet): mutter doesn't expose what gamescope needs
+      # (bExposeHDRSupport: false) and the driver returns zero modifiers for
+      # gamescope's 16-bit composite formats (AB48/XB48), so the flag delivers
+      # no HDR while switching internal paths onto the broken formats. Retry
+      # after gamescope/driver/mutter bumps.
+      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --force-composition --fullscreen --steam -- ${pkgs.steam}/bin/steam -bigpicture";
       Restart = "always";
       RestartSec = 5;
     };
