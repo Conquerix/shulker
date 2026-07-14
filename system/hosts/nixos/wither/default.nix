@@ -79,25 +79,27 @@
       # still resolves via STEAM_EXTRA_COMPAT_TOOLS_PATHS (session var from
       # the steam module).
       #
-      # --backend sdl: gamescope's native Wayland backend desyncs explicit-sync
-      # buffer tracking with mutter on Nvidia ("Compositor released us but we
-      # were not acquired") and games go permanently black after the Steam
-      # overlay/QAM closes — --force-composition didn't help, so it's not just
-      # the bypass↔composite transition. The SDL backend presents through a
-      # plain swapchain and avoids that code path entirely, at the cost of a
-      # little latency. Retry the wayland backend after gamescope bumps.
+      # SteamOS session flags instead of plain -bigpicture: in -bigpicture
+      # mode Steam raises its UI over the game inside gamescope's Xwayland
+      # when the overlay/QAM opens but never refocuses the game on close —
+      # permanent black "in-game" backdrop. -steamos3/-steampal make Steam
+      # drive gamescope's window focus like on a Steam Deck (the bootstrap
+      # re-adds -steamdeck/-pipewire itself in this mode).
+      #
+      # Backend: gamescope's default Wayland backend. Do NOT pair the SteamOS
+      # flags with --backend sdl: Steam's display reconfiguration makes SDL
+      # re-create its xdg_toplevel on a wl_surface that already has a buffer
+      # committed (xdg_wm_base error 4), mutter kills the connection, and the
+      # service crash-loops. The Wayland backend handles reconfig natively;
+      # its "Compositor released us but we were not acquired" log spam is
+      # benign (ValveSoftware/gamescope#1636).
       #
       # No --hdr-enabled (yet): mutter doesn't expose what gamescope needs
       # (bExposeHDRSupport: false) and the driver returns zero modifiers for
       # gamescope's 16-bit composite formats (AB48/XB48), so the flag delivers
       # no HDR while switching internal paths onto the broken formats. Retry
       # after gamescope/driver/mutter bumps.
-      # SteamOS session flags instead of plain -bigpicture: in -bigpicture
-      # mode Steam raises its UI over the game inside gamescope's Xwayland
-      # when the overlay/QAM opens but never refocuses the game on close —
-      # permanent black "in-game" backdrop. -steamos3/-steampal/-steamdeck
-      # make Steam drive gamescope's window focus like on a Steam Deck.
-      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --backend sdl --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal -steamdeck";
+      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
       Restart = "always";
       RestartSec = 5;
     };
