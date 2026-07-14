@@ -79,19 +79,20 @@
       # still resolves via STEAM_EXTRA_COMPAT_TOOLS_PATHS (session var from
       # the steam module).
       #
-      # --force-composition: without it, nested gamescope "bypasses" (forwards
-      # the game buffer straight to mutter) and re-composites when the Steam
-      # overlay/QAM opens; the switch back desyncs explicit-sync buffer
-      # tracking on Nvidia ("Compositor released us but we were not acquired")
-      # and the game goes permanently black. Always compositing avoids the
-      # transition; the extra blit is nothing at 4K on this GPU.
+      # --backend sdl: gamescope's native Wayland backend desyncs explicit-sync
+      # buffer tracking with mutter on Nvidia ("Compositor released us but we
+      # were not acquired") and games go permanently black after the Steam
+      # overlay/QAM closes — --force-composition didn't help, so it's not just
+      # the bypass↔composite transition. The SDL backend presents through a
+      # plain swapchain and avoids that code path entirely, at the cost of a
+      # little latency. Retry the wayland backend after gamescope bumps.
       #
       # No --hdr-enabled (yet): mutter doesn't expose what gamescope needs
       # (bExposeHDRSupport: false) and the driver returns zero modifiers for
       # gamescope's 16-bit composite formats (AB48/XB48), so the flag delivers
       # no HDR while switching internal paths onto the broken formats. Retry
       # after gamescope/driver/mutter bumps.
-      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --force-composition --fullscreen --steam -- ${pkgs.steam}/bin/steam -bigpicture";
+      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --backend sdl --fullscreen --steam -- ${pkgs.steam}/bin/steam -bigpicture";
       Restart = "always";
       RestartSec = 5;
     };
