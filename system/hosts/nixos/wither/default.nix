@@ -99,7 +99,14 @@
       # gamescope's 16-bit composite formats (AB48/XB48), so the flag delivers
       # no HDR while switching internal paths onto the broken formats. Retry
       # after gamescope/driver/mutter bumps.
-      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
+      # Keep the GNOME output in SDR (color-mode "default", set via gdctl,
+      # persisted in monitors.xml): with the output in HDR/bt2100, gamescope
+      # composites into 16-bit formats the Nvidia driver returns zero DRM
+      # modifiers for, and the screen goes permanently black the first time
+      # compositing kicks in (opening the Steam overlay/QAM over a game).
+      # Desktop HDR delivered nothing in games anyway (bExposeHDRSupport:
+      # false); revisit together with --hdr-enabled after driver/mutter bumps.
+      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 165 --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
       Restart = "always";
       RestartSec = 5;
     };
