@@ -28,6 +28,13 @@ let
     patches = builtins.filter (
       p: lib.hasSuffix ".patch" (p.name or (builtins.baseNameOf p))
     ) old.patches;
+    # Master dropped the glm/stb include-dir meson options (they are regular
+    # dependencies now); the 3.16.24 recipe still passes them and meson hard
+    # errors on unknown options.
+    mesonFlags = builtins.filter (
+      f: !(lib.hasPrefix "-Dglm_include_dir" f || lib.hasPrefix "-Dstb_include_dir" f)
+    ) (old.mesonFlags or [ ]);
+    buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.glm ];
   });
 in
 {
