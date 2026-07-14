@@ -109,12 +109,15 @@
       # compositing kicks in (opening the Steam overlay/QAM over a game).
       # Game HDR was never exposed anyway (bExposeHDRSupport: false); revisit
       # after driver/mutter bumps.
-      # --force-windows-fullscreen: after closing the Steam overlay/QAM,
-      # gamescope sometimes re-composites the game at a stale tiny geometry
-      # in the top-left corner (window still reports _NET_WM_STATE_FULLSCREEN
-      # and stays focused — the layer transform is what's wrong). Forcing all
-      # windows to the nested display size makes that state unrepresentable.
-      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 165 --force-windows-fullscreen --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
+      # Known gamescope 3.16.24 nested-backend bugs and their operating rules:
+      # resizing a fullscreen game window stalls its presentation permanently
+      # (frozen image, audio continues) — so no --force-windows-fullscreen,
+      # which force-resizes every game at map time. And after closing the
+      # Steam overlay/QAM, gamescope loses the upscale transform for windows
+      # smaller than the output and composites them tiny in the top-left
+      # corner. Practical rule: run games at native 3840x2160 (no transform
+      # to lose, no resize needed). Revisit both on gamescope bumps.
+      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 165 --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
       ExecStartPost = "${pkgs.writeShellScript "gamescope-force-sdr" ''
         for _ in $(seq 30); do
           if ${pkgs.gamescope}/bin/gamescopectl hdr_enabled 0 2>/dev/null; then
