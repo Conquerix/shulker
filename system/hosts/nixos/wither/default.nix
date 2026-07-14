@@ -1,5 +1,4 @@
 {
-  config,
   lib,
   pkgs,
   ...
@@ -51,10 +50,11 @@
     user = "conquerix";
   };
 
-  # Steam runs as a supervised user service instead of an xdg autostart entry:
-  # a crash relaunches into Big Picture instead of leaving an empty desktop. A
-  # deliberate quit sticks (Restart=on-failure, clean exit = 0). GNOME imports
-  # DISPLAY/WAYLAND_DISPLAY into the user manager before
+  # Steam runs as a supervised user service instead of an xdg autostart entry.
+  # Restart=always gives SteamOS semantics: any exit — crash or quit —
+  # relaunches Big Picture. on-failure is not enough: gamescope exits 0 even
+  # when Steam aborts underneath it ("Primary child shut down!"). GNOME
+  # imports DISPLAY/WAYLAND_DISPLAY into the user manager before
   # graphical-session.target goes active, so the session env is available.
   #
   # Big Picture is wrapped in *nested* gamescope (SteamOS gaming mode as a
@@ -71,10 +71,15 @@
     partOf = [ "graphical-session.target" ];
     after = [ "graphical-session.target" ];
     serviceConfig = {
-      # steam from the programs.steam wrapper, not raw pkgs.steam: keeps
-      # extest preload and the Proton-GE compat paths.
-      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --hdr-enabled --fullscreen --steam -- ${config.programs.steam.package}/bin/steam -bigpicture";
-      Restart = "on-failure";
+      # Raw pkgs.steam, NOT the programs.steam wrapper: the wrapper preloads
+      # extest, whose XTEST shim panics and aborts Steam inside gamescope's
+      # Xwayland (XTestFakeRelativeMotionEvent -> Rust panic_cannot_unwind).
+      # gamescope handles XTEST for Steam Input natively, so extest is only
+      # needed on the plain GNOME desktop, where it stays enabled. Proton-GE
+      # still resolves via STEAM_EXTRA_COMPAT_TOOLS_PATHS (session var from
+      # the steam module).
+      ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 120 --hdr-enabled --fullscreen --steam -- ${pkgs.steam}/bin/steam -bigpicture";
+      Restart = "always";
       RestartSec = 5;
     };
   };
