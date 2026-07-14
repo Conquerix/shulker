@@ -99,14 +99,27 @@
       # gamescope's 16-bit composite formats (AB48/XB48), so the flag delivers
       # no HDR while switching internal paths onto the broken formats. Retry
       # after gamescope/driver/mutter bumps.
-      # Keep the GNOME output in SDR (color-mode "default", set via gdctl,
-      # persisted in monitors.xml): with the output in HDR/bt2100, gamescope
+      # The GNOME output stays in HDR/bt2100 (monitors.xml): counterintuitively
+      # that is the SIGNAL-stable config on this cable/One Connect — HDR runs
+      # DSC-compressed, while uncompressed SDR glitches at both 4K@120 and
+      # 4K@165. Gamescope's own pipeline is then forced to SDR via the
+      # hdr_enabled convar (ExecStartPost below): with it on, gamescope
       # composites into 16-bit formats the Nvidia driver returns zero DRM
       # modifiers for, and the screen goes permanently black the first time
       # compositing kicks in (opening the Steam overlay/QAM over a game).
-      # Desktop HDR delivered nothing in games anyway (bExposeHDRSupport:
-      # false); revisit together with --hdr-enabled after driver/mutter bumps.
+      # Game HDR was never exposed anyway (bExposeHDRSupport: false); revisit
+      # after driver/mutter bumps.
       ExecStart = "${pkgs.gamescope}/bin/gamescope -W 3840 -H 2160 -r 165 --fullscreen --steam -- ${pkgs.steam}/bin/steam -gamepadui -steamos3 -steampal";
+      ExecStartPost = "${pkgs.writeShellScript "gamescope-force-sdr" ''
+        for _ in $(seq 30); do
+          if ${pkgs.gamescope}/bin/gamescopectl hdr_enabled 0 2>/dev/null; then
+            exit 0
+          fi
+          sleep 1
+        done
+        # Non-fatal: better a possibly-HDR gamescope than a restart loop.
+        exit 0
+      ''}";
       Restart = "always";
       RestartSec = 5;
     };
