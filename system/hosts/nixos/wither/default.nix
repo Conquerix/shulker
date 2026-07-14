@@ -34,7 +34,30 @@ let
     mesonFlags = builtins.filter (
       f: !(lib.hasPrefix "-Dglm_include_dir" f || lib.hasPrefix "-Dstb_include_dir" f)
     ) (old.mesonFlags or [ ]);
-    buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.glm ];
+    # Master consumes glm/stb as unconditional meson wrap-git subprojects,
+    # which can't download in the sandbox. Pre-seed them at the revisions
+    # from subprojects/{glm,stb}.wrap and apply the packagefiles overlays
+    # (the wrap patch_directory) that carry their meson build files.
+    postPatch = (old.postPatch or "") + ''
+      cp -r --no-preserve=mode ${
+        pkgs.fetchFromGitHub {
+          owner = "g-truc";
+          repo = "glm";
+          rev = "0af55ccecd98d4e5a8d1fad7de25ba429d60e863";
+          hash = "sha256-GnGyzNRpzuguc3yYbEFtYLvG+KiCtRAktiN+NvbOICE=";
+        }
+      } subprojects/glm
+      cp -r --no-preserve=mode subprojects/packagefiles/glm/. subprojects/glm/
+      cp -r --no-preserve=mode ${
+        pkgs.fetchFromGitHub {
+          owner = "nothings";
+          repo = "stb";
+          rev = "5736b15f7ea0ffb08dd38af21067c314d6a3aae9";
+          hash = "sha256-s2ASdlT3bBNrqvwfhhN6skjbmyEnUgvNOrvhgUSRj98=";
+        }
+      } subprojects/stb
+      cp -r --no-preserve=mode subprojects/packagefiles/stb/. subprojects/stb/
+    '';
   });
 in
 {
