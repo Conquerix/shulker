@@ -26,6 +26,12 @@ in
         "/var/lib/bluetooth"
         "/var/lib/systemd/coredump"
         "/var/lib/acme"
+        # opnix-provisioned secrets (incl. the sshd host key) and its change
+        # detection state. Without this, every boot wipes the host key,
+        # sshd-keygen regenerates a random one at the same path, and the SSH
+        # host key rotates whenever opnix can't reach 1Password before sshd
+        # starts (DNS races network-online at boot).
+        "/var/lib/opnix"
         "/etc/NetworkManager/system-connections"
         "/etc/nixos"
         "/etc/secrets"
