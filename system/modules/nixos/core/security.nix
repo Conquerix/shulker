@@ -29,17 +29,21 @@ with lib;
       # network-online.target regularly fires before DNS answers (NM reports
       # the link up, resolution lags a few seconds) and opnix burns its 3
       # attempts within ~10s, then waits RestartSec to retry. Hold the fetch
-      # until the 1Password endpoint actually resolves (bounded at 60s), and
+      # until the 1Password endpoint actually resolves (bounded at ~60s), and
       # shorten the retry from the module's 15min to 30s so a genuinely
-      # failed boot-time fetch recovers promptly.
+      # failed boot-time fetch recovers promptly. dig, not getent: opnix's
+      # resolver reads resolv.conf directly, while getent goes through
+      # NSS/nscd which can lag long after direct resolution already works
+      # (observed: getent still failing at +60s, opnix succeeding 3s later).
       preStart = ''
-        for _ in $(${pkgs.coreutils}/bin/seq 30); do
-          if ${pkgs.glibc.bin}/bin/getent hosts my.1password.com > /dev/null 2>&1; then
+        for _ in $(${pkgs.coreutils}/bin/seq 20); do
+          if ${pkgs.dnsutils}/bin/dig +short +tries=1 +time=2 my.1password.com \
+            | ${pkgs.gnugrep}/bin/grep -q .; then
             exit 0
           fi
-          ${pkgs.coreutils}/bin/sleep 2
+          ${pkgs.coreutils}/bin/sleep 1
         done
-        echo "DNS still not resolving my.1password.com after 60s; letting opnix try anyway" >&2
+        echo "DNS still not resolving my.1password.com after ~60s; letting opnix try anyway" >&2
       '';
       serviceConfig.RestartSec = lib.mkForce "30s";
     };
