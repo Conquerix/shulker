@@ -26,6 +26,22 @@ with lib;
       requires = [ "network-online.target" ];
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
+      # network-online.target regularly fires before DNS answers (NM reports
+      # the link up, resolution lags a few seconds) and opnix burns its 3
+      # attempts within ~10s, then waits RestartSec to retry. Hold the fetch
+      # until the 1Password endpoint actually resolves (bounded at 60s), and
+      # shorten the retry from the module's 15min to 30s so a genuinely
+      # failed boot-time fetch recovers promptly.
+      preStart = ''
+        for _ in $(${pkgs.coreutils}/bin/seq 30); do
+          if ${pkgs.glibc.bin}/bin/getent hosts my.1password.com > /dev/null 2>&1; then
+            exit 0
+          fi
+          ${pkgs.coreutils}/bin/sleep 2
+        done
+        echo "DNS still not resolving my.1password.com after 60s; letting opnix try anyway" >&2
+      '';
+      serviceConfig.RestartSec = lib.mkForce "30s";
     };
 
     # sshd-keygen generates any *missing* configured host key — including the
