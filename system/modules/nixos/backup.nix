@@ -38,7 +38,21 @@ in
         keep_daily = 7;
         keep_weekly = 4;
         keep_monthly = 6;
+        checks = [
+          {
+            name = "repository";
+            frequency = "1 week";
+          }
+          {
+            name = "archives";
+            frequency = "1 month";
+          }
+        ];
       };
+    };
+    systemd.services.borgmatic.serviceConfig.StateDirectory = "borgmatic";
+    environment.persistence = mkIf config.shulker.system.modules.impermanence.enable {
+      "/nix/persist".directories = [ "/var/lib/borgmatic" ];
     };
     services.onepassword-secrets.secrets.hetznerBorgPassword = {
       reference = "op://Shulker/${config.networking.hostName}/Backups/Hetzner StorageBox borgbackup password";

@@ -80,6 +80,29 @@ Every NixOS host expects `conquerix-password-hash`; `endermite` additionally
 expects `camelia-password-hash`. Existing mutable users keep their current
 password if the corresponding file has not been provisioned yet.
 
+## Backup verification and restoration
+
+Borgmatic performs weekly repository checks and monthly archive checks. Test
+the repository and inspect its archives manually after changing backup
+configuration:
+
+```sh
+sudo borgmatic check --force
+sudo borgmatic repo-list
+```
+
+Test file restoration into an empty temporary directory rather than over the
+live filesystem:
+
+```sh
+restore_dir="$(mktemp -d)"
+sudo borgmatic extract --archive latest --destination "$restore_dir" --path path/to/file
+```
+
+Database restoration is a separate, destructive operation. Use `borgmatic
+restore --archive latest` only after validating the extracted backup and the
+target database service.
+
 ## Origins
 
 Originally forked from EmergentMind's
