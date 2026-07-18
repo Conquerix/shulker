@@ -52,6 +52,8 @@ in
 
   config = mkIf cfg.enable {
 
+    shulker.system.modules.containers.enable = true;
+
     users.groups.pelican-panel.gid = 82;
     users.users.pelican-panel = {
       isSystemUser = true;

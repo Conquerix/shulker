@@ -191,6 +191,8 @@ in
   };
 
   config = mkIf cfg.enable {
+    shulker.system.modules.containers.enable = true;
+
     assertions = [
       {
         assertion = cfg.repos != [ ];

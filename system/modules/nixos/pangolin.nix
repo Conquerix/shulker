@@ -23,6 +23,8 @@ with lib;
 
   config = lib.mkIf cfg.enable {
 
+    shulker.system.modules.containers.enable = true;
+
     # Gerbil container
     virtualisation.oci-containers.containers."gerbil" = {
       image = "docker.io/fosrl/gerbil:latest@sha256:431aaed724dab25e7b7b5519abd756a37401956cd4d1f9b696fedbb16f9e4ae6";

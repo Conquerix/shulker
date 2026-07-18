@@ -27,6 +27,8 @@ in
 
   config = mkIf cfg.enable {
 
+    shulker.system.modules.containers.enable = true;
+
     networking.firewall = mkIf cfg.openFirewall {
       enable = true;
       allowedTCPPorts = [

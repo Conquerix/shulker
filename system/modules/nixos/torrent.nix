@@ -101,6 +101,8 @@ in
 
   config = mkIf cfg.enable {
 
+    shulker.system.modules.containers.enable = true;
+
     # Shared group so downloads are readable by other services (e.g. Plex).
     users.groups.${cfg.group}.gid = cfg.gid;
 

@@ -26,6 +26,8 @@ in
 
   config = mkIf cfg.enable {
 
+    shulker.system.modules.containers.enable = true;
+
     # Containers
     virtualisation.oci-containers.containers."nextcloud-aio-mastercontainer" = {
       image = "ghcr.io/nextcloud-releases/all-in-one:latest@sha256:e7abd7c7f4f28ec63971e92fdcb03d361a85cd3e7d83cd50d19c375cad623614";

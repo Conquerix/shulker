@@ -31,9 +31,6 @@ with lib;
       # This is the safer default from NixOS 26.11 onward.
       zfs.forceImportRoot = false;
 
-      # Enable running aarch64 binaries using qemu.
-      binfmt.emulatedSystems = [ "aarch64-linux" ];
-
       # Clean temporary directory on boot.
       tmp.cleanOnBoot = true;
 
@@ -46,13 +43,6 @@ with lib;
     };
 
     hardware.enableRedistributableFirmware = true;
-
-    virtualisation.oci-containers.backend = "docker";
-    virtualisation.docker = {
-      enable = true;
-      enableOnBoot = true;
-      autoPrune.enable = true;
-    };
 
     systemd.settings.Manager.DefaultLimitNOFILE = "4096";
 
@@ -83,8 +73,6 @@ with lib;
     environment.systemPackages = with pkgs; [
       pciutils
       xclip
-      docker-compose
-      lazydocker
     ];
 
     programs.zsh.enable = true;
