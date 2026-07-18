@@ -19,7 +19,7 @@ with lib;
     programs._1password.enable = true;
 
     environment.systemPackages = with pkgs; [
-      inputs.opnix.packages."${pkgs.system}".default
+      inputs.opnix.packages.${pkgs.stdenv.hostPlatform.system}.default
     ];
 
     systemd.services.opnix-secrets = {

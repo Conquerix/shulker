@@ -8,8 +8,6 @@
 with lib;
 let
   cfg = config.shulker.home.modules.dev.python;
-  configHome = config.xdg.configHome;
-  dataHome = config.xdg.dataHome;
 
   extraPackages =
     p: with p; [

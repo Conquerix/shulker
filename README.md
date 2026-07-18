@@ -1,5 +1,57 @@
-# Shulker V2
+# Shulker
 
-WIP
+Personal, flake-based Nix configuration for NixOS and nix-darwin. It manages
+hosts, reusable system profiles and services, Home Manager configuration, and
+1Password-backed secrets.
 
-(shamelessly forked and adapted from EmergentMind's [nix-config](https://github.com/EmergentMind/nix-config) )
+This repository is tailored to Conquerix's machines. Treat it as a reference,
+not a drop-in configuration.
+
+## Layout
+
+- `system/hosts/` contains the machine-specific NixOS and Darwin entry points.
+- `system/profiles/` groups reusable desktop, server, Steam Machine, and MacBook
+  behavior.
+- `system/modules/` contains reusable services and platform configuration.
+- `system/users/` connects system users to their Home Manager configuration.
+- `home/` contains shared Home Manager modules and defaults.
+- `lib/`, `overlays/`, and `nix/` contain flake helpers, package overrides, and
+  compatibility configuration.
+
+The flake discovers host directories automatically. Each host imports its
+hardware configuration and enables only the profiles and modules it needs.
+
+## Hosts
+
+NixOS: `enderdragon`, `endermite`, `guardian`, `phantom`, `shulker`,
+`silverfish`, `warden`, and `wither`.
+
+Darwin: `herobrine`.
+
+## Common commands
+
+```sh
+# Evaluate every exported configuration and check.
+nix flake check --no-build --all-systems
+
+# Format the Nix sources.
+nix fmt
+
+# Enter the development shell with repository checks installed.
+nix develop
+
+# Apply a NixOS host configuration.
+sudo nixos-rebuild switch --flake .#<host>
+
+# Apply the Darwin configuration.
+darwin-rebuild switch --flake .#herobrine
+```
+
+The NixOS configurations expect an opnix service-account token at
+`/etc/opnix-token`. Secret values remain outside this repository.
+
+## Origins
+
+Originally forked from EmergentMind's
+[nix-config](https://github.com/EmergentMind/nix-config) and since adapted to
+this host and module layout.

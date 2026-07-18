@@ -2,10 +2,6 @@
   lib,
   ...
 }:
-
-# let
-#   cfg = config.shulker.users.conquerix;
-# in
 {
   options.shulker.users.conquerix = {
     enable = lib.mkEnableOption "Enable conquerix' profile";

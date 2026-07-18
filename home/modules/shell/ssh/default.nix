@@ -22,7 +22,7 @@ in
       };
       extraConfig = mkIf cfg._1password "IdentityAgent ~/.1password/agent.sock ";
       enableDefaultConfig = false;
-      matchBlocks."*" = {
+      settings."*" = {
         controlMaster = "no";
         controlPath = "~/.ssh/master-%r@%n:%p";
         hashKnownHosts = true;

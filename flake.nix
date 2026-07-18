@@ -82,7 +82,7 @@
       #
       # ========= Host Configurations =========
       #
-      # Building configurations is available through `just rebuild` or `nixos-rebuild --flake .#hostname`
+      # Rebuild a host with `nixos-rebuild switch --flake .#hostname`.
       nixosConfigurations = builtins.listToAttrs (
         map (host: {
           name = host;
@@ -136,13 +136,13 @@
       # ========= Formatting =========
       #
       # Nix formatter available through 'nix fmt' https://github.com/NixOS/nixfmt
-      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-rfc-style);
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
       # Pre-commit checks
       checks = forAllSystems (system: import ./checks.nix { inherit inputs system; });
       #
       # ========= DevShell =========
       #
-      # Custom shell for bootstrapping on new hosts, modifying nix-config, and secrets management
+      # Development shell for maintaining and validating this configuration.
       devShells = forAllSystems (
         system:
         import ./shell.nix {

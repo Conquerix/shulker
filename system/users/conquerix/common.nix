@@ -1,13 +1,14 @@
 {
+  config,
+  lib,
   pkgs,
   ...
 }:
-
-# let
-#   cfg = config.shulker.users.conquerix;
-# in
+let
+  cfg = config.shulker.users.conquerix;
+in
 {
-  config = {
+  config = lib.mkIf cfg.enable {
     users.users.conquerix = {
       uid = 1000;
       shell = pkgs.zsh;

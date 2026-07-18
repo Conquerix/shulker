@@ -10,13 +10,7 @@
     default_stages = [ "pre-commit" ];
     hooks = {
       # ========== General ==========
-      check-added-large-files = {
-        enable = true;
-        excludes = [
-          "\\.png"
-          "\\.jpg"
-        ];
-      };
+      check-added-large-files.enable = true;
       check-case-conflicts.enable = true;
       check-executables-have-shebangs.enable = true;
       check-shebang-scripts-are-executable.enable = false; # many of the scripts in the config aren't executable because they don't need to be.
@@ -42,7 +36,7 @@
         types = [ "symlink" ];
       };
       # ========== nix ==========
-      nixfmt-rfc-style.enable = true;
+      nixfmt.enable = true;
       deadnix = {
         enable = true;
         settings = {
