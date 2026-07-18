@@ -27,6 +27,10 @@ with lib;
     boot = {
       kernelPackages = latestKernelPackage;
 
+      # Refuse to import a ZFS root pool that appears active on another host.
+      # This is the safer default from NixOS 26.11 onward.
+      zfs.forceImportRoot = false;
+
       # Enable running aarch64 binaries using qemu.
       binfmt.emulatedSystems = [ "aarch64-linux" ];
 
