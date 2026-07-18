@@ -11,8 +11,6 @@ let
 in
 {
   config = lib.mkIf (cfg.enable && isNixOS) {
-    shulker.system.security.passwordHashSources.conquerix = "/etc/secrets/conquerix-password-hash";
-
     users.users.conquerix = {
       isNormalUser = true;
       extraGroups = [
@@ -27,13 +25,12 @@ in
         "adbusers"
         "kvm"
       ];
-      # The activation script validates the external hash and substitutes a
-      # locked password when it is absent or unsafe.
-      hashedPasswordFile = "/run/password-hashes/conquerix";
+      # Intentionally declarative: this preserves console and sudo access when
+      # external secret storage is unavailable.
+      hashedPassword = "$6$Na7d9SJRCkC6FyK7$3K.rYNPXX1.aeJe8f.2ylE2ITGLgxqv3CFvVYRsTiarQjFNZ.p2QZ/MIu1n6qz6wOO44lXU6wc9kmgIV.wboC/";
     };
 
-    # Keep a password-independent recovery path when an immutable password
-    # hash is missing or invalid. Root SSH remains key-only globally.
+    # Keep a password-independent recovery path. Root SSH remains key-only.
     users.users.root.openssh.authorizedKeys.keys =
       config.users.users.conquerix.openssh.authorizedKeys.keys;
 

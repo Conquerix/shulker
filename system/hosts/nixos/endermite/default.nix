@@ -28,7 +28,7 @@
 
   users.extraUsers.camelia = {
     isNormalUser = true;
-    hashedPasswordFile = "/run/password-hashes/camelia";
+    hashedPassword = "$y$j9T$I6gdt1KVyHZynHQ9.DiG20$7F3YxKP49wlkjxKukcUBNb23RzDq3VAgjsZS/wNrZI/";
     extraGroups = [
       "networkmanager"
       "cups"
@@ -40,7 +40,6 @@
   shulker = {
     users.conquerix.enable = true;
     system = {
-      security.passwordHashSources.camelia = "/etc/secrets/camelia-password-hash";
       profiles.desktop = {
         enable = true;
         laptop = true;

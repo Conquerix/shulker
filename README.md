@@ -66,34 +66,20 @@ darwin-rebuild switch --flake .#herobrine
 The NixOS configurations expect an opnix service-account token at
 `/etc/opnix-token`. Secret values remain outside this repository.
 
-Local login password hashes are also kept outside the repository. Provision
-the required files before a fresh installation or before changing a local
-password declaratively:
+Local login password hashes are declared in the NixOS user configurations.
+Users are immutable, so every activation restores the declared password. To
+rotate a password, generate a yescrypt hash and replace the corresponding
+`hashedPassword` value before rebuilding:
 
 ```sh
-install_password_hash() (
-  account="$1"
-  password_hash="$(nix shell nixpkgs#mkpasswd --command mkpasswd -m yescrypt)" || exit
-  test -n "$password_hash" || exit 1
-  printf '%s\n' "$password_hash" |
-    sudo install -m 0600 -o root -g root /dev/stdin "/etc/secrets/$account-password-hash"
-)
-
-sudo install -d -m 0700 -o root -g root /etc/secrets
-install_password_hash conquerix
+nix shell nixpkgs#mkpasswd --command mkpasswd -m yescrypt
 ```
 
-Every NixOS host expects `conquerix-password-hash`; `endermite` additionally
-expects `camelia-password-hash`, provisioned with `install_password_hash
-camelia`. Users are immutable, so rebuilding applies the validated hash on
-every activation. A missing, empty, malformed, non-root-owned, or incorrectly
-permissioned file locks that account's password instead of risking a
-passwordless login. The configured SSH keys remain available for key-only
-`conquerix` and root recovery access.
-
-Password hashes committed before this external-file scheme remain in Git
-history. Rotate both account passwords if they have not been rotated since the
-migration.
+This intentionally exposes the hashes through Git history and the Nix store,
+allowing offline password cracking attempts. Use strong, unique passwords.
+SSH password authentication remains disabled: the passwords provide console
+and sudo access, while the configured keys provide key-only `conquerix` and
+root recovery access.
 
 ## Backup verification and restoration
 
