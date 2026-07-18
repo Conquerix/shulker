@@ -67,20 +67,15 @@ in
         };
       };
 
-      # Discord is a private control surface for this agent. Secrets and the
+      # Telegram is a private control surface for this agent. Secrets and the
       # sole authorized user ID stay in the 1Password-provided env file.
       environment = {
-        DISCORD_ALLOW_ALL_USERS = "false";
         GATEWAY_ALLOW_ALL_USERS = "false";
-        DISCORD_REQUIRE_MENTION = "true";
-        DISCORD_THREAD_REQUIRE_MENTION = "true";
-        DISCORD_AUTO_THREAD = "true";
-        DISCORD_ALLOW_BOTS = "none";
-        DISCORD_HISTORY_BACKFILL = "false";
-        DISCORD_ALLOW_MENTION_EVERYONE = "false";
-        DISCORD_ALLOW_MENTION_ROLES = "false";
-        DISCORD_COMMAND_SYNC_POLICY = "safe";
-        DISCORD_MAX_ATTACHMENT_BYTES = "16777216";
+        TELEGRAM_ALLOW_ALL_USERS = "false";
+        TELEGRAM_REQUIRE_MENTION = "true";
+        TELEGRAM_EXCLUSIVE_BOT_MENTIONS = "true";
+        TELEGRAM_GUEST_MODE = "false";
+        TELEGRAM_REACTIONS = "false";
       };
       environmentFiles = [ config.services.onepassword-secrets.secrets.hermesAgentEnv.path ];
       extraDependencyGroups = [ "messaging" ];
@@ -143,10 +138,8 @@ in
     shulker.system.modules.backup.dirs = [ cfg.stateDir ];
 
     # Store an env-file in the shulker 1Password item containing:
-    # DISCORD_BOT_TOKEN=<bot token>
-    # DISCORD_ALLOWED_USERS=<your Discord user ID>
-    # Optionally restrict guild use further with:
-    # DISCORD_ALLOWED_CHANNELS=<your private Discord channel ID>
+    # TELEGRAM_BOT_TOKEN=<BotFather token>
+    # TELEGRAM_ALLOWED_USERS=<your numeric Telegram user ID>
     # ChatGPT OAuth credentials are created interactively by Hermes and kept in
     # its persistent auth.json; do not place them in this env file.
     services.onepassword-secrets.secrets.hermesAgentEnv = {
