@@ -5,28 +5,12 @@
   ...
 }:
 
-let
-  zfsCompatibleKernelPackages = lib.filterAttrs (
-    name: kernelPackages:
-    (builtins.match "linux_[0-9]+_[0-9]+" name) != null
-    && (builtins.tryEval kernelPackages).success
-    && (!kernelPackages.${config.boot.zfs.package.kernelModuleAttribute}.meta.broken)
-  ) pkgs.linuxKernel.packages;
-  latestKernelPackage = lib.last (
-    lib.sort (a: b: (lib.versionOlder a.kernel.version b.kernel.version)) (
-      builtins.attrValues zfsCompatibleKernelPackages
-    )
-  );
-in
-
 with lib;
 {
   config = {
     system.stateVersion = "22.05";
     shulker.global.type = "nixos";
     boot = {
-      kernelPackages = latestKernelPackage;
-
       # Refuse to import a ZFS root pool that appears active on another host.
       # This is the safer default from NixOS 26.11 onward.
       zfs.forceImportRoot = false;
