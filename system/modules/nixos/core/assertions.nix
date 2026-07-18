@@ -7,6 +7,7 @@ let
     "Beszel hub" = modules.beszel.hub.impermanence;
     Forgejo = modules.forgejo.impermanence;
     "Git Pages" = modules.git-pages.impermanence;
+    "Hermes Agent" = modules.hermes-agent.impermanence;
     "Home Assistant" = modules.home-assistant.impermanence;
     Newt = modules.newt.impermanence;
     Ollama = modules.ollama.impermanence;

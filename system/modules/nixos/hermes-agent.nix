@@ -1,0 +1,141 @@
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+
+let
+  cfg = config.shulker.system.modules.hermes-agent;
+in
+{
+  options.shulker.system.modules.hermes-agent = {
+    enable = lib.mkEnableOption "Hermes Agent gateway";
+
+    impermanence = lib.mkEnableOption "persistent Hermes Agent state on an ephemeral root";
+
+    stateDir = lib.mkOption {
+      type = lib.types.str;
+      default = "/var/lib/hermes";
+      description = "Persistent state directory for Hermes Agent.";
+    };
+
+    model = lib.mkOption {
+      type = lib.types.str;
+      default = "gpt-5.5";
+      description = "Default OpenAI Codex model used by Hermes Agent through ChatGPT OAuth.";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    services.hermes-agent = {
+      enable = true;
+      stateDir = cfg.stateDir;
+      workingDirectory = "${cfg.stateDir}/workspace";
+
+      # Native mode keeps the service reproducible and lets systemd provide the
+      # security boundary. Agent-created skills and memories remain writable in
+      # stateDir; opt into container mode only if mutable OS packages are needed.
+      container.enable = false;
+
+      settings = {
+        model = {
+          provider = "openai-codex";
+          default = cfg.model;
+        };
+        toolsets = [ "all" ];
+        group_sessions_per_user = true;
+        unauthorized_dm_behavior = "ignore";
+        memory = {
+          memory_enabled = true;
+          user_profile_enabled = true;
+        };
+        terminal = {
+          backend = "local";
+          timeout = 180;
+        };
+
+        # The gateway is unattended, so repeated failing/no-progress tool calls
+        # must be circuit-broken instead of consuming tokens indefinitely.
+        tool_loop_guardrails = {
+          hard_stop_enabled = true;
+          hard_stop_after = {
+            exact_failure = 5;
+            same_tool_failure = 8;
+            idempotent_no_progress = 5;
+          };
+        };
+      };
+
+      # Discord is a private control surface for this agent. Secrets and the
+      # sole authorized user ID stay in the 1Password-provided env file.
+      environment = {
+        DISCORD_ALLOW_ALL_USERS = "false";
+        GATEWAY_ALLOW_ALL_USERS = "false";
+        DISCORD_REQUIRE_MENTION = "true";
+        DISCORD_THREAD_REQUIRE_MENTION = "true";
+        DISCORD_AUTO_THREAD = "true";
+        DISCORD_ALLOW_BOTS = "none";
+        DISCORD_HISTORY_BACKFILL = "false";
+        DISCORD_ALLOW_MENTION_EVERYONE = "false";
+        DISCORD_ALLOW_MENTION_ROLES = "false";
+        DISCORD_COMMAND_SYNC_POLICY = "safe";
+        DISCORD_MAX_ATTACHMENT_BYTES = "16777216";
+      };
+      environmentFiles = [ config.services.onepassword-secrets.secrets.hermesAgentEnv.path ];
+      extraDependencyGroups = [ "messaging" ];
+      extraPackages = with pkgs; [
+        curl
+        ffmpeg
+        git
+        jq
+        ripgrep
+      ];
+      addToSystemPackages = true;
+      restart = "always";
+      restartSec = 5;
+    };
+
+    # The agent needs outbound network access and a writable workspace, but no
+    # access to user homes, host devices, kernel controls, or Linux capabilities.
+    systemd.services.hermes-agent.serviceConfig = {
+      ProtectHome = lib.mkForce true;
+      PrivateDevices = true;
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectKernelLogs = true;
+      ProtectControlGroups = true;
+      RestrictSUIDSGID = true;
+      LockPersonality = true;
+      RestrictRealtime = true;
+      CapabilityBoundingSet = "";
+    };
+
+    environment.persistence = lib.mkIf cfg.impermanence {
+      "/nix/persist".directories = [
+        {
+          directory = cfg.stateDir;
+          mode = "u=rwx,g=rx,o=";
+          user = "hermes";
+          group = "hermes";
+        }
+      ];
+    };
+
+    shulker.system.modules.backup.dirs = [ cfg.stateDir ];
+
+    # Store an env-file in the shulker 1Password item containing:
+    # DISCORD_BOT_TOKEN=<bot token>
+    # DISCORD_ALLOWED_USERS=<your Discord user ID>
+    # Optionally restrict guild use further with:
+    # DISCORD_ALLOWED_CHANNELS=<your private Discord channel ID>
+    # ChatGPT OAuth credentials are created interactively by Hermes and kept in
+    # its persistent auth.json; do not place them in this env file.
+    services.onepassword-secrets.secrets.hermesAgentEnv = {
+      reference = "op://Shulker/${config.networking.hostName}/Hermes/Environment";
+      services = [ "hermes-agent" ];
+      owner = "hermes";
+      group = "hermes";
+    };
+  };
+}

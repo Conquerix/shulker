@@ -20,6 +20,10 @@
           hubEndpoint = "https://monitor.shulker.link";
           extraFilesystems = "/nix";
         };
+        hermes-agent = {
+          enable = true;
+          impermanence = true;
+        };
         home-assistant = {
           enable = true;
           impermanence = true;
