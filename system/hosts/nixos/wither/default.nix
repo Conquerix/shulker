@@ -262,7 +262,10 @@ in
         # reference if hybrid is ever needed again: amdgpu PCI:108:0:0,
         # nvidia PCI:1:0:0.
         nvidia.enable = true;
-        sunshine.enable = true;
+        sunshine = {
+          enable = true;
+          openFirewall = true;
+        };
       };
     };
   };

@@ -13,13 +13,15 @@ in
   options.shulker.system.modules.steam = {
     enable = mkEnableOption "install steam correctly";
     protonGE = mkEnableOption "handle environment variables to detect manually installed Glorious Eggroll's proton versions";
+    remotePlay = mkEnableOption "open the Steam Remote Play firewall ports";
+    dedicatedServer = mkEnableOption "open the Source dedicated-server firewall ports";
   };
 
   config = mkIf cfg.enable {
     programs.steam = {
       enable = true;
-      remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
-      dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
+      remotePlay.openFirewall = cfg.remotePlay;
+      dedicatedServer.openFirewall = cfg.dedicatedServer;
       # Steam Input can't inject input into Wayland sessions via XTEST; extest
       # translates it. Needed for controller-as-mouse on the desktop (see
       # ValveSoftware/steam-for-linux#13251).

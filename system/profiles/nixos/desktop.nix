@@ -13,6 +13,7 @@ in
   options.shulker.system.profiles.desktop = {
     enable = mkEnableOption "desktop profile";
     laptop = mkEnableOption "Enable features for a laptop (trackpad, battery, etc...)";
+    remoteDesktop = mkEnableOption "GNOME Remote Desktop and its RDP firewall port";
   };
 
   config = mkIf cfg.enable {
@@ -86,15 +87,15 @@ in
     services.desktopManager.gnome.enable = true;
 
     # Enable the GNOME RDP components
-    services.gnome.gnome-remote-desktop.enable = true;
+    services.gnome.gnome-remote-desktop.enable = cfg.remoteDesktop;
 
     # Ensure the service starts automatically at boot so the settings panel appears
-    systemd.services.gnome-remote-desktop = {
+    systemd.services.gnome-remote-desktop = mkIf cfg.remoteDesktop {
       wantedBy = [ "graphical.target" ];
     };
 
     # Open the default RDP port (3389)
-    networking.firewall.allowedTCPPorts = [ 3389 ];
+    networking.firewall.allowedTCPPorts = optional cfg.remoteDesktop 3389;
 
     # Disable autologin to avoid session conflicts
     services.displayManager.autoLogin.enable = false;

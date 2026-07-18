@@ -15,18 +15,6 @@
     };
   };
 
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [
-      5900
-      5901
-    ];
-    allowedUDPPorts = [
-      5900
-      5901
-    ];
-  };
-
   environment.systemPackages = with pkgs; [
     fastmail-desktop
     spotify
@@ -55,6 +43,7 @@
       profiles.desktop = {
         enable = true;
         laptop = true;
+        remoteDesktop = true;
       };
       modules = {
         impermanence = {

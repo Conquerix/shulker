@@ -11,6 +11,7 @@ in
 {
   options.shulker.system.modules.sunshine = {
     enable = mkEnableOption "Enable sunshine game streaming service";
+    openFirewall = mkEnableOption "open Sunshine's Moonlight firewall ports";
   };
 
   config = mkIf cfg.enable {
@@ -19,7 +20,7 @@ in
       enable = true;
       autoStart = true;
       capSysAdmin = true;
-      openFirewall = true;
+      openFirewall = cfg.openFirewall;
     };
 
     # Sunshine needs avahi for mDNS discovery by Moonlight clients on the LAN
