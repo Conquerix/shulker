@@ -28,6 +28,7 @@ with lib;
       requires = [ "network-online.target" ];
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
+      unitConfig.RequiresMountsFor = "/var/lib/opnix";
       # network-online.target regularly fires before DNS answers (NM reports
       # the link up, resolution lags a few seconds) and opnix burns its 3
       # attempts within ~10s, then waits RestartSec to retry. Hold the fetch

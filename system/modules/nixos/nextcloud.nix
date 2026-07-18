@@ -30,7 +30,9 @@ in
 
     # Containers
     virtualisation.oci-containers.containers."nextcloud-aio-mastercontainer" = {
-      image = "ghcr.io/nextcloud-releases/all-in-one:latest@sha256:e7abd7c7f4f28ec63971e92fdcb03d361a85cd3e7d83cd50d19c375cad623614";
+      # The AIO master container manages its own updates and rejects
+      # digest-qualified image references at startup.
+      image = "ghcr.io/nextcloud-releases/all-in-one:latest";
       environment = {
         "APACHE_IP_BINDING" = "127.0.0.1";
         "APACHE_PORT" = "${toString cfg.mainPort}";
