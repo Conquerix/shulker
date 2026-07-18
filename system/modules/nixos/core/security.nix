@@ -6,8 +6,71 @@
   ...
 }:
 with lib;
+let
+  passwordHashSources = config.shulker.system.security.passwordHashSources;
+  runtimePasswordDirectory = "/run/password-hashes";
+in
 {
+  options.shulker.system.security.passwordHashSources = mkOption {
+    type = types.attrsOf types.str;
+    default = { };
+    description = ''
+      External password hash files to validate before immutable users are
+      updated. Invalid or missing hashes lock the corresponding password.
+    '';
+  };
+
   config = {
+
+    users.mutableUsers = false;
+
+    system.activationScripts.preparePasswordHashes = {
+      deps = [ "etc" ];
+      text = ''
+        ${pkgs.coreutils}/bin/install -d -m 0700 -o root -g root ${runtimePasswordDirectory}
+
+        prepare_password_hash() {
+          source="$1"
+          target="$2"
+          account="$3"
+          valid=true
+
+          if [ ! -f "$source" ] || [ ! -s "$source" ]; then
+            valid=false
+          fi
+          if [ "$valid" = true ] && [ "$(${pkgs.coreutils}/bin/stat -c %u "$source")" != 0 ]; then
+            valid=false
+          fi
+          if [ "$valid" = true ] && [ "$(${pkgs.coreutils}/bin/stat -c %g "$source")" != 0 ]; then
+            valid=false
+          fi
+          if [ "$valid" = true ] && [ "$(${pkgs.coreutils}/bin/stat -c %a "$source")" != 600 ]; then
+            valid=false
+          fi
+          if [ "$valid" = true ] && [ "$(${pkgs.coreutils}/bin/wc -l < "$source")" -ne 1 ]; then
+            valid=false
+          fi
+          if [ "$valid" = true ] && ! ${pkgs.gnugrep}/bin/grep -Eq '^\$(y|6)\$[^:[:space:]]+$' "$source"; then
+            valid=false
+          fi
+
+          if [ "$valid" = true ]; then
+            ${pkgs.coreutils}/bin/install -m 0600 -o root -g root "$source" "$target"
+          else
+            echo "WARNING: invalid or missing password hash for $account at $source; password login is locked" >&2
+            printf '!\n' | ${pkgs.coreutils}/bin/install -m 0600 -o root -g root /dev/stdin "$target"
+          fi
+        }
+
+        ${concatStringsSep "\n" (
+          mapAttrsToList (
+            account: source:
+            "prepare_password_hash ${escapeShellArg source} ${escapeShellArg "${runtimePasswordDirectory}/${account}"} ${escapeShellArg account}"
+          ) passwordHashSources
+        )}
+      '';
+    };
+    system.activationScripts.users.deps = [ "preparePasswordHashes" ];
 
     security.sudo.enable = false;
     security.sudo-rs = {

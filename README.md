@@ -71,14 +71,29 @@ the required files before a fresh installation or before changing a local
 password declaratively:
 
 ```sh
-sudo install -d -m 0700 /etc/secrets
-nix shell nixpkgs#mkpasswd -c sh -c \
-  'mkpasswd -m yescrypt | sudo install -m 0600 /dev/stdin /etc/secrets/conquerix-password-hash'
+install_password_hash() (
+  account="$1"
+  password_hash="$(nix shell nixpkgs#mkpasswd --command mkpasswd -m yescrypt)" || exit
+  test -n "$password_hash" || exit 1
+  printf '%s\n' "$password_hash" |
+    sudo install -m 0600 -o root -g root /dev/stdin "/etc/secrets/$account-password-hash"
+)
+
+sudo install -d -m 0700 -o root -g root /etc/secrets
+install_password_hash conquerix
 ```
 
 Every NixOS host expects `conquerix-password-hash`; `endermite` additionally
-expects `camelia-password-hash`. Existing mutable users keep their current
-password if the corresponding file has not been provisioned yet.
+expects `camelia-password-hash`, provisioned with `install_password_hash
+camelia`. Users are immutable, so rebuilding applies the validated hash on
+every activation. A missing, empty, malformed, non-root-owned, or incorrectly
+permissioned file locks that account's password instead of risking a
+passwordless login. The configured SSH keys remain available for key-only
+`conquerix` and root recovery access.
+
+Password hashes committed before this external-file scheme remain in Git
+history. Rotate both account passwords if they have not been rotated since the
+migration.
 
 ## Backup verification and restoration
 

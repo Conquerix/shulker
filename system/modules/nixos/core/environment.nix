@@ -43,6 +43,7 @@ with lib;
         settings = {
           PasswordAuthentication = false;
           KbdInteractiveAuthentication = false;
+          PermitRootLogin = "prohibit-password";
         };
         hostKeys = [
           {

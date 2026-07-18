@@ -11,6 +11,8 @@ let
 in
 {
   config = lib.mkIf (cfg.enable && isNixOS) {
+    shulker.system.security.passwordHashSources.conquerix = "/etc/secrets/conquerix-password-hash";
+
     users.users.conquerix = {
       isNormalUser = true;
       extraGroups = [
@@ -25,11 +27,15 @@ in
         "adbusers"
         "kvm"
       ];
-      # Keep the password hash out of the Nix store and Git history. With
-      # mutableUsers enabled, an existing password remains valid when this
-      # file is absent; fresh installs start with password login disabled.
-      hashedPasswordFile = "/etc/secrets/conquerix-password-hash";
+      # The activation script validates the external hash and substitutes a
+      # locked password when it is absent or unsafe.
+      hashedPasswordFile = "/run/password-hashes/conquerix";
     };
+
+    # Keep a password-independent recovery path when an immutable password
+    # hash is missing or invalid. Root SSH remains key-only globally.
+    users.users.root.openssh.authorizedKeys.keys =
+      config.users.users.conquerix.openssh.authorizedKeys.keys;
 
     home-manager.users.conquerix = {
       home.packages = with pkgs; [
