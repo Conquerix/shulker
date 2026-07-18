@@ -16,7 +16,7 @@ in
 
     openFirewall = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Open the ports Plex needs on the LAN (32400 etc).";
     };
 

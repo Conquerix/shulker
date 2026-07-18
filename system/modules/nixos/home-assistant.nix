@@ -12,6 +12,7 @@ in
   options.shulker.system.modules.home-assistant = {
     enable = mkEnableOption "Enable Home Assistant";
     impermanence = mkEnableOption "Enable impermanence for Home Assistant.";
+    openFirewall = mkEnableOption "open Home Assistant's LAN firewall ports";
     stateDir = mkOption {
       type = types.str;
       default = "/var/lib/home-assistant";
@@ -26,7 +27,7 @@ in
 
   config = mkIf cfg.enable {
 
-    networking.firewall = {
+    networking.firewall = mkIf cfg.openFirewall {
       enable = true;
       allowedTCPPorts = [
         8123

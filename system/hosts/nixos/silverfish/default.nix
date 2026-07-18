@@ -23,6 +23,7 @@
         home-assistant = {
           enable = true;
           impermanence = true;
+          openFirewall = true;
         };
       };
     };

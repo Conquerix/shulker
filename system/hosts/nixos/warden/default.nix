@@ -47,12 +47,14 @@
           wings = {
             enable = true;
             impermanence = true;
+            openFirewall = true;
             port = 23231;
           };
         };
         plex = {
           enable = true;
           impermanence = true;
+          openFirewall = true;
           dataDir = "/storage/nvme/plex";
           # Read finished downloads written by the torrent module.
           extraGroups = [ "torrent" ];

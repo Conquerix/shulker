@@ -28,6 +28,22 @@ NixOS: `enderdragon`, `endermite`, `guardian`, `phantom`, `shulker`,
 
 Darwin: `herobrine`.
 
+## Network exposure
+
+Inbound access is intentional and host-specific. All NixOS hosts expose SSH;
+additional exposure is limited to the following roles:
+
+- `endermite`: GNOME Remote Desktop.
+- `guardian`: explicitly configured HTTPS and application ingress ports.
+- `enderdragon` and `shulker`: Pelican Wings API and SFTP.
+- `shulker`: Pangolin's HTTP, HTTPS, and WireGuard edge ports.
+- `silverfish`: Home Assistant and HomeKit.
+- `warden`: Pelican Wings and Plex; qBittorrent remains loopback-only.
+- `wither`: Sunshine/Moonlight streaming.
+
+`phantom` has no inbound service beyond SSH. Reverse-proxied container web
+interfaces bind to loopback and do not rely on the host firewall for isolation.
+
 ## Common commands
 
 ```sh

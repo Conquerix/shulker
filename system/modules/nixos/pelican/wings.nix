@@ -12,6 +12,7 @@ in
   options.shulker.system.modules.pelican.wings = {
     enable = mkEnableOption "Enable Pelican wings service.";
     impermanence = mkEnableOption "Enable impermanence.";
+    openFirewall = mkEnableOption "open the Pelican Wings SFTP firewall port";
     stateDir = mkOption {
       type = types.str;
       default = "/var/lib/pelican/wings";
@@ -26,7 +27,7 @@ in
 
   config = mkIf cfg.enable {
 
-    networking.firewall = {
+    networking.firewall = mkIf cfg.openFirewall {
       enable = true;
       allowedTCPPorts = [ 2022 ];
       allowedUDPPorts = [ 2022 ];
@@ -36,6 +37,7 @@ in
 
     services.wings = {
       enable = true;
+      openFirewall = cfg.openFirewall;
       node = {
         api.port = cfg.port;
         system = {

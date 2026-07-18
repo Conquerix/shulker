@@ -57,6 +57,7 @@
           wings = {
             enable = true;
             impermanence = true;
+            openFirewall = true;
             port = 23237;
           };
         };
