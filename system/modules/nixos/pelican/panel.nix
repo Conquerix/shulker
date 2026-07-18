@@ -61,7 +61,7 @@ in
 
     # Containers
     virtualisation.oci-containers.containers."pelican-panel" = {
-      image = "ghcr.io/pelican-dev/panel:v1.0.0-beta31";
+      image = "ghcr.io/pelican-dev/panel:v1.0.0-beta31@sha256:5c57b17627eb134d52c0589bc1eaccf198b811a47c33cceb6416ff29504b2fa5";
       environment = {
         XDG_DATA_HOME = "/pelican-data";
         APP_URL = cfg.appUrl;

@@ -112,7 +112,7 @@ in
     ];
 
     virtualisation.oci-containers.containers."torrent-qbittorrent" = {
-      image = "ghcr.io/hotio/qbittorrent:latest";
+      image = "ghcr.io/hotio/qbittorrent:latest@sha256:26689d60b283a8d026965e7d9a0c941f4c168fbe1af028b31e9db42ce6aa357b";
       environment = {
         PUID = toString cfg.puid;
         PGID = toString cfg.gid;

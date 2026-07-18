@@ -26,7 +26,7 @@ let
           nginxSubPath = if repo.path != "" then "/${repo.path}" else "";
 
           webContainer = nameValuePair "git-pages-${name}-web" {
-            image = "docker.io/library/nginx:alpine";
+            image = "docker.io/library/nginx:alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752";
             volumes = [
               "${statePath}:/var/www:ro"
             ];
@@ -46,7 +46,7 @@ let
           };
 
           syncContainer = nameValuePair "git-pages-${name}-sync" {
-            image = "registry.k8s.io/git-sync/git-sync:v4.0.0";
+            image = "registry.k8s.io/git-sync/git-sync:v4.0.0@sha256:ad48c2dd8f5ae73e783c4a55bedb4cc13d51d347d157e6564c4debfd0fbd429d";
             volumes = [
               "${statePath}:/git:rw"
             ];

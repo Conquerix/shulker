@@ -25,7 +25,7 @@ with lib;
 
     # Gerbil container
     virtualisation.oci-containers.containers."gerbil" = {
-      image = "docker.io/fosrl/gerbil:latest";
+      image = "docker.io/fosrl/gerbil:latest@sha256:431aaed724dab25e7b7b5519abd756a37401956cd4d1f9b696fedbb16f9e4ae6";
       volumes = [ "${cfg.stateDir}/config:/var/config:rw" ];
       ports = [
         "51820:51820/udp"
@@ -62,7 +62,7 @@ with lib;
 
     # Pangolin container
     virtualisation.oci-containers.containers."pangolin" = {
-      image = "docker.io/fosrl/pangolin:ee-latest";
+      image = "docker.io/fosrl/pangolin:ee-latest@sha256:664263615d0c9042d0d8e9927b7aae938cd1f9dcf524252167314656c9ed425b";
       volumes = [ "${cfg.stateDir}/config:/app/config:rw" ];
       log-driver = "journald";
       extraOptions = [
@@ -89,7 +89,7 @@ with lib;
 
     # Traefik container
     virtualisation.oci-containers.containers."traefik" = {
-      image = "docker.io/traefik:v3.6";
+      image = "docker.io/traefik:v3.6@sha256:f5dba1e65167778cd5f8d1b463fc5d200f49d40c6458fc9f4b391a68ebfb9534";
       volumes = [
         "${cfg.stateDir}/config/letsencrypt:/letsencrypt:rw"
         "${cfg.stateDir}/config/traefik:/etc/traefik:ro"

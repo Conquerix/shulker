@@ -36,7 +36,7 @@ in
     };
 
     virtualisation.oci-containers.containers."home-assistant" = {
-      image = "ghcr.io/home-assistant/home-assistant:stable";
+      image = "ghcr.io/home-assistant/home-assistant:stable@sha256:1476924357b46e80735c13e94232ba5c853cac052e9df4bb28d50fa56348097b";
       privileged = true;
       volumes = [
         "${cfg.stateDir}:/config:rw"
