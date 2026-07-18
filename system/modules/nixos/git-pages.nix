@@ -117,6 +117,9 @@ let
       ) cfg.repos
     )
   );
+
+  sanitizedNames = map (repo: sanitizeName repo.name) cfg.repos;
+  effectivePorts = imap0 (i: repo: if repo.port != 0 then repo.port else cfg.basePort + i) cfg.repos;
 in
 {
   options.shulker.system.modules.git-pages = {
@@ -188,6 +191,25 @@ in
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.repos != [ ];
+        message = "Git Pages is enabled without any repositories.";
+      }
+      {
+        assertion = length sanitizedNames == length (unique sanitizedNames);
+        message = "Git Pages repository names must remain unique after sanitization.";
+      }
+      {
+        assertion = length effectivePorts == length (unique effectivePorts);
+        message = "Git Pages repositories must use unique effective ports.";
+      }
+      {
+        assertion = all (port: port > 0 && port <= 65535) effectivePorts;
+        message = "Git Pages calculated an invalid effective port.";
+      }
+    ];
+
     virtualisation.oci-containers.containers = containers;
     systemd.services = systemdServices // syncSystemdServices;
 
