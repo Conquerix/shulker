@@ -110,6 +110,24 @@ in
       RestrictRealtime = true;
       CapabilityBoundingSet = "";
     };
+    systemd.services.hermes-agent.requires = [
+      "hermes-agent-state.service"
+      "opnix-secrets.service"
+    ];
+
+    # On the first activation, the persistent bind mount can cover directories
+    # created by the upstream activation script. Prepare the workspace only
+    # after that mount exists and before systemd attempts Hermes' WorkingDirectory.
+    systemd.services.hermes-agent-state = {
+      description = "Prepare Hermes Agent persistent state";
+      before = [ "hermes-agent.service" ];
+      unitConfig.RequiresMountsFor = cfg.stateDir;
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = "${pkgs.coreutils}/bin/install -d -m 0750 -o hermes -g hermes ${cfg.stateDir}/workspace";
+      };
+    };
 
     environment.persistence = lib.mkIf cfg.impermanence {
       "/nix/persist".directories = [
