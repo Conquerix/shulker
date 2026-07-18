@@ -59,7 +59,6 @@ with lib;
 
     #nixpkgs.config.allowUnfree = true;
     home = {
-      enableDebugInfo = true;
       packages = with pkgs; [
         # Determine file type.
         file
