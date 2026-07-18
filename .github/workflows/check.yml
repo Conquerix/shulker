@@ -1,0 +1,20 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: cachix/install-nix-action@v31.10.6
+      - name: Evaluate every flake output
+        run: nix flake check --no-build --all-systems
+      - name: Run repository checks
+        run: nix build --no-link .#checks.x86_64-linux.pre-commit-check
