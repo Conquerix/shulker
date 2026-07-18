@@ -60,6 +60,13 @@ in
       group = "pelican-panel";
       uid = 82;
     };
+    systemd.tmpfiles.rules =
+      map (directory: "d ${cfg.stateDir}/${directory} 0750 pelican-panel pelican-panel - -")
+        [
+          "data"
+          "logs"
+          "plugins"
+        ];
 
     # Containers
     virtualisation.oci-containers.containers."pelican-panel" = {

@@ -110,6 +110,7 @@ in
     # everything qBittorrent writes there inherits the group regardless of the
     # writing process's primary group.
     systemd.tmpfiles.rules = [
+      "d ${cfg.stateDir}/config 0770 ${toString cfg.puid} ${cfg.group} - -"
       "d ${cfg.downloadDir} 2775 ${toString cfg.puid} ${cfg.group} - -"
     ];
 

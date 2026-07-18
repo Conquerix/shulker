@@ -32,6 +32,8 @@ in
 
   config = mkIf cfg.enable {
 
+    systemd.tmpfiles.rules = [ "d ${cfg.stateDir} 0750 root root - -" ];
+
     systemd.services.beszel-hub = {
       description = "Beszel Server Monitoring Web App";
 

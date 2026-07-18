@@ -35,6 +35,7 @@ in
       isSystemUser = true;
       group = "beszel-agent";
     };
+    systemd.tmpfiles.rules = [ "d ${cfg.stateDir} 0700 beszel-agent beszel-agent - -" ];
 
     services.beszel.agent = {
       enable = true;

@@ -28,6 +28,7 @@ in
   config = mkIf cfg.enable {
 
     shulker.system.modules.containers.enable = true;
+    systemd.tmpfiles.rules = [ "d ${cfg.stateDir} 0750 root root - -" ];
 
     networking.firewall = mkIf cfg.openFirewall {
       enable = true;

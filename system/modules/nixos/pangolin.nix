@@ -24,6 +24,7 @@ with lib;
   config = lib.mkIf cfg.enable {
 
     shulker.system.modules.containers.enable = true;
+    systemd.tmpfiles.rules = [ "d ${cfg.stateDir}/config 0750 root root - -" ];
 
     # Gerbil container
     virtualisation.oci-containers.containers."gerbil" = {
