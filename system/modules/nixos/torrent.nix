@@ -40,9 +40,15 @@ in
       description = "Port for the qBittorrent web UI.";
     };
 
+    bindAddress = mkOption {
+      type = types.str;
+      default = "127.0.0.1";
+      description = "Host address on which to publish the qBittorrent web UI.";
+    };
+
     openFirewall = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Open the web UI port on the host firewall for LAN access.";
     };
 
@@ -121,7 +127,7 @@ in
         VPN_LAN_NETWORK = cfg.lanNetwork;
         VPN_AUTO_PORT_FORWARD = if cfg.portForwarding then "true" else "false";
       };
-      ports = [ "${toString cfg.webUiPort}:${toString cfg.webUiPort}/tcp" ];
+      ports = [ "${cfg.bindAddress}:${toString cfg.webUiPort}:${toString cfg.webUiPort}/tcp" ];
       volumes = [
         "${cfg.stateDir}/config:/config"
         "${cfg.downloadDir}:/data"

@@ -31,7 +31,7 @@ let
               "${statePath}:/var/www:ro"
             ];
             ports = [
-              "${toString port}:80/tcp"
+              "${cfg.bindAddress}:${toString port}:80/tcp"
             ];
             log-driver = "journald";
             # Inject Nginx configuration to point to the git-sync symlink
@@ -131,6 +131,11 @@ in
       type = types.port;
       default = 3000;
       description = "Starting port number for repos without explicit port.";
+    };
+    bindAddress = mkOption {
+      type = types.str;
+      default = "127.0.0.1";
+      description = "Host address on which to publish static sites.";
     };
     pullInterval = mkOption {
       type = types.str;
