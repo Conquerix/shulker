@@ -23,6 +23,11 @@ in
       default = "127.0.0.1";
       description = "Address to bind the ollama API to.";
     };
+    openFirewall = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Open the Ollama API port on the host firewall.";
+    };
     stateDir = mkOption {
       type = types.str;
       default = "/var/lib/ollama";
@@ -37,7 +42,7 @@ in
       port = cfg.port;
       host = cfg.host;
       home = cfg.stateDir;
-      openFirewall = true;
+      openFirewall = cfg.openFirewall;
       loadModels = [
         "qwen3-coder-next"
         "qwen3.5:35b"

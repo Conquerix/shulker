@@ -253,7 +253,6 @@ in
         ollama = {
           enable = true;
           impermanence = true;
-          host = "0.0.0.0";
         };
         # Nvidia-only: the dGPU renders and scans out to the TV directly over
         # HDMI 2.1 — needed for 4K@120+/VRR on the S95F, which amdgpu cannot do
