@@ -16,8 +16,6 @@ in
 
     home-manager.users.conquerix = {
       home.packages = with pkgs; [
-        spotify
-        ryubing
         nixfmt
         lldb
       ];

@@ -61,10 +61,7 @@ in
       ];
     };
 
-    shulker.system.modules.backup.dirs = [
-      "${cfg.stateDir}/backups"
-      "${cfg.stateDir}/archives"
-    ];
+    shulker.system.modules.backup.dirs = [ cfg.stateDir ];
 
     services.onepassword-secrets.secrets.beszelAgentKeyFile = {
       reference = "op://Shulker/${config.networking.hostName}/Beszel/Beszel Agent Key";

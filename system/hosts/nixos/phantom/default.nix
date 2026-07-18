@@ -28,6 +28,7 @@
   };
 
   shulker = {
+    users.conquerix.enable = true;
     system = {
       profiles.desktop = {
         enable = true;

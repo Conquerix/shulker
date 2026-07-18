@@ -31,13 +31,11 @@ in
 
     home-manager.users.conquerix = {
       home.packages = with pkgs; [
-        spotify
         prismlauncher
         packwiz
         wineWow64Packages.waylandFull
         libvlc
         easyeffects
-        ryubing
       ];
 
       shulker.home = {

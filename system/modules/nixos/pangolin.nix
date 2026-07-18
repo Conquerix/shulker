@@ -149,7 +149,7 @@ with lib;
     shulker.system.modules.backup.dirs = [ cfg.stateDir ];
     services.borgmatic.settings.sqlite_databases = [
       {
-        name = "pelican-panel-db";
+        name = "pangolin-db";
         path = "${cfg.stateDir}/config/db/db.sqlite";
       }
     ];

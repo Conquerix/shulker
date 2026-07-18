@@ -12,7 +12,6 @@ in
 {
   options.shulker.system.modules.nextcloud = {
     enable = mkEnableOption "Enable nextcloud service.";
-    impermanence = mkEnableOption "Enable impermanence.";
     mainPort = mkOption {
       type = types.port;
       default = 8080;

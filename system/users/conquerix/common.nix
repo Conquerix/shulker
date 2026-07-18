@@ -17,5 +17,11 @@ in
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILCQToe+S6lXjwMCrcg9smHlb8tEp2613jW/lOkfSSm1"
       ];
     };
+
+    # Packages shared across every platform conquerix logs into.
+    home-manager.users.conquerix.home.packages = with pkgs; [
+      spotify
+      ryubing
+    ];
   };
 }

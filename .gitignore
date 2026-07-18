@@ -4,3 +4,10 @@ tmp
 result
 latest.iso
 .DS_Store
+
+# Editor / tooling backups
+*.bak
+*.bkp
+
+# Per-machine Claude Code settings
+.claude/settings.local.json

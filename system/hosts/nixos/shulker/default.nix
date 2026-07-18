@@ -62,7 +62,6 @@
         };
         nextcloud = {
           enable = true;
-          impermanence = true;
           mainPort = 23238;
           aioPort = 23239;
         };
