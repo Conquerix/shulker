@@ -62,6 +62,10 @@ with lib;
       openssh = {
         enable = true;
         openFirewall = true;
+        settings = {
+          PasswordAuthentication = false;
+          KbdInteractiveAuthentication = false;
+        };
         hostKeys = [
           {
             type = "ed25519";
