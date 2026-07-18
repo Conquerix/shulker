@@ -14,17 +14,16 @@ in
     users.users.conquerix = {
       isNormalUser = true;
       extraGroups = [
+        "wheel"
+      ]
+      ++ lib.optionals config.shulker.system.profiles.desktop.enable [
         "audio"
         "video"
-        "docker"
         "games"
-        "locate"
         "networkmanager"
-        "wheel"
         "plugdev"
         "adbusers"
         "kvm"
-        "disk"
       ];
       # Keep the password hash out of the Nix store and Git history. With
       # mutableUsers enabled, an existing password remains valid when this

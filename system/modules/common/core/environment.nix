@@ -41,8 +41,10 @@ with lib;
       };
 
       settings = {
-        trusted-users = [ "conquerix" ];
-        allowed-users = [ "root" ];
+        allowed-users = [
+          "root"
+          "conquerix"
+        ];
       };
 
       optimise.automatic = true;
