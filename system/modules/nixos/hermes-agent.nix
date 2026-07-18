@@ -7,10 +7,11 @@
 
 let
   cfg = config.shulker.system.modules.hermes-agent;
+  containerService = "docker-hermes-agent.service";
 in
 {
   options.shulker.system.modules.hermes-agent = {
-    enable = lib.mkEnableOption "Hermes Agent gateway";
+    enable = lib.mkEnableOption "Hermes Agent Docker gateway";
 
     impermanence = lib.mkEnableOption "persistent Hermes Agent state on an ephemeral root";
 
@@ -19,57 +20,44 @@ in
       default = "/var/lib/hermes";
       description = "Persistent state directory for Hermes Agent.";
     };
-
-    model = lib.mkOption {
-      type = lib.types.str;
-      default = "gpt-5.5";
-      description = "Default OpenAI Codex model used by Hermes Agent through ChatGPT OAuth.";
-    };
   };
 
   config = lib.mkIf cfg.enable {
-    services.hermes-agent = {
-      enable = true;
-      stateDir = cfg.stateDir;
-      workingDirectory = "${cfg.stateDir}/workspace";
+    shulker.system.modules.containers.enable = true;
 
-      # Native mode keeps the service reproducible and lets systemd provide the
-      # security boundary. Agent-created skills and memories remain writable in
-      # stateDir; opt into container mode only if mutable OS packages are needed.
-      container.enable = false;
+    # Keep the host and container identities stable so the bind-mounted state
+    # remains writable across rebuilds and future host migrations.
+    users.groups.hermes.gid = 10000;
+    users.users.hermes = {
+      isSystemUser = true;
+      uid = 10000;
+      group = "hermes";
+      home = cfg.stateDir;
+    };
 
-      settings = {
-        model = {
-          provider = "openai-codex";
-          default = cfg.model;
-        };
-        toolsets = [ "all" ];
-        group_sessions_per_user = true;
-        unauthorized_dm_behavior = "ignore";
-        memory = {
-          memory_enabled = true;
-          user_profile_enabled = true;
-        };
-        terminal = {
-          backend = "local";
-          timeout = 180;
-        };
-
-        # The gateway is unattended, so repeated failing/no-progress tool calls
-        # must be circuit-broken instead of consuming tokens indefinitely.
-        tool_loop_guardrails = {
-          hard_stop_enabled = true;
-          hard_stop_after = {
-            exact_failure = 5;
-            same_tool_failure = 8;
-            idempotent_no_progress = 5;
-          };
-        };
-      };
-
-      # Telegram is a private control surface for this agent. Secrets and the
-      # sole authorized user ID stay in the 1Password-provided env file.
+    virtualisation.oci-containers.containers.hermes-agent = {
+      # Hermes' official image keeps the runtime replaceable and all agent
+      # configuration/state under /opt/data. Pull on service starts so an
+      # explicit restart is enough to adopt a newer image.
+      image = "docker.io/nousresearch/hermes-agent:latest";
+      pull = "always";
+      cmd = [
+        "gateway"
+        "run"
+      ];
+      workdir = "/workspace";
+      volumes = [
+        "${cfg.stateDir}/.hermes:/opt/data:rw"
+        "${cfg.stateDir}/workspace:/workspace:rw"
+      ];
       environment = {
+        HOME = "/opt/data/home";
+        HERMES_HOME = "/opt/data";
+        HERMES_UID = "10000";
+        HERMES_GID = "10000";
+
+        # Telegram remains a private control surface even though Hermes now
+        # owns and may update its application configuration.
         GATEWAY_ALLOW_ALL_USERS = "false";
         TELEGRAM_ALLOW_ALL_USERS = "false";
         TELEGRAM_REQUIRE_MENTION = "true";
@@ -78,49 +66,49 @@ in
         TELEGRAM_REACTIONS = "false";
       };
       environmentFiles = [ config.services.onepassword-secrets.secrets.hermesAgentEnv.path ];
-      extraDependencyGroups = [ "messaging" ];
-      extraPackages = with pkgs; [
-        curl
-        ffmpeg
-        git
-        jq
-        ripgrep
+      extraOptions = [
+        "--pids-limit=512"
+        "--security-opt=no-new-privileges:true"
       ];
-      addToSystemPackages = true;
-      restart = "always";
-      restartSec = 5;
     };
 
-    # The agent needs outbound network access and a writable workspace, but no
-    # access to user homes, host devices, kernel controls, or Linux capabilities.
-    systemd.services.hermes-agent.serviceConfig = {
-      ProtectHome = lib.mkForce true;
-      PrivateDevices = true;
-      ProtectKernelTunables = true;
-      ProtectKernelModules = true;
-      ProtectKernelLogs = true;
-      ProtectControlGroups = true;
-      RestrictSUIDSGID = true;
-      LockPersonality = true;
-      RestrictRealtime = true;
-      CapabilityBoundingSet = "";
+    systemd.services."docker-hermes-agent" = {
+      requires = [
+        "hermes-agent-state.service"
+        "opnix-secrets.service"
+      ];
+      after = [
+        "hermes-agent-state.service"
+        "opnix-secrets.service"
+        "network-online.target"
+      ];
+      serviceConfig = {
+        Restart = lib.mkForce "always";
+        RestartSec = 5;
+      };
     };
-    systemd.services.hermes-agent.requires = [
-      "hermes-agent-state.service"
-      "opnix-secrets.service"
-    ];
 
-    # On the first activation, the persistent bind mount can cover directories
-    # created by the upstream activation script. Prepare the workspace only
-    # after that mount exists and before systemd attempts Hermes' WorkingDirectory.
+    # The previous NixOS module left a .managed marker that intentionally
+    # blocked Hermes' config commands. Remove only that marker during the
+    # one-way migration and preserve all OAuth, Telegram, memory, and session
+    # state around it.
     systemd.services.hermes-agent-state = {
-      description = "Prepare Hermes Agent persistent state";
-      before = [ "hermes-agent.service" ];
+      description = "Prepare mutable Hermes Agent state";
+      before = [ containerService ];
       unitConfig.RequiresMountsFor = cfg.stateDir;
+      path = [ pkgs.coreutils ];
+      script = ''
+        install -d -m 0750 -o hermes -g hermes \
+          ${cfg.stateDir} \
+          ${cfg.stateDir}/.hermes \
+          ${cfg.stateDir}/.hermes/home \
+          ${cfg.stateDir}/workspace
+        chown -R hermes:hermes ${cfg.stateDir}
+        rm -f ${cfg.stateDir}/.hermes/.managed
+      '';
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.coreutils}/bin/install -d -m 0750 -o hermes -g hermes ${cfg.stateDir}/workspace";
       };
     };
 
@@ -140,11 +128,10 @@ in
     # Store an env-file in the shulker 1Password item containing:
     # TELEGRAM_BOT_TOKEN=<BotFather token>
     # TELEGRAM_ALLOWED_USERS=<your numeric Telegram user ID>
-    # ChatGPT OAuth credentials are created interactively by Hermes and kept in
-    # its persistent auth.json; do not place them in this env file.
+    # ChatGPT OAuth remains in the persistent /opt/data/auth.json file.
     services.onepassword-secrets.secrets.hermesAgentEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Hermes/Environment";
-      services = [ "hermes-agent" ];
+      services = [ "docker-hermes-agent" ];
       owner = "hermes";
       group = "hermes";
     };

@@ -47,6 +47,10 @@
           hubEndpoint = "https://monitor.shulker.link";
           extraFilesystems = "/nix__Nix Store,/nix/persist__Persistent Partition";
         };
+        hermes-agent = {
+          enable = true;
+          impermanence = true;
+        };
         pelican = {
           panel = {
             enable = true;

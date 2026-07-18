@@ -52,11 +52,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Self-hosted personal AI agent
-    hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
   outputs =
     {
@@ -113,7 +108,6 @@
               inputs.eden.nixosModules.default
               inputs.jovian.nixosModules.default
               inputs.pelican-panel.nixosModules.wings
-              inputs.hermes-agent.nixosModules.default
               (import ./system/modules/common)
               (import ./system/modules/nixos)
               (import ./system/profiles/nixos)
