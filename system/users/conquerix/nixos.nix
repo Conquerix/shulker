@@ -26,7 +26,10 @@ in
         "kvm"
         "disk"
       ];
-      hashedPassword = "$6$Na7d9SJRCkC6FyK7$3K.rYNPXX1.aeJe8f.2ylE2ITGLgxqv3CFvVYRsTiarQjFNZ.p2QZ/MIu1n6qz6wOO44lXU6wc9kmgIV.wboC/";
+      # Keep the password hash out of the Nix store and Git history. With
+      # mutableUsers enabled, an existing password remains valid when this
+      # file is absent; fresh installs start with password login disabled.
+      hashedPasswordFile = "/etc/secrets/conquerix-password-hash";
     };
 
     home-manager.users.conquerix = {

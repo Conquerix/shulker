@@ -50,6 +50,20 @@ darwin-rebuild switch --flake .#herobrine
 The NixOS configurations expect an opnix service-account token at
 `/etc/opnix-token`. Secret values remain outside this repository.
 
+Local login password hashes are also kept outside the repository. Provision
+the required files before a fresh installation or before changing a local
+password declaratively:
+
+```sh
+sudo install -d -m 0700 /etc/secrets
+nix shell nixpkgs#mkpasswd -c sh -c \
+  'mkpasswd -m yescrypt | sudo install -m 0600 /dev/stdin /etc/secrets/conquerix-password-hash'
+```
+
+Every NixOS host expects `conquerix-password-hash`; `endermite` additionally
+expects `camelia-password-hash`. Existing mutable users keep their current
+password if the corresponding file has not been provisioned yet.
+
 ## Origins
 
 Originally forked from EmergentMind's

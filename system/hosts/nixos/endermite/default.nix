@@ -40,7 +40,7 @@
 
   users.extraUsers.camelia = {
     isNormalUser = true;
-    hashedPassword = "$y$j9T$I6gdt1KVyHZynHQ9.DiG20$7F3YxKP49wlkjxKukcUBNb23RzDq3VAgjsZS/wNrZI/";
+    hashedPasswordFile = "/etc/secrets/camelia-password-hash";
     extraGroups = [
       "networkmanager"
       "cups"
