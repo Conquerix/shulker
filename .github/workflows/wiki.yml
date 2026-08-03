@@ -7,8 +7,9 @@ on:
       - "flake.lock"
       - "flake.nix"
       - "lib/**"
-      - "scripts/sync-server-wiki.sh"
+      - "scripts/**"
       - "system/**"
+      - "topology/**"
   schedule:
     - cron: "43 5 * * 1"
   workflow_dispatch:
@@ -28,8 +29,22 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+      - name: Refresh sanitized Pangolin topology
+        env:
+          PANGOLIN_API_ENDPOINT: ${{ vars.PANGOLIN_API_ENDPOINT }}
+          PANGOLIN_API_KEY: ${{ secrets.PANGOLIN_TOPOLOGY_API_KEY }}
+          PANGOLIN_ORG_ID: ${{ vars.PANGOLIN_ORG_ID }}
+        shell: bash
+        run: |
+          if [ -z "$PANGOLIN_API_ENDPOINT" ] || [ -z "$PANGOLIN_API_KEY" ] || [ -z "$PANGOLIN_ORG_ID" ]; then
+            echo "Pangolin topology credentials are not configured; using the committed sanitized snapshot."
+            exit 0
+          fi
+          bash scripts/fetch-pangolin-topology.sh
       - name: Build server documentation
-        run: nix build .#server-docs --out-link server-docs-result
+        run: |
+          nix build .#server-docs --out-link server-docs-result
+          nix build .#infrastructure-diagram --out-link infrastructure-result
       - name: Clone Wiki
         env:
           WIKI_TOKEN: ${{ github.token }}
@@ -39,7 +54,7 @@ jobs:
           git -c http.extraheader="AUTHORIZATION: basic $basic_auth" \
             clone "https://github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
       - name: Synchronize generated pages
-        run: bash scripts/sync-server-wiki.sh server-docs-result wiki
+        run: bash scripts/sync-server-wiki.sh server-docs-result wiki infrastructure-result
       - name: Publish changed pages
         env:
           WIKI_TOKEN: ${{ github.token }}

@@ -165,12 +165,28 @@
               };
             }) serverHostNames
           );
+          infrastructureData = import ./lib/infrastructure-data.nix {
+            inherit darwinHostNames;
+            darwinConfigurations = self.darwinConfigurations;
+            external = builtins.fromJSON (builtins.readFile ./topology/public.json);
+            hostNames = nixosHostNames;
+            inherit lib;
+            nixosConfigurations = self.nixosConfigurations;
+            revision = self.rev or self.dirtyRev or null;
+          };
         in
         serverDocs
         // {
           server-docs = pkgs.symlinkJoin {
             name = "server-docs";
             paths = builtins.attrValues serverDocs;
+          };
+          infrastructure-data = pkgs.writeTextDir "infrastructure.json" (
+            builtins.toJSON infrastructureData + "\n"
+          );
+          infrastructure-diagram = import ./lib/infrastructure-diagram.nix {
+            data = infrastructureData;
+            inherit lib pkgs;
           };
         }
       );

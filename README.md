@@ -50,6 +50,35 @@ extend `lib/server-docs.nix`, then rebuild the relevant target. A NixOS host tha
 enables `shulker.system.profiles.server` automatically receives a documentation
 target and appears in the combined output.
 
+## Infrastructure topology
+
+Build the machine-readable infrastructure inventory and the Wiki-ready Mermaid
+diagram from evaluated configuration:
+
+```sh
+nix build .#infrastructure-data
+nix build .#infrastructure-diagram
+ls result/{Infrastructure.md,infrastructure.json}
+```
+
+The diagram covers all NixOS and nix-darwin hosts, enabled services, and known
+cross-service connections. `topology/public.json` is the sanitized boundary for
+data that exists only in external control planes. The Pangolin collector updates
+that snapshot with public resources and their site relationships:
+
+```sh
+PANGOLIN_API_ENDPOINT=https://api.example.com \
+PANGOLIN_ORG_ID=example \
+PANGOLIN_API_KEY=... \
+scripts/fetch-pangolin-topology.sh
+```
+
+Use a read-only organization key. The collector deliberately excludes internal
+target addresses, ports, private resources, access policies, identities, and
+credentials. Detailed external snapshots must remain in ignored
+`topology/private*.json` files and must not be published to the repository or
+Wiki.
+
 ## Development and validation
 
 Use the smallest relevant check while iterating, then validate in proportion to
@@ -65,6 +94,9 @@ nix flake check
 # Build all server reports or one host report.
 nix build .#server-docs
 nix build .#server-docs-<host>
+
+# Build the generated infrastructure topology.
+nix build .#infrastructure-diagram
 
 # Format the Nix sources.
 nix fmt

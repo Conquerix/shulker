@@ -11,3 +11,7 @@ latest.iso
 
 # Per-machine Claude Code settings
 .claude/settings.local.json
+
+# Detailed external topology is local-only; only topology/public.json is safe
+# to publish.
+topology/private*.json

@@ -26,8 +26,11 @@ jobs:
       - name: Build generated server documentation
         run: |
           nix build .#server-docs --out-link server-docs-result
+          nix build .#infrastructure-diagram --out-link infrastructure-result
           mkdir generated-server-docs
           cp -L server-docs-result/*.md generated-server-docs/
+          cp -L infrastructure-result/Infrastructure.md generated-server-docs/
+          cp -L infrastructure-result/infrastructure.json generated-server-docs/
       - name: Upload generated server documentation
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

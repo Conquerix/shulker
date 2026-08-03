@@ -7,8 +7,8 @@ current, and the server Wiki synchronized.
 
 [`workflows/check.yml`](workflows/check.yml) runs on pushes and pull requests. It
 evaluates all flake outputs, builds the repository hook derivation, builds the
-generated server reports, and retains those reports as a 14-day workflow
-artifact.
+generated server reports and infrastructure topology, and retains those outputs
+as a 14-day workflow artifact.
 
 ## Flake input updates
 
@@ -29,7 +29,9 @@ relevant changes reach the default branch, every Monday as a self-healing run,
 and on demand. It publishes these generated Wiki pages:
 
 - `Servers.md`, the generated index;
-- `Server-<host>.md`, one evaluated report per server-profile host.
+- `Server-<host>.md`, one evaluated report per server-profile host;
+- `Infrastructure.md`, a Mermaid topology generated from evaluated hosts and a
+  sanitized Pangolin snapshot.
 
 The synchronization script refuses to overwrite a page without its generated
 marker. Unrelated manual Wiki pages are preserved, and stale generated host pages
@@ -39,6 +41,22 @@ The workflow uses its short-lived, repository-scoped `GITHUB_TOKEN` with
 `contents: write`; no long-lived Wiki credential is stored. Enable the repository
 Wiki, then run **Publish server Wiki** manually once and confirm the generated
 `Servers` page.
+
+### Pangolin topology enrichment
+
+The Wiki workflow uses the committed empty/sanitized snapshot when Pangolin API
+access is not configured. To refresh it from the live control plane, configure:
+
+- repository variable `PANGOLIN_API_ENDPOINT`, containing the API origin without
+  `/v1`;
+- repository variable `PANGOLIN_ORG_ID`;
+- repository secret `PANGOLIN_TOPOLOGY_API_KEY`, containing a read-only
+  organization API key limited to listing sites, public resources, targets, and
+  domains.
+
+The collector holds raw API responses in a private temporary directory, writes
+only the sanitized public schema, and removes the temporary responses on exit.
+The API key is unrelated to Wiki authentication and must never be committed.
 
 ## Action updates
 
