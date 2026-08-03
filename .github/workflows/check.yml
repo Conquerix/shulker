@@ -5,16 +5,33 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   check:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
-      - uses: cachix/install-nix-action@v31.10.6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
       - name: Evaluate every flake output
         run: nix flake check --no-build --all-systems
       - name: Run repository checks
         run: nix build --no-link .#checks.x86_64-linux.pre-commit-check
+      - name: Build generated server documentation
+        run: |
+          nix build .#server-docs --out-link server-docs-result
+          mkdir generated-server-docs
+          cp -L server-docs-result/*.md generated-server-docs/
+      - name: Upload generated server documentation
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: server-docs-${{ github.sha }}
+          path: generated-server-docs/*.md
+          if-no-files-found: error
+          retention-days: 14

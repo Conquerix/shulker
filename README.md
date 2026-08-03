@@ -28,21 +28,26 @@ NixOS: `enderdragon`, `endermite`, `guardian`, `phantom`, `shulker`,
 
 Darwin: `herobrine`.
 
-## Network exposure
+The [server documentation guide](system/hosts/nixos/README.md) explains how to
+build per-host Markdown reports from the evaluated NixOS configurations.
 
-Inbound access is intentional and host-specific. All NixOS hosts expose SSH;
-additional exposure is limited to the following roles:
+## Server documentation
 
-- `endermite`: GNOME Remote Desktop.
-- `guardian`: explicitly configured HTTPS and application ingress ports.
-- `enderdragon` and `shulker`: Pelican Wings API and SFTP.
-- `shulker`: Pangolin's HTTP, HTTPS, and WireGuard edge ports.
-- `silverfish`: Home Assistant and HomeKit.
-- `warden`: Pelican Wings and Plex; qBittorrent remains loopback-only.
-- `wither`: Sunshine/Moonlight streaming.
+Build all server reports into `result/`:
 
-`phantom` has no inbound service beyond SSH. Reverse-proxied container web
-interfaces bind to loopback and do not rely on the host firewall for isolation.
+```sh
+nix build .#server-docs
+```
+
+Each server also has a dedicated `server-docs-<host>` target. Reports include
+enabled roles and services, network exposure, containers, storage, persistence,
+backup coverage, secret names, operational warnings, and deployment commands.
+Secret values and references are excluded.
+
+GitHub Actions validate every change, retain the generated reports as workflow
+artifacts, propose weekly flake-input updates, and publish server reports to the
+repository Wiki. See the [automation guide](.github/README.md) for schedules and
+one-time Wiki setup.
 
 ## Common commands
 

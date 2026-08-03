@@ -1,0 +1,84 @@
+name: Update flake inputs
+
+on:
+  schedule:
+    - cron: "27 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: update-flake-inputs
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      UPDATE_BRANCH: automation/update-flake-inputs
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+      - name: Update inputs
+        run: nix flake update
+      - name: Detect lock-file changes
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- flake.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Validate updated inputs
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          nix flake check --no-build --all-systems
+          nix build --no-link .#checks.x86_64-linux.pre-commit-check
+          nix build --no-link .#server-docs
+      - name: Commit and push update branch
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$UPDATE_BRANCH"
+          git add flake.lock
+          git commit -m "chore: update flake inputs"
+          git push --force-with-lease origin "HEAD:refs/heads/$UPDATE_BRANCH"
+      - name: Create or refresh pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          body_file="$RUNNER_TEMP/flake-update-pr.md"
+          printf '%s\n' \
+            'Automated weekly update of all flake inputs.' \
+            '' \
+            'Validated before publication:' \
+            '- all flake outputs evaluated on all supported systems' \
+            '- repository hooks built successfully' \
+            '- generated server documentation built successfully' \
+            '' \
+            'Review the lock-file diff and merge when the checks and upstream changes look safe.' \
+            > "$body_file"
+
+          pr_number="$(gh pr list --head "$UPDATE_BRANCH" --state open --json number --jq '.[0].number')"
+          if [ -n "$pr_number" ]; then
+            gh pr edit "$pr_number" \
+              --title "chore: update flake inputs" \
+              --body-file "$body_file"
+          else
+            gh pr create \
+              --base "${{ github.event.repository.default_branch }}" \
+              --head "$UPDATE_BRANCH" \
+              --title "chore: update flake inputs" \
+              --body-file "$body_file"
+          fi

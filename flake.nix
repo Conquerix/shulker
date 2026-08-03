@@ -71,6 +71,13 @@
         "aarch64-darwin"
       ];
 
+      nixosHostNames = builtins.attrNames (
+        nixpkgs.lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./system/hosts/nixos)
+      );
+      darwinHostNames = builtins.attrNames (
+        nixpkgs.lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./system/hosts/darwin)
+      );
+
       # ========== Extend lib with lib.custom ==========
       # NOTE: This approach allows lib.custom to propagate into hm
       # see: https://github.com/nix-community/home-manager/pull/3454
@@ -115,7 +122,7 @@
               (import ./system/hosts/nixos/${host})
             ];
           };
-        }) (builtins.attrNames (builtins.readDir ./system/hosts/nixos))
+        }) nixosHostNames
       );
 
       darwinConfigurations = builtins.listToAttrs (
@@ -134,7 +141,38 @@
               (import ./system/hosts/darwin/${host})
             ];
           };
-        }) (builtins.attrNames (builtins.readDir ./system/hosts/darwin))
+        }) darwinHostNames
+      );
+
+      # Server documentation is evaluated from the same merged configuration
+      # used to build each host. A new server-profile host automatically gets a
+      # dedicated `server-docs-<host>` package.
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          serverHostNames = builtins.filter (
+            host: self.nixosConfigurations.${host}.config.shulker.system.profiles.server.enable
+          ) nixosHostNames;
+          serverDocs = builtins.listToAttrs (
+            map (host: {
+              name = "server-docs-${host}";
+              value = import ./lib/server-docs.nix {
+                inherit lib pkgs;
+                hostName = host;
+                config = self.nixosConfigurations.${host}.config;
+                revision = self.rev or self.dirtyRev or null;
+              };
+            }) serverHostNames
+          );
+        in
+        serverDocs
+        // {
+          server-docs = pkgs.symlinkJoin {
+            name = "server-docs";
+            paths = builtins.attrValues serverDocs;
+          };
+        }
       );
 
       #

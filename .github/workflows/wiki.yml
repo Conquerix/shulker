@@ -1,0 +1,59 @@
+name: Publish server Wiki
+
+on:
+  push:
+    paths:
+      - ".github/workflows/wiki.yml"
+      - "flake.lock"
+      - "flake.nix"
+      - "lib/**"
+      - "scripts/sync-server-wiki.sh"
+      - "system/**"
+  schedule:
+    - cron: "43 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: publish-server-wiki
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event_name != 'push' || github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+      - name: Build server documentation
+        run: nix build .#server-docs --out-link server-docs-result
+      - name: Clone Wiki
+        env:
+          WIKI_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          basic_auth="$(printf 'x-access-token:%s' "$WIKI_TOKEN" | base64 --wrap=0)"
+          git -c http.extraheader="AUTHORIZATION: basic $basic_auth" \
+            clone "https://github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
+      - name: Synchronize generated pages
+        run: bash scripts/sync-server-wiki.sh server-docs-result wiki
+      - name: Publish changed pages
+        env:
+          WIKI_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          git -C wiki add --all
+          if git -C wiki diff --cached --quiet; then
+            echo "Wiki pages are already current."
+            exit 0
+          fi
+
+          git -C wiki config user.name "github-actions[bot]"
+          git -C wiki config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C wiki commit -m "docs: update generated server reports"
+
+          basic_auth="$(printf 'x-access-token:%s' "$WIKI_TOKEN" | base64 --wrap=0)"
+          git -c http.extraheader="AUTHORIZATION: basic $basic_auth" -C wiki push origin HEAD
