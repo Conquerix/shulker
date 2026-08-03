@@ -17,6 +17,7 @@ not a drop-in configuration.
 - `home/` contains shared Home Manager modules and defaults.
 - `lib/`, `overlays/`, and `nix/` contain flake helpers, package overrides, and
   compatibility configuration.
+- `.github/` contains validation, dependency-maintenance, and Wiki automation.
 
 The flake discovers host directories automatically. Each host imports its
 hardware configuration and enables only the profiles and modules it needs.
@@ -44,16 +45,26 @@ enabled roles and services, network exposure, containers, storage, persistence,
 backup coverage, secret names, operational warnings, and deployment commands.
 Secret values and references are excluded.
 
-GitHub Actions validate every change, retain the generated reports as workflow
-artifacts, propose weekly flake-input updates, and publish server reports to the
-repository Wiki. See the [automation guide](.github/README.md) for schedules and
-one-time Wiki setup.
+Do not edit generated Markdown. Change the host or module configuration, or
+extend `lib/server-docs.nix`, then rebuild the relevant target. A NixOS host that
+enables `shulker.system.profiles.server` automatically receives a documentation
+target and appears in the combined output.
 
-## Common commands
+## Development and validation
+
+Use the smallest relevant check while iterating, then validate in proportion to
+the change:
 
 ```sh
 # Evaluate every exported configuration and check.
 nix flake check --no-build --all-systems
+
+# Run the full flake checks, including build-backed checks.
+nix flake check
+
+# Build all server reports or one host report.
+nix build .#server-docs
+nix build .#server-docs-<host>
 
 # Format the Nix sources.
 nix fmt
@@ -67,6 +78,25 @@ sudo nixos-rebuild switch --flake .#<host>
 # Apply the Darwin configuration.
 darwin-rebuild switch --flake .#herobrine
 ```
+
+Track newly created Nix files before evaluating the flake because Git flakes
+omit untracked files. Pre-commit hooks and `nixfmt` may modify files during a
+commit; review and stage those changes before retrying.
+
+## Maintenance conventions
+
+- The default branch is `dev`.
+- Inspect the relevant host, profile, and module before changing behavior.
+- Preserve unrelated working-tree and staged changes. Keep commits focused on
+  one task and use imperative Conventional Commit-style subjects.
+- Verify critical behavior from evaluated or runtime state when possible, not
+  only from source diffs.
+- Do not amend published commits, force-push, or rewrite shared history without
+  explicit agreement.
+- Keep GitHub Actions pinned to full commit hashes and retain the release tag in
+  a comment.
+
+## Security and recovery
 
 The NixOS configurations expect an opnix service-account token at
 `/etc/opnix-token`. Secret values remain outside this repository.
@@ -85,6 +115,25 @@ allowing offline password cracking attempts. Use strong, unique passwords.
 SSH password authentication remains disabled: the passwords provide console
 and sudo access, while the configured keys provide key-only `conquerix` and
 root recovery access.
+
+Keep `users.mutableUsers = false`, the declarative password hashes, and the
+independent SSH recovery keys unless deliberately changing the recovery model.
+Generated documentation and diagnostic output must not expose secret values,
+secret references, generated secret paths, password hashes, or service
+credentials.
+
+## Operational safety
+
+Deployments, reboots, credential changes, destructive storage or database work,
+and Git history rewrites can affect live systems or recovery. Confirm their
+scope before running them.
+
+Before restarting a gaming host or session, check for an active game and do not
+interrupt it:
+
+```sh
+pgrep -f 'steamapps/[c]ommon'
+```
 
 ## Backup verification and restoration
 
@@ -108,6 +157,16 @@ sudo borgmatic extract --archive latest --destination "$restore_dir" --path path
 Database restoration is a separate, destructive operation. Use `borgmatic
 restore --archive latest` only after validating the extracted backup and the
 target database service.
+
+## Repository automation
+
+GitHub Actions validate every push and pull request, retain generated reports
+as workflow artifacts, propose weekly flake-input updates, and publish the
+server reports to the [repository Wiki](https://github.com/Conquerix/shulker/wiki).
+Dependabot groups updates to pinned GitHub Actions into weekly pull requests.
+
+See the [automation guide](.github/README.md) for workflow triggers,
+permissions, and Wiki synchronization behavior.
 
 ## Origins
 
