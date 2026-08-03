@@ -79,6 +79,21 @@ credentials. Detailed external snapshots must remain in ignored
 `topology/private*.json` files and must not be published to the repository or
 Wiki.
 
+On a self-hosted Pangolin control plane, enable and expose the Integration API
+with the root-only, reversible bootstrap helper. It preserves the existing YAML,
+creates root-only backups, validates the edited files, and rolls back if the
+Pangolin API does not become healthy:
+
+```sh
+sudo nix shell nixpkgs#yq-go --command \
+  scripts/configure-pangolin-integration-api.sh api.example.com
+```
+
+The helper briefly restarts Pangolin and Traefik. Create the collector key in
+**Organization → API Keys** with only `listSites`, `listResources`,
+`listTargets`, and `listOrgDomains`; then store it as the GitHub Actions secret
+documented in [the automation guide](.github/README.md#pangolin-topology-enrichment).
+
 ## Development and validation
 
 Use the smallest relevant check while iterating, then validate in proportion to

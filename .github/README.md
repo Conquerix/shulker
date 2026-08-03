@@ -54,6 +54,16 @@ access is not configured. To refresh it from the live control plane, configure:
   organization API key limited to listing sites, public resources, targets, and
   domains.
 
+For Pangolin's permission selector, the exact required actions are `listSites`,
+`listResources`, `listTargets`, and `listOrgDomains`. No create, update, delete,
+identity, policy, role, or log permission is needed. Create the key under
+**Organization → API Keys** and copy it directly into the GitHub secret prompt;
+the key is shown only once:
+
+```sh
+gh secret set PANGOLIN_TOPOLOGY_API_KEY --repo Conquerix/shulker
+```
+
 The collector holds raw API responses in a private temporary directory, writes
 only the sanitized public schema, and removes the temporary responses on exit.
 The API key is unrelated to Wiki authentication and must never be committed.
