@@ -32,23 +32,25 @@ Darwin: `herobrine`.
 The [server documentation guide](system/hosts/nixos/README.md) explains how to
 build per-host Markdown reports from the evaluated NixOS configurations.
 
-## Server documentation
+## Host documentation
 
-Build all server reports into `result/`:
+Build detailed reports for every NixOS and nix-darwin host into `result/`:
 
 ```sh
-nix build .#server-docs
+nix build .#host-docs
 ```
 
-Each server also has a dedicated `server-docs-<host>` target. Reports include
+Each machine has a dedicated `host-docs-<host>` target. NixOS reports include
 enabled roles and services, network exposure, containers, storage, persistence,
 backup coverage, secret names, operational warnings, and deployment commands.
-Secret values and references are excluded.
+nix-darwin reports cover roles, users, security, packages, Homebrew, launchd,
+and operations. Secret values and references are excluded. The existing
+`server-docs` and `server-docs-<host>` targets remain compatibility aliases for
+server-profile hosts.
 
 Do not edit generated Markdown. Change the host or module configuration, or
-extend `lib/server-docs.nix`, then rebuild the relevant target. A NixOS host that
-enables `shulker.system.profiles.server` automatically receives a documentation
-target and appears in the combined output.
+extend the relevant generator, then rebuild the target. Newly discovered NixOS
+and nix-darwin hosts automatically receive a report and appear in the Wiki.
 
 ## Infrastructure topology
 
@@ -58,6 +60,7 @@ diagram from evaluated configuration:
 ```sh
 nix build .#infrastructure-data
 nix build .#infrastructure-diagram
+nix build .#wiki-docs
 ls result/{Infrastructure.md,infrastructure.json}
 ```
 
@@ -78,6 +81,11 @@ target addresses, ports, private resources, access policies, identities, and
 credentials. Detailed external snapshots must remain in ignored
 `topology/private*.json` files and must not be published to the repository or
 Wiki.
+
+`wiki-docs` builds the complete navigable Wiki layer: overview, fleet, server
+index, service catalog, public-service inventory, split topology diagrams,
+operations guide, automation guide, sidebar, and footer. Detailed per-server
+reports are supplied by `host-docs` and merged by the Wiki workflow.
 
 On a self-hosted Pangolin control plane, enable and expose the Integration API
 with the root-only, reversible bootstrap helper. It preserves the existing YAML,
@@ -106,12 +114,15 @@ nix flake check --no-build --all-systems
 # Run the full flake checks, including build-backed checks.
 nix flake check
 
-# Build all server reports or one host report.
-nix build .#server-docs
-nix build .#server-docs-<host>
+# Build all host reports or one host report.
+nix build .#host-docs
+nix build .#host-docs-<host>
 
 # Build the generated infrastructure topology.
 nix build .#infrastructure-diagram
+
+# Build every generated non-host Wiki page.
+nix build .#wiki-docs
 
 # Format the Nix sources.
 nix fmt
@@ -209,7 +220,7 @@ target database service.
 
 GitHub Actions validate every push and pull request, retain generated reports
 as workflow artifacts, propose weekly flake-input updates, and publish the
-server reports to the [repository Wiki](https://github.com/Conquerix/shulker/wiki).
+host reports to the [repository Wiki](https://github.com/Conquerix/shulker/wiki).
 Dependabot groups updates to pinned GitHub Actions into weekly pull requests.
 
 See the [automation guide](.github/README.md) for workflow triggers,

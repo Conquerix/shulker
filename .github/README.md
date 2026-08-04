@@ -7,7 +7,7 @@ current, and the server Wiki synchronized.
 
 [`workflows/check.yml`](workflows/check.yml) runs on pushes and pull requests. It
 evaluates all flake outputs, builds the repository hook derivation, builds the
-generated server reports and infrastructure topology, and retains those outputs
+generated host reports and infrastructure topology, and retains those outputs
 as a 14-day workflow artifact.
 
 ## Flake input updates
@@ -24,23 +24,29 @@ runs the complete validation before publishing its branch.
 
 ## Server Wiki
 
-[`workflows/wiki.yml`](workflows/wiki.yml) rebuilds the server reports after
+[`workflows/wiki.yml`](workflows/wiki.yml) rebuilds the host reports after
 relevant changes reach the default branch, every Monday as a self-healing run,
 and on demand. It publishes these generated Wiki pages:
 
 - `Servers.md`, the generated index;
-- `Server-<host>.md`, one evaluated report per server-profile host;
-- `Infrastructure.md`, a Mermaid topology generated from evaluated hosts and a
-  sanitized Pangolin snapshot.
+- `Host-<host>.md`, one evaluated report for every NixOS and nix-darwin host;
+- `Home.md`, `Fleet.md`, and `Services.md`, the fleet overview and service
+  catalog;
+- `Public-Services.md` and `Infrastructure.md`, the sanitized Pangolin inventory
+  and split Mermaid topology;
+- `Operations.md` and `Automation.md`, the fleet runbook and maintenance
+  pipeline;
+- `_Sidebar.md` and `_Footer.md`, persistent Wiki navigation and provenance.
 
 The synchronization script refuses to overwrite a page without its generated
-marker. Unrelated manual Wiki pages are preserved, and stale generated host pages
-are removed.
+marker. The original minimal Shulker `Home.md` is recognized as a one-time
+migration source. Unrelated manual Wiki pages are preserved, and stale generated
+pages are removed.
 
 The workflow uses its short-lived, repository-scoped `GITHUB_TOKEN` with
 `contents: write`; no long-lived Wiki credential is stored. Enable the repository
-Wiki, then run **Publish server Wiki** manually once and confirm the generated
-`Servers` page.
+Wiki, then run **Publish infrastructure Wiki** manually once and confirm the generated
+`Home` and `Fleet` pages.
 
 ### Pangolin topology enrichment
 

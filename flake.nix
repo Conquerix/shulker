@@ -144,9 +144,9 @@
         }) darwinHostNames
       );
 
-      # Server documentation is evaluated from the same merged configuration
-      # used to build each host. A new server-profile host automatically gets a
-      # dedicated `server-docs-<host>` package.
+      # Host documentation is evaluated from the same merged configuration used
+      # to build each host. Server-profile targets remain as compatibility
+      # aliases for the corresponding NixOS host reports.
       packages = forAllSystems (
         system:
         let
@@ -154,15 +154,33 @@
           serverHostNames = builtins.filter (
             host: self.nixosConfigurations.${host}.config.shulker.system.profiles.server.enable
           ) nixosHostNames;
-          serverDocs = builtins.listToAttrs (
+          nixosDocs = builtins.listToAttrs (
             map (host: {
-              name = "server-docs-${host}";
+              name = "host-docs-${host}";
               value = import ./lib/server-docs.nix {
                 inherit lib pkgs;
                 hostName = host;
                 config = self.nixosConfigurations.${host}.config;
                 revision = self.rev or self.dirtyRev or null;
               };
+            }) nixosHostNames
+          );
+          darwinDocs = builtins.listToAttrs (
+            map (host: {
+              name = "host-docs-${host}";
+              value = import ./lib/darwin-docs.nix {
+                inherit lib pkgs;
+                hostName = host;
+                config = self.darwinConfigurations.${host}.config;
+                revision = self.rev or self.dirtyRev or null;
+              };
+            }) darwinHostNames
+          );
+          hostDocs = nixosDocs // darwinDocs;
+          serverDocs = builtins.listToAttrs (
+            map (host: {
+              name = "server-docs-${host}";
+              value = nixosDocs."host-docs-${host}";
             }) serverHostNames
           );
           infrastructureData = import ./lib/infrastructure-data.nix {
@@ -174,9 +192,18 @@
             nixosConfigurations = self.nixosConfigurations;
             revision = self.rev or self.dirtyRev or null;
           };
+          infrastructureDiagram = import ./lib/infrastructure-diagram.nix {
+            data = infrastructureData;
+            inherit lib pkgs;
+          };
         in
         serverDocs
+        // hostDocs
         // {
+          host-docs = pkgs.symlinkJoin {
+            name = "host-docs";
+            paths = builtins.attrValues hostDocs;
+          };
           server-docs = pkgs.symlinkJoin {
             name = "server-docs";
             paths = builtins.attrValues serverDocs;
@@ -184,8 +211,10 @@
           infrastructure-data = pkgs.writeTextDir "infrastructure.json" (
             builtins.toJSON infrastructureData + "\n"
           );
-          infrastructure-diagram = import ./lib/infrastructure-diagram.nix {
+          infrastructure-diagram = infrastructureDiagram;
+          wiki-docs = import ./lib/wiki-docs.nix {
             data = infrastructureData;
+            inherit infrastructureDiagram;
             inherit lib pkgs;
           };
         }

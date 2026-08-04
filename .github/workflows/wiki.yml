@@ -1,4 +1,4 @@
-name: Publish server Wiki
+name: Publish infrastructure Wiki
 
 on:
   push:
@@ -41,10 +41,10 @@ jobs:
             exit 0
           fi
           bash scripts/fetch-pangolin-topology.sh
-      - name: Build server documentation
+      - name: Build Wiki documentation
         run: |
-          nix build .#server-docs --out-link server-docs-result
-          nix build .#infrastructure-diagram --out-link infrastructure-result
+          nix build .#host-docs --out-link host-docs-result
+          nix build .#wiki-docs --out-link wiki-docs-result
       - name: Clone Wiki
         env:
           WIKI_TOKEN: ${{ github.token }}
@@ -54,7 +54,7 @@ jobs:
           git -c http.extraheader="AUTHORIZATION: basic $basic_auth" \
             clone "https://github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
       - name: Synchronize generated pages
-        run: bash scripts/sync-server-wiki.sh server-docs-result wiki infrastructure-result
+        run: bash scripts/sync-server-wiki.sh host-docs-result wiki wiki-docs-result
       - name: Publish changed pages
         env:
           WIKI_TOKEN: ${{ github.token }}

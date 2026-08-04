@@ -14,6 +14,7 @@ let
   inherit (lib)
     concatMapStringsSep
     concatStringsSep
+    filter
     findFirst
     unique
     ;
@@ -29,7 +30,6 @@ let
   displayEndpoint = endpoint: lib.removePrefix "https://" (lib.removePrefix "http://" endpoint);
 
   hostNodeId = host: "host_${safeId host.name}";
-  serviceNodeId = host: service: "service_${safeId host.name}_${safeId service.key}";
   endpointNodeId = endpoint: "endpoint_${safeId endpoint}";
 
   pangolin =
@@ -48,30 +48,7 @@ let
 
   renderHost =
     host:
-    let
-      hostId = hostNodeId host;
-      serviceLines = concatMapStringsSep "\n" (
-        service:
-        let
-          serviceId = serviceNodeId host service;
-          endpointLabel =
-            if service.endpoint == null then
-              ""
-            else
-              "<br/><small>${escapeLabel (displayEndpoint service.endpoint)}</small>";
-        in
-        ''
-          ${serviceId}["${escapeLabel service.name}${endpointLabel}"]:::service
-          ${hostId} --> ${serviceId}
-        ''
-      ) host.services;
-    in
-    ''
-          subgraph cluster_${safeId host.name}["${escapeLabel host.name} · ${escapeLabel host.kind}"]
-            ${hostId}["${escapeLabel host.name}<br/><small>${escapeLabel host.platform}</small>"]:::host
-      ${serviceLines}
-          end
-    '';
+    ''${hostNodeId host}["${escapeLabel host.name}<br/><small>${escapeLabel host.kind}</small>"]:::host'';
 
   renderEndpoint =
     endpoint: ''${endpointNodeId endpoint}["${escapeLabel (displayEndpoint endpoint)}"]:::external'';
@@ -80,9 +57,9 @@ let
     host: connection:
     let
       service = findFirst (candidate: candidate.key == connection.from) null host.services;
-      sourceId = if service == null then hostNodeId host else serviceNodeId host service;
+      serviceName = if service == null then connection.from else service.name;
     in
-    ''${sourceId} -. "${escapeLabel connection.relation}" .-> ${endpointNodeId connection.to}'';
+    ''${hostNodeId host} -. "${escapeLabel serviceName}: ${escapeLabel connection.relation}" .-> ${endpointNodeId connection.to}'';
 
   siteNodeId = site: "pangolin_site_${safeId (site.id or site.name)}";
   renderSite =
@@ -107,6 +84,15 @@ let
       ${hostEdge}
     '';
 
+  publicHosts = filter (
+    host:
+    lib.any (
+      site:
+      lib.toLower host.name == lib.toLower site.name
+      || lib.toLower host.name == lib.toLower (site.id or "")
+    ) pangolinSites
+  ) data.hosts;
+
   findSite =
     reference:
     findFirst (site: (site.id or "") == reference || site.name == reference) null pangolinSites;
@@ -130,7 +116,11 @@ let
     '';
 
   hostRows = concatMapStringsSep "\n" (
-    host: "| `${host.name}` | ${host.kind} | ${host.platform} | ${toString (length host.services)} |"
+    host:
+    let
+      hostName = "[${host.name}](Host-${host.name})";
+    in
+    "| ${hostName} | ${host.kind} | ${host.platform} | ${toString (length host.services)} |"
   ) data.hosts;
 
   collectionStatus =
@@ -139,33 +129,58 @@ let
     else
       "Sanitized Pangolin snapshot collected at `${pangolin.collectedAt}`.";
 
+  publicDiagram =
+    if pangolinResources == [ ] then
+      "_No sanitized Pangolin snapshot is available._"
+    else
+      ''
+        ```mermaid
+        flowchart LR
+          classDef host fill:#263238,color:#fff,stroke:#90a4ae,stroke-width:2px
+          classDef external fill:#fff3e0,color:#e65100,stroke:#ffb74d
+          classDef public fill:#f3e5f5,color:#4a148c,stroke:#ba68c8
+          classDef site fill:#e8f5e9,color:#1b5e20,stroke:#81c784
+
+          internet((Internet)):::external
+
+        ${concatMapStringsSep "\n" renderHost publicHosts}
+        ${concatMapStringsSep "\n" renderSite pangolinSites}
+        ${concatMapStringsSep "\n" renderResource pangolinResources}
+        ```
+      '';
+
   markdown = ''
     # Infrastructure topology
 
-    This page is generated from evaluated NixOS and nix-darwin configurations,
-    enriched with a sanitized external topology snapshot. Change the source
-    configuration or refresh the collector; do not edit this page manually.
+    The topology is split into management dependencies and public ingress so
+    each diagram stays readable. Use [Fleet](Fleet) for machine roles,
+    [Services](Services) for service placement, and
+    [Public services](Public-Services) for the tabular Pangolin inventory.
 
     Pangolin: ${collectionStatus}
+
+    ## Management dependencies
+
+    Outbound arrows show cross-host control, monitoring, and tunnel
+    relationships declared in the evaluated Nix configuration.
 
     ```mermaid
     flowchart LR
       classDef host fill:#263238,color:#fff,stroke:#90a4ae,stroke-width:2px
-      classDef service fill:#e3f2fd,color:#0d47a1,stroke:#64b5f6
       classDef external fill:#fff3e0,color:#e65100,stroke:#ffb74d
-      classDef public fill:#f3e5f5,color:#4a148c,stroke:#ba68c8
-      classDef site fill:#e8f5e9,color:#1b5e20,stroke:#81c784
-
-      internet((Internet)):::external
 
     ${concatMapStringsSep "\n" renderHost data.hosts}
     ${concatMapStringsSep "\n" renderEndpoint endpointValues}
     ${concatMapStringsSep "\n" (
       host: concatMapStringsSep "\n" (renderConnection host) host.connections
     ) data.hosts}
-    ${concatMapStringsSep "\n" renderSite pangolinSites}
-    ${concatMapStringsSep "\n" renderResource pangolinResources}
     ```
+
+    ## Public access
+
+    Public resources flow through Pangolin sites to the matching managed host.
+
+    ${publicDiagram}
 
     ## Host summary
 

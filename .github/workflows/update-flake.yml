@@ -41,8 +41,10 @@ jobs:
         run: |
           nix flake check --no-build --all-systems
           nix build --no-link .#checks.x86_64-linux.pre-commit-check
+          nix build --no-link .#host-docs
           nix build --no-link .#server-docs
           nix build --no-link .#infrastructure-diagram
+          nix build --no-link .#wiki-docs
       - name: Commit and push update branch
         if: steps.changes.outputs.changed == 'true'
         shell: bash
