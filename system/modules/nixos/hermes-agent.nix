@@ -8,6 +8,8 @@
 let
   cfg = config.shulker.system.modules.hermes-agent;
   containerService = "docker-hermes-agent.service";
+  webUiContainerService = "docker-hermes-webui.service";
+  webUiAgentSourceDir = "/run/hermes-webui-agent-source";
 in
 {
   options.shulker.system.modules.hermes-agent = {
@@ -20,10 +22,53 @@ in
       default = "/var/lib/hermes";
       description = "Persistent state directory for Hermes Agent.";
     };
+
+    webUi = {
+      enable = lib.mkEnableOption "the community Hermes WebUI and its native client backend";
+
+      image = lib.mkOption {
+        type = lib.types.str;
+        default = "ghcr.io/nesquena/hermes-webui:latest";
+        description = "Hermes WebUI container image.";
+      };
+
+      bindAddress = lib.mkOption {
+        type = lib.types.str;
+        default = "127.0.0.1";
+        description = "Host address on which to publish the authenticated Hermes WebUI.";
+      };
+
+      port = lib.mkOption {
+        type = lib.types.port;
+        default = 8787;
+        description = "Host port on which to publish the authenticated Hermes WebUI.";
+      };
+
+      publicUrl = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "https://hermes.example.com";
+        description = "Public HTTPS URL used by Hermes WebUI and its native clients.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {
     shulker.system.modules.containers.enable = true;
+
+    assertions = lib.optionals cfg.webUi.enable [
+      {
+        assertion = cfg.webUi.publicUrl != null;
+        message = "Hermes WebUI requires shulker.system.modules.hermes-agent.webUi.publicUrl.";
+      }
+      {
+        assertion = lib.elem cfg.webUi.bindAddress [
+          "127.0.0.1"
+          "[::1]"
+        ];
+        message = "Hermes WebUI must remain bound to host loopback and be exposed through an authenticated HTTPS proxy.";
+      }
+    ];
 
     # Keep the host and container identities stable so the bind-mounted state
     # remains writable across rebuilds and future host migrations.
@@ -72,6 +117,34 @@ in
       ];
     };
 
+    virtualisation.oci-containers.containers.hermes-webui = lib.mkIf cfg.webUi.enable {
+      image = cfg.webUi.image;
+      pull = "always";
+      dependsOn = [ "hermes-agent" ];
+      volumes = [
+        "${cfg.stateDir}/.hermes:/home/hermeswebui/.hermes:rw"
+        "${webUiAgentSourceDir}:/home/hermeswebui/.hermes/hermes-agent:ro"
+        "${cfg.stateDir}/workspace:/workspace:rw"
+      ];
+      ports = [ "${cfg.webUi.bindAddress}:${toString cfg.webUi.port}:8787/tcp" ];
+      environment = {
+        HERMES_HOME = "/home/hermeswebui/.hermes";
+        HERMES_WEBUI_HOST = "0.0.0.0";
+        HERMES_WEBUI_PORT = "8787";
+        HERMES_WEBUI_STATE_DIR = "/home/hermeswebui/.hermes/webui";
+        HERMES_WEBUI_DEFAULT_WORKSPACE = "/workspace";
+        HERMES_WEBUI_AGENT_DIR = "/home/hermeswebui/.hermes/hermes-agent";
+        HERMES_WEBUI_SSE_CHUNKED = "true";
+        WANTED_UID = "10000";
+        WANTED_GID = "10000";
+      };
+      environmentFiles = [ config.services.onepassword-secrets.secrets.hermesWebUiEnv.path ];
+      extraOptions = [
+        "--pids-limit=512"
+        "--security-opt=no-new-privileges:true"
+      ];
+    };
+
     systemd.services."docker-hermes-agent" = {
       requires = [
         "hermes-agent-state.service"
@@ -88,13 +161,38 @@ in
       };
     };
 
+    systemd.services."docker-hermes-webui" = lib.mkIf cfg.webUi.enable {
+      partOf = [ containerService ];
+      requires = [ "hermes-agent-state.service" ];
+      after = [ "hermes-agent-state.service" ];
+      path = [
+        config.virtualisation.docker.package
+        pkgs.coreutils
+      ];
+      # The upstream two-container layout shares the Agent source with WebUI.
+      # Refresh it from the running image on every WebUI start so pull=always
+      # cannot leave a stale named volume hiding a newer Agent release.
+      preStart = ''
+        rm -rf -- ${webUiAgentSourceDir}
+        install -d -m 0755 ${webUiAgentSourceDir}
+        docker cp hermes-agent:/opt/hermes/. ${webUiAgentSourceDir}
+      '';
+      serviceConfig = {
+        Restart = lib.mkForce "always";
+        RestartSec = 5;
+      };
+    };
+
     # The previous NixOS module left a .managed marker that intentionally
     # blocked Hermes' config commands. Remove only that marker during the
     # one-way migration and preserve all OAuth, Telegram, memory, and session
     # state around it.
     systemd.services.hermes-agent-state = {
       description = "Prepare mutable Hermes Agent state";
-      before = [ containerService ];
+      before = [
+        containerService
+        webUiContainerService
+      ];
       unitConfig.RequiresMountsFor = cfg.stateDir;
       path = [ pkgs.coreutils ];
       script = ''
@@ -102,6 +200,7 @@ in
           ${cfg.stateDir} \
           ${cfg.stateDir}/.hermes \
           ${cfg.stateDir}/.hermes/home \
+          ${cfg.stateDir}/.hermes/webui \
           ${cfg.stateDir}/workspace
         chown -R hermes:hermes ${cfg.stateDir}
         rm -f ${cfg.stateDir}/.hermes/.managed
@@ -132,6 +231,15 @@ in
     services.onepassword-secrets.secrets.hermesAgentEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Hermes/Environment";
       services = [ "docker-hermes-agent" ];
+      owner = "hermes";
+      group = "hermes";
+    };
+
+    # Store HERMES_WEBUI_PASSWORD in this separate env-file. Hermes WebUI's
+    # native authentication is required before Pangolin exposes the service.
+    services.onepassword-secrets.secrets.hermesWebUiEnv = lib.mkIf cfg.webUi.enable {
+      reference = "op://Shulker/${config.networking.hostName}/Hermes/WebUI Environment";
+      services = [ "docker-hermes-webui" ];
       owner = "hermes";
       group = "hermes";
     };

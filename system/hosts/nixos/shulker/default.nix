@@ -50,6 +50,11 @@
         hermes-agent = {
           enable = true;
           impermanence = true;
+          webUi = {
+            enable = true;
+            port = 23234;
+            publicUrl = "https://hermes.shulker.link";
+          };
         };
         pelican = {
           panel = {

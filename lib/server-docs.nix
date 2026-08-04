@@ -108,6 +108,11 @@ let
       modules.hermes-agent.stateDir
       "Containerized agent"
     )
+    (service "Hermes WebUI" (modules.hermes-agent.enable && modules.hermes-agent.webUi.enable)
+      "${modules.hermes-agent.webUi.publicUrl} via ${modules.hermes-agent.webUi.bindAddress}:${toString modules.hermes-agent.webUi.port}"
+      "${modules.hermes-agent.stateDir}/.hermes/webui"
+      "Community WebUI and native client backend; password authentication required"
+    )
     (service "Home Assistant" modules.home-assistant.enable
       "Host network; firewall ${enabledDisabled modules.home-assistant.openFirewall}"
       modules.home-assistant.stateDir
