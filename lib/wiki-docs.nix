@@ -340,9 +340,9 @@ let
     ```sh
     nix flake check --no-build --all-systems
     nix build .#nixosConfigurations.<host>.config.system.build.toplevel
-    sudo nixos-rebuild dry-activate --flake .#<host>
-    sudo nixos-rebuild test --flake .#<host>
-    sudo nixos-rebuild switch --flake .#<host>
+    sudo shulker-rebuild dry-activate --flake .#<host>
+    sudo shulker-rebuild test --flake .#<host>
+    sudo shulker-rebuild switch --flake .#<host>
     ```
 
     Before restarting a gaming host, do not interrupt an active game:

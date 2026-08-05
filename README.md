@@ -165,8 +165,11 @@ nix fmt
 # Enter the development shell with repository checks installed.
 nix develop
 
-# Apply a NixOS host configuration.
-sudo nixos-rebuild switch --flake .#<host>
+# Check every prospective 1Password secret, then apply a NixOS configuration.
+sudo nix run .#checked-rebuild -- switch --flake .#<host>
+
+# Once the wrapper is installed by a deployment, the shorter form is available.
+sudo shulker-rebuild switch --flake .#<host>
 
 # Apply the Darwin configuration.
 darwin-rebuild switch --flake .#herobrine
@@ -193,6 +196,19 @@ commit; review and stage those changes before retrying.
 
 The NixOS configurations expect an opnix service-account token at
 `/etc/opnix-token`. Secret values remain outside this repository.
+
+Use `shulker-rebuild` for NixOS deployments. Before calling `nixos-rebuild`, it
+evaluates the requested host from the prospective flake, reads the configured
+token path, and asks OpNix to resolve every configured secret reference. The
+resolved values exist only in a private temporary directory which is removed
+before the rebuild begins. Failures report logical secret names, never values
+or 1Password references. The first deployment can run the same wrapper with
+`sudo nix run .#checked-rebuild -- ...`.
+
+Rollbacks do not need this check. If 1Password is unavailable during an
+emergency but the currently provisioned secrets are known to be usable, pass
+`--skip-secret-check` explicitly. This is a recovery escape hatch; routine
+deployments should remain fail-closed.
 
 Local login password hashes are declared in the NixOS user configurations.
 Users are immutable, so every activation restores the declared password. To

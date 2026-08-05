@@ -5,6 +5,12 @@
   pkgs,
   ...
 }:
+let
+  opnix = inputs.opnix.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  checkedRebuild = import ../../../../nix/checked-rebuild.nix {
+    inherit opnix pkgs;
+  };
+in
 with lib;
 {
   config = {
@@ -20,8 +26,9 @@ with lib;
 
     programs._1password.enable = true;
 
-    environment.systemPackages = with pkgs; [
-      inputs.opnix.packages.${pkgs.stdenv.hostPlatform.system}.default
+    environment.systemPackages = [
+      checkedRebuild
+      opnix
     ];
 
     systemd.services.opnix-secrets = {

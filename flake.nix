@@ -196,6 +196,10 @@
             data = infrastructureData;
             inherit lib pkgs;
           };
+          checkedRebuild = import ./nix/checked-rebuild.nix {
+            inherit pkgs;
+            opnix = inputs.opnix.packages.${system}.default;
+          };
         in
         serverDocs
         // hostDocs
@@ -217,6 +221,9 @@
             inherit infrastructureDiagram;
             inherit lib pkgs;
           };
+        }
+        // lib.optionalAttrs pkgs.stdenv.isLinux {
+          checked-rebuild = checkedRebuild;
         }
       );
 

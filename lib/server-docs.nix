@@ -515,9 +515,9 @@ let
     ```sh
     nix flake check --no-build --all-systems
     nix build .#nixosConfigurations.${hostName}.config.system.build.toplevel
-    sudo nixos-rebuild dry-activate --flake .#${hostName}
-    sudo nixos-rebuild test --flake .#${hostName}
-    sudo nixos-rebuild switch --flake .#${hostName}
+    sudo shulker-rebuild dry-activate --flake .#${hostName}
+    sudo shulker-rebuild test --flake .#${hostName}
+    sudo shulker-rebuild switch --flake .#${hostName}
     ```
 
     Inspect the running host:
