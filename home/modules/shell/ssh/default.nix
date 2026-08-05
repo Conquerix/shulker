@@ -23,6 +23,10 @@ in
       extraConfig = mkIf cfg._1password "IdentityAgent ~/.1password/agent.sock ";
       enableDefaultConfig = false;
       settings."*" = {
+        canonicalizeHostname = true;
+        canonicalDomains = [ "ssh" ];
+        canonicalizeMaxDots = 0;
+        canonicalizeFallbackLocal = true;
         controlMaster = "no";
         controlPath = "~/.ssh/master-%r@%n:%p";
         hashKnownHosts = true;

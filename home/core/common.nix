@@ -105,7 +105,10 @@ with lib;
     programs.zoxide.enable = true;
 
     shulker.home.modules = {
-      # shell.ssh.enable = true;
+      shell.ssh = {
+        enable = true;
+        _1password = true;
+      };
       shell.starship.enable = true;
       # shell.xdg.enable = true;
     };

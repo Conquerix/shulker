@@ -56,10 +56,6 @@ in
           };
           shell = {
             direnv.enable = true;
-            ssh = {
-              enable = true;
-              _1password = true;
-            };
             zsh.enable = true;
           };
         };
