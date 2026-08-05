@@ -66,6 +66,10 @@
           # TODO: set this to warden's actual LAN subnet for web UI access.
           lanNetwork = "192.168.1.0/24";
         };
+        webdav = {
+          enable = true;
+          dataDir = "/storage/hdd/grapheneos-backups";
+        };
       };
     };
   };

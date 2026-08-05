@@ -169,6 +169,11 @@ let
       "-"
       "Game streaming"
     )
+    (service "WebDAV (SFTPGo)" modules.webdav.enable
+      "${modules.webdav.bindAddress}:${toString modules.webdav.port}; firewall closed"
+      modules.webdav.dataDir
+      "GrapheneOS backup target; Borgmatic coverage ${enabledDisabled modules.webdav.backUpData}"
+    )
     (service "YubiKey" modules.yubikey.enable "Local hardware" "-" "Authentication support")
   ];
 

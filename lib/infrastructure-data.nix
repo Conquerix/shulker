@@ -101,6 +101,9 @@ let
         (service "qbittorrent" "qBittorrent" "media" modules.torrent.enable null)
         (service "steam" "Steam" "gaming" modules.steam.enable null)
         (service "sunshine" "Sunshine" "gaming" modules.sunshine.enable null)
+        (service "webdav" "WebDAV (SFTPGo)" "backup" modules.webdav.enable
+          "http://${modules.webdav.bindAddress}:${toString modules.webdav.port}"
+        )
       ];
       connections = concatLists [
         (connection modules.newt.enable "newt" modules.newt.endpoint "outbound tunnel")
