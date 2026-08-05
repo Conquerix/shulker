@@ -28,5 +28,5 @@ blank line so GitHub records the contribution. Do not add it to commits Codex
 did not help author.
 
 ```text
-Co-authored-by: Codex <215057067+openai-codex[bot]@users.noreply.github.com>
+Co-authored-by: Codex <codex@openai.com>
 ```
