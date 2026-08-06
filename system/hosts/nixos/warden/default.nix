@@ -53,7 +53,6 @@
         };
         plex = {
           enable = true;
-          impermanence = true;
           openFirewall = true;
           dataDir = "/storage/nvme/plex";
           # Read finished downloads written by the torrent module.
@@ -61,7 +60,6 @@
         };
         torrent = {
           enable = true;
-          impermanence = true;
           downloadDir = "/storage/hdd/torrents";
           # TODO: set this to warden's actual LAN subnet for web UI access.
           lanNetwork = "192.168.1.0/24";
