@@ -66,7 +66,7 @@
         };
         webdav = {
           enable = true;
-          dataDir = "/storage/hdd/grapheneos-backups";
+          dataDir = "/storage/flash/grapheneos-backups";
         };
       };
     };
