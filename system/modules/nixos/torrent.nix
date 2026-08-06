@@ -153,6 +153,15 @@ in
       services = [ "docker-torrent-qbittorrent" ];
     };
 
+    # OpNix's service integration uses a soft Wants= dependency. Make this one
+    # hard because Docker creates a missing bind-mount source as a directory,
+    # which would then prevent OpNix from writing the WireGuard config file.
+    systemd.services.docker-torrent-qbittorrent = {
+      requires = [ "opnix-secrets.service" ];
+      unitConfig.ConditionFileNotEmpty =
+        config.services.onepassword-secrets.secrets.torrentWireguard.path;
+    };
+
     networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ cfg.webUiPort ];
 
     environment.persistence = mkIf cfg.impermanence {
