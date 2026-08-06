@@ -5,6 +5,9 @@ result
 latest.iso
 .DS_Store
 
+# Local agent-authored design specifications and implementation plans
+.agent-work/
+
 # Editor / tooling backups
 *.bak
 *.bkp

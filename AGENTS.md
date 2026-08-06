@@ -11,6 +11,8 @@ more specific README files linked from it when working in those areas.
   appropriate; do not treat remembered or generated summaries as authoritative.
 - Preserve user-owned working-tree and staged changes. Select only task-scoped
   files or hunks for edits and commits.
+- Keep agent-authored design specifications and implementation plans under
+  `.agent-work/`. Never commit that directory unless the user explicitly asks.
 - Keep secrets out of messages, tool output, patches, commit messages, and
   generated documentation. Report secret names only when useful.
 - Make safe, scoped repository changes autonomously. Obtain explicit user
