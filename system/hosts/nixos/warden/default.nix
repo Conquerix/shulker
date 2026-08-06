@@ -62,7 +62,8 @@
           enable = true;
           downloadDir = "/storage/hdd/torrents";
           # TODO: set this to warden's actual LAN subnet for web UI access.
-          lanNetwork = "192.168.1.0/24";
+          lanNetwork = "10.0.0.0/8";
+          webUiPort = 23232;
         };
         webdav = {
           enable = true;
