@@ -261,6 +261,38 @@ SSH password authentication remains disabled: the passwords provide console
 and sudo access, while the configured keys provide key-only `conquerix` and
 root recovery access.
 
+### Touch ID-backed remote sudo
+
+The macOS SSH client uses the 1Password SSH agent and forwards it only to
+Pangolin SSH resources matching `*.ssh`. NixOS hosts accept an agent signature
+for `sudo` and `sudo -i` when it matches a key in the root-owned
+`/etc/ssh/authorized_keys.d/<user>` file. The private key and Touch ID data stay
+on the Mac; password-based sudo remains available when the agent is absent or
+locked.
+
+In 1Password for Mac, enable **Settings -> Developer -> Use the SSH Agent** and
+Touch ID. For tighter approval scope, configure the agent to ask for each new
+application and terminal session and avoid **Approve for all applications**.
+1Password may reuse an approval within the configured agent session, just as
+sudo caches a successful authentication for a short period.
+
+After applying the Darwin configuration and deploying a NixOS host, verify the
+effective client policy and then force a fresh sudo authentication:
+
+```sh
+ssh -G warden.ssh | grep '^forwardagent yes$'
+ssh warden
+test -S "$SSH_AUTH_SOCK"
+ssh-add -l
+sudo -k
+sudo true
+```
+
+Agent forwarding gives processes running as the connected remote user access
+to the forwarded socket for the lifetime of that SSH session. Keep it scoped to
+trusted hosts, close sessions when finished, and retain the independent console
+password and root recovery keys.
+
 Keep `users.mutableUsers = false`, the declarative password hashes, and the
 independent SSH recovery keys unless deliberately changing the recovery model.
 Generated documentation and diagnostic output must not expose secret values,
