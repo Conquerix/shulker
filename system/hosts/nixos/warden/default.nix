@@ -53,8 +53,7 @@
         };
         plex = {
           enable = true;
-          openFirewall = true;
-          dataDir = "/storage/nvme/plex";
+          impermanence = true;
           # Read finished downloads written by the torrent module.
           extraGroups = [ "torrent" ];
         };
