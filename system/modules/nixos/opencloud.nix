@@ -283,6 +283,10 @@ in
         message = "OpenCloud requires a dedicated ZFS dataset.";
       }
       {
+        assertion = !(lib.elem "zfsutil" config.fileSystems.${cfg.stateDir}.options);
+        message = "OpenCloud uses a legacy-mounted ZFS dataset and must not enable zfsutil.";
+      }
+      {
         assertion = !cfg.backUpData || config.shulker.system.modules.backup.enable;
         message = "OpenCloud backup coverage requires the Borgmatic backup module.";
       }
@@ -308,7 +312,6 @@ in
     fileSystems.${cfg.stateDir} = {
       device = cfg.dataset;
       fsType = "zfs";
-      options = [ "zfsutil" ];
     };
 
     systemd.services.${stateServiceName} = {

@@ -200,7 +200,7 @@ sudo zfs create \
   -o dnodesize=auto \
   flash_pool/flash/storage/opencloud
 sudo install -d -m 0750 /storage/flash/opencloud
-sudo mount -t zfs -o zfsutil \
+sudo mount -t zfs \
   flash_pool/flash/storage/opencloud /storage/flash/opencloud
 sudo chown 10001:10001 /storage/flash/opencloud
 sudo chmod 0750 /storage/flash/opencloud
