@@ -400,9 +400,11 @@ docker ps --filter label=com.docker.compose.project=immich \
 curl --fail http://127.0.0.1:23237/api/server/ping
 ```
 
-The server uses the Intel Arc A380 through Quick Sync for supported video work;
+The server declaratively selects the Intel Arc A380 at `/dev/dri/renderD128`
+through Quick Sync for supported video work; accelerated decode is enabled and
 machine learning uses OpenVINO. Acceptance requires a real transcode plus real
-facial-recognition and smart-search jobs, not only `/dev/dri` visibility.
+facial-recognition and smart-search jobs, not only `/dev/dri` visibility or the
+configured backend.
 
 Immich creates a compressed database dump every day and keeps 14 copies inside
 the library. This is secondary protection, not a complete backup. Warden's

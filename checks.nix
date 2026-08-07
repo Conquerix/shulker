@@ -52,6 +52,8 @@ in
   immich-service-contract =
     assert builtins.hasAttr "immich-image-pull" services;
     assert !wardenConfig.shulker.system.modules.immich.allowSetup;
+    assert wardenConfig.shulker.system.modules.immich.transcodingAcceleration == "qsv";
+    assert wardenConfig.shulker.system.modules.immich.preferredHardwareDevice == "/dev/dri/renderD128";
     assert pullService.serviceConfig.Type == "oneshot";
     assert pullService.serviceConfig.RemainAfterExit;
     assert pullService.serviceConfig.TimeoutStartSec == 1800;

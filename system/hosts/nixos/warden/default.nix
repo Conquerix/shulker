@@ -76,6 +76,8 @@
           publicUrl = "https://photos.shulker.link";
           oidcIssuer = "https://sso.shulker.link";
           allowSetup = false;
+          transcodingAcceleration = "qsv";
+          preferredHardwareDevice = "/dev/dri/renderD128";
         };
         torrent = {
           enable = true;

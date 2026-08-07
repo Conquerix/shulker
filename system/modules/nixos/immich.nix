@@ -131,6 +131,11 @@ let
               keepLastAmount: 14
             }
           },
+          ffmpeg: {
+            accel: ${builtins.toJSON cfg.transcodingAcceleration},
+            accelDecode: true,
+            preferredHwDevice: ${builtins.toJSON cfg.preferredHardwareDevice}
+          },
           oauth: {
             autoLaunch: true,
             autoRegister: true,
@@ -168,6 +173,8 @@ let
         .oauth.enabled == true
         and .oauth.clientId != ""
         and .oauth.clientSecret != ""
+        and .ffmpeg.accel == ${builtins.toJSON cfg.transcodingAcceleration}
+        and .ffmpeg.preferredHwDevice == ${builtins.toJSON cfg.preferredHardwareDevice}
         and .passwordLogin.enabled == false
         and .storageTemplate.enabled == false
       ' "$temporary_file" >/dev/null
@@ -388,6 +395,25 @@ in
       description = "Temporarily allow creation of the first Immich administrator.";
     };
 
+    transcodingAcceleration = lib.mkOption {
+      type = lib.types.enum [
+        "disabled"
+        "nvenc"
+        "qsv"
+        "rkmpp"
+        "vaapi"
+      ];
+      default = "disabled";
+      description = "Immich FFmpeg hardware-acceleration backend.";
+    };
+
+    preferredHardwareDevice = lib.mkOption {
+      type = lib.types.str;
+      default = "auto";
+      example = "/dev/dri/renderD128";
+      description = "Immich FFmpeg preferred hardware device.";
+    };
+
     backupSnapshotName = lib.mkOption {
       type = lib.types.str;
       default = "borgmatic";
@@ -449,6 +475,12 @@ in
       {
         assertion = cfg.dataset != "";
         message = "Immich requires a dedicated ZFS dataset.";
+      }
+      {
+        assertion =
+          cfg.preferredHardwareDevice == "auto"
+          || lib.hasPrefix "/dev/dri/renderD" cfg.preferredHardwareDevice;
+        message = "Immich preferredHardwareDevice must be auto or a DRM render node.";
       }
       {
         assertion = !(lib.elem "zfsutil" config.fileSystems.${cfg.stateDir}.options);
