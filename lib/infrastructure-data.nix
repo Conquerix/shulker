@@ -86,6 +86,9 @@ let
           modules.hermes-agent.enable && modules.hermes-agent.webUi.enable
         ) modules.hermes-agent.webUi.publicUrl)
         (service "home-assistant" "Home Assistant" "automation" modules.home-assistant.enable null)
+        (service "immich" "Immich (server, OpenVINO ML, PostgreSQL, Valkey)" "media" modules.immich.enable
+          modules.immich.publicUrl
+        )
         (service "newt" "Newt" "edge" modules.newt.enable modules.newt.endpoint)
         (service "nextcloud" "Nextcloud AIO" "collaboration" modules.nextcloud.enable null)
         (service "ollama" "Ollama" "ai" modules.ollama.enable null)
@@ -112,6 +115,7 @@ let
         (connection modules.pelican.wings.enable "pelican-wings" config.services.wings.node.remote
           "node control"
         )
+        (connection modules.immich.enable "immich" modules.immich.oidcIssuer "OIDC authentication")
         (connection modules.opencloud.enable "opencloud" modules.opencloud.oidcIssuer "OIDC authentication")
       ];
     };

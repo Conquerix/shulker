@@ -119,6 +119,11 @@ let
       modules.home-assistant.stateDir
       "Home automation"
     )
+    (service "Immich" modules.immich.enable
+      "${modules.immich.publicUrl} via ${modules.immich.bindAddress}:${toString modules.immich.port}"
+      "${modules.immich.stateDir} (${modules.immich.dataset})"
+      "Quota ${bytesAsGiB modules.immich.datasetQuotaBytes}; upload-managed library; Immich server, OpenVINO ML, PostgreSQL, and Valkey; Quick Sync; first-admin setup ${enabledDisabled modules.immich.allowSetup}; snapshot backup ${enabledDisabled modules.immich.backUpData}"
+    )
     (service "Newt" modules.newt.enable modules.newt.endpoint modules.newt.stateDir
       "Outbound Pangolin tunnel"
     )
@@ -203,24 +208,60 @@ let
     (map toString config.networking.firewall.allowedUDPPorts)
     ++ (map formatPortRange config.networking.firewall.allowedUDPPortRanges);
 
-  containerRows = mapAttrsToList (name: container: [
-    name
-    container.image
-    (codeList container.ports)
-    (codeList (filter (option: hasPrefix "--network=" option) container.extraOptions))
-  ]) config.virtualisation.oci-containers.containers;
+  immichComposeContainers = [
+    {
+      name = "immich_server";
+      image = modules.immich.serverImage;
+      ports = [ "${modules.immich.bindAddress}:${toString modules.immich.port}:2283/tcp" ];
+    }
+    {
+      name = "immich_machine_learning";
+      image = modules.immich.machineLearningImage;
+      ports = [ ];
+    }
+    {
+      name = "immich_redis";
+      image = modules.immich.valkeyImage;
+      ports = [ ];
+    }
+    {
+      name = "immich_postgres";
+      image = modules.immich.databaseImage;
+      ports = [ ];
+    }
+  ];
+  enabledImmichComposeContainers = optionals modules.immich.enable immichComposeContainers;
+  containerRows =
+    mapAttrsToList (name: container: [
+      name
+      container.image
+      (codeList container.ports)
+      (codeList (filter (option: hasPrefix "--network=" option) container.extraOptions))
+    ]) config.virtualisation.oci-containers.containers
+    ++ map (container: [
+      container.name
+      container.image
+      (codeList container.ports)
+      (codeList [ "Compose private network" ])
+    ]) enabledImmichComposeContainers;
 
-  publishedContainerPorts = concatLists (
-    mapAttrsToList (_: container: container.ports) config.virtualisation.oci-containers.containers
-  );
+  publishedContainerPorts =
+    concatLists (
+      mapAttrsToList (_: container: container.ports) config.virtualisation.oci-containers.containers
+    )
+    ++ concatLists (map (container: container.ports) enabledImmichComposeContainers);
   nonLoopbackContainerPorts = filter (
     port: !(hasPrefix "127.0.0.1:" port || hasPrefix "[::1]:" port)
   ) publishedContainerPorts;
-  unpinnedContainers = mapAttrsToList (name: _: name) (
-    lib.filterAttrs (
-      _: container: !(hasInfix "@sha256:" container.image)
-    ) config.virtualisation.oci-containers.containers
-  );
+  unpinnedContainers =
+    mapAttrsToList (name: _: name) (
+      lib.filterAttrs (
+        _: container: !(hasInfix "@sha256:" container.image)
+      ) config.virtualisation.oci-containers.containers
+    )
+    ++ map (container: container.name) (
+      filter (container: !(hasInfix "@sha256:" container.image)) enabledImmichComposeContainers
+    );
 
   fileSystemRows = mapAttrsToList (mountPoint: fileSystem: [
     mountPoint
@@ -243,6 +284,7 @@ let
   );
 
   backupSources = sort builtins.lessThan (unique modules.backup.dirs);
+  immichSnapshotPath = "${modules.immich.stateDir}/.zfs/snapshot/${modules.immich.backupSnapshotName}";
   opencloudSnapshotPath = "${modules.opencloud.stateDir}/.zfs/snapshot/${modules.opencloud.backupSnapshotName}";
   sqliteDatabases = config.services.borgmatic.settings.sqlite_databases or [ ];
   sqliteRows = map (database: [
@@ -296,7 +338,23 @@ let
     ) "OpenCloud snapshot data is not present in the Borgmatic source list."
     ++ optional (
       modules.opencloud.enable && !modules.opencloud.backUpData
-    ) "OpenCloud state is not included in Borgmatic backups.";
+    ) "OpenCloud state is not included in Borgmatic backups."
+    ++ optional (
+      modules.immich.enable && modules.immich.backUpData && !(lib.elem immichSnapshotPath backupSources)
+    ) "Immich snapshot data is not present in the Borgmatic source list."
+    ++ optional (
+      modules.immich.enable && !modules.immich.backUpData
+    ) "Immich state is not included in Borgmatic backups."
+    ++ optional (
+      modules.immich.enable
+      && !(lib.elem modules.immich.bindAddress [
+        "127.0.0.1"
+        "[::1]"
+      ])
+    ) "Immich is not bound to host loopback."
+    ++
+      optional (modules.immich.enable && modules.immich.allowSetup)
+        "Immich first-administrator setup is enabled; keep the service loopback-only and disable setup immediately after bootstrap.";
 
   revisionLine = if revision == null then "" else "\nFlake revision: `${revision}`.\n";
 
@@ -548,6 +606,26 @@ let
     docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
     sudo ss -lntup
     ```
+
+    ${
+      if modules.immich.enable then
+        ''
+          Inspect Immich and run its declarative checks:
+
+          ```sh
+          sudo systemctl status immich-compose.service --no-pager
+          sudo systemctl start immich-health-check.service
+          sudo systemctl start immich-schema-check.service
+          curl --fail http://${modules.immich.bindAddress}:${toString modules.immich.port}/api/server/ping
+          ```
+
+          Immich's off-host backup source is `${immichSnapshotPath}`. Follow the
+          repository README for the guarded bootstrap and disposable restore
+          rehearsal.
+        ''
+      else
+        ""
+    }
 
     Roll back the active system profile:
 
