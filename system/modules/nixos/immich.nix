@@ -10,6 +10,9 @@ let
   composeServiceName = "immich-compose";
   stateServiceName = "immich-state";
   environmentFile = config.services.onepassword-secrets.secrets.immichEnv.path;
+  snapshot = "${cfg.dataset}@${cfg.backupSnapshotName}";
+  snapshotPath = "${cfg.stateDir}/.zfs/snapshot/${cfg.backupSnapshotName}";
+  maintenanceLock = "/run/lock/immich-maintenance.lock";
   composeYaml = pkgs.formats.yaml { };
   composeFile = composeYaml.generate "immich-compose.yml" {
     name = "immich";
@@ -172,6 +175,163 @@ let
       trap - EXIT
     '';
   };
+  backupPrepare = pkgs.writeShellApplication {
+    name = "immich-backup-prepare";
+    runtimeInputs = [
+      config.boot.zfs.package
+      pkgs.coreutils
+      pkgs.systemd
+      pkgs.util-linux
+    ];
+    text = ''
+      readonly dataset=${lib.escapeShellArg cfg.dataset}
+      readonly snapshot_name=${lib.escapeShellArg cfg.backupSnapshotName}
+      readonly snapshot=${lib.escapeShellArg snapshot}
+      readonly service=${lib.escapeShellArg "${composeServiceName}.service"}
+
+      if [ "$snapshot" != "$dataset@$snapshot_name" ]; then
+        echo "Refusing unexpected Immich snapshot target" >&2
+        exit 64
+      fi
+
+      exec 9>${maintenanceLock}
+      flock 9
+
+      if zfs list -H -o name -t snapshot "$snapshot" >/dev/null 2>&1; then
+        zfs destroy "$snapshot"
+      fi
+
+      if ! systemctl is-active --quiet "$service"; then
+        echo "Immich must be active before taking its backup snapshot" >&2
+        exit 1
+      fi
+
+      service_stopped=0
+      snapshot_created=0
+      recover() {
+        status=$?
+        trap - EXIT
+        if [ "$service_stopped" -eq 1 ]; then
+          systemctl start "$service" || true
+        fi
+        if [ "$snapshot_created" -eq 1 ] && [ "$status" -ne 0 ]; then
+          zfs destroy "$snapshot" || true
+        fi
+        exit "$status"
+      }
+      trap recover EXIT
+      trap 'exit 1' INT TERM
+
+      systemctl stop "$service"
+      service_stopped=1
+      zfs snapshot "$snapshot"
+      snapshot_created=1
+
+      if [ "''${IMMICH_BACKUP_TEST_FAIL_AFTER_SNAPSHOT:-0}" = 1 ]; then
+        echo "Injecting the requested Immich post-snapshot backup failure" >&2
+        exit 75
+      fi
+
+      systemctl start "$service"
+      systemctl is-active --quiet "$service"
+      service_stopped=0
+
+      trap - EXIT INT TERM
+    '';
+  };
+  backupCleanup = pkgs.writeShellApplication {
+    name = "immich-backup-cleanup";
+    runtimeInputs = [
+      config.boot.zfs.package
+      pkgs.util-linux
+    ];
+    text = ''
+      readonly dataset=${lib.escapeShellArg cfg.dataset}
+      readonly snapshot_name=${lib.escapeShellArg cfg.backupSnapshotName}
+      readonly snapshot=${lib.escapeShellArg snapshot}
+
+      if [ "$snapshot" != "$dataset@$snapshot_name" ]; then
+        echo "Refusing unexpected Immich snapshot target" >&2
+        exit 64
+      fi
+
+      exec 9>${maintenanceLock}
+      flock 9
+
+      if zfs list -H -o name -t snapshot "$snapshot" >/dev/null 2>&1; then
+        zfs destroy "$snapshot"
+      fi
+    '';
+  };
+  healthCheck = pkgs.writeShellApplication {
+    name = "immich-health-check";
+    runtimeInputs = [
+      config.virtualisation.docker.package
+      pkgs.coreutils
+      pkgs.curl
+      pkgs.systemd
+      pkgs.util-linux
+    ];
+    text = ''
+      exec 9>${maintenanceLock}
+      flock 9
+
+      if ! systemctl is-active --quiet ${composeServiceName}.service; then
+        exit 0
+      fi
+
+      curl --fail --silent --show-error \
+        http://${cfg.bindAddress}:${toString cfg.port}/api/server/ping >/dev/null
+
+      actual_services="$(
+        DB_PASSWORD=health-check-only \
+          ${pkgs.docker-compose}/bin/docker-compose \
+          --project-name immich \
+          --file ${composeFile} \
+          ps --status running --services | sort
+      )"
+      expected_services="$(printf '%s\n' \
+        database \
+        immich-machine-learning \
+        immich-server \
+        redis | sort)"
+      if [ "$actual_services" != "$expected_services" ]; then
+        echo "Immich does not have exactly four running Compose services" >&2
+        exit 1
+      fi
+
+      for container in \
+        immich_server \
+        immich_machine_learning \
+        immich_redis \
+        immich_postgres
+      do
+        health_status="$(docker inspect --format '{{.State.Health.Status}}' "$container")"
+        if [ "$health_status" != healthy ]; then
+          echo "$container is not healthy" >&2
+          exit 1
+        fi
+      done
+    '';
+  };
+  schemaCheck = pkgs.writeShellApplication {
+    name = "immich-schema-check";
+    runtimeInputs = [
+      config.virtualisation.docker.package
+      pkgs.systemd
+      pkgs.util-linux
+    ];
+    text = ''
+      exec 9>${maintenanceLock}
+      flock 9
+
+      if ! systemctl is-active --quiet ${composeServiceName}.service; then
+        exit 0
+      fi
+
+      docker exec immich_server immich-admin schema-check
+    '';
+  };
 in
 {
   options.shulker.system.modules.immich = {
@@ -317,6 +477,11 @@ in
 
     shulker.system.modules.containers.enable = true;
 
+    environment.systemPackages = [
+      backupPrepare
+      backupCleanup
+    ];
+
     fileSystems.${cfg.stateDir} = {
       device = cfg.dataset;
       fsType = "zfs";
@@ -373,6 +538,74 @@ in
         UMask = "0077";
       };
     };
+
+    systemd.services.immich-health-check = {
+      description = "Check Immich container and HTTP health";
+      after = [ "${composeServiceName}.service" ];
+      unitConfig.RequiresMountsFor = cfg.stateDir;
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${healthCheck}/bin/immich-health-check";
+      };
+    };
+
+    systemd.timers.immich-health-check = {
+      description = "Check Immich health every 15 minutes";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "*:0/15";
+        Persistent = true;
+        RandomizedDelaySec = "5m";
+      };
+    };
+
+    systemd.services.immich-schema-check = {
+      description = "Check Immich database schema";
+      after = [ "${composeServiceName}.service" ];
+      unitConfig.RequiresMountsFor = cfg.stateDir;
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${schemaCheck}/bin/immich-schema-check";
+      };
+    };
+
+    systemd.timers.immich-schema-check = {
+      description = "Check the Immich database schema weekly";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "weekly";
+        Persistent = true;
+        RandomizedDelaySec = "1h";
+      };
+    };
+
+    systemd.services.borgmatic = lib.mkIf cfg.backUpData {
+      unitConfig.RequiresMountsFor = [ cfg.stateDir ];
+    };
+
+    services.borgmatic.settings.commands = lib.mkIf cfg.backUpData [
+      {
+        before = "action";
+        when = [ "create" ];
+        run = [ "${backupPrepare}/bin/immich-backup-prepare" ];
+      }
+      {
+        after = "action";
+        when = [ "create" ];
+        states = [
+          "finish"
+          "fail"
+        ];
+        run = [ "${backupCleanup}/bin/immich-backup-cleanup" ];
+      }
+      {
+        after = "error";
+        when = [ "create" ];
+        run = [ "${backupCleanup}/bin/immich-backup-cleanup" ];
+      }
+    ];
+
+    shulker.system.modules.backup.dirs = lib.mkIf cfg.backUpData [ snapshotPath ];
 
     services.onepassword-secrets.secrets.immichEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Immich/Environment";
