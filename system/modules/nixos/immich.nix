@@ -613,6 +613,11 @@ in
         DevicePolicy = "closed";
         DeviceAllow = [ "/dev/zfs rw" ];
         BindPaths = [ "/dev/zfs" ];
+        CapabilityBoundingSet = [
+          "CAP_DAC_READ_SEARCH"
+          "CAP_NET_RAW"
+          "CAP_SYS_ADMIN"
+        ];
       };
     };
 

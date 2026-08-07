@@ -34,6 +34,7 @@ in
     assert borgmaticService.serviceConfig.DevicePolicy == "closed";
     assert builtins.elem "/dev/zfs rw" borgmaticService.serviceConfig.DeviceAllow;
     assert builtins.elem "/dev/zfs" borgmaticService.serviceConfig.BindPaths;
+    assert builtins.elem "CAP_SYS_ADMIN" (borgmaticService.serviceConfig.CapabilityBoundingSet or [ ]);
     pkgs.runCommand "backup-zfs-device-contract" { } ''
       touch "$out"
     '';
