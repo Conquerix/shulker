@@ -580,6 +580,10 @@ sudo borgmatic check --force
 sudo borgmatic repo-list
 ```
 
+Immich's snapshot hooks run inside Borgmatic's private device namespace. The
+unit binds and permits only `/dev/zfs`; do not disable the broader device
+sandbox to make ZFS visible.
+
 The backup module pins Hetzner Storage Box's published ED25519 host key in the
 system-wide SSH known-hosts file. Keep that trust root declarative: verify any
 future key change against Hetzner's independently published fingerprint before

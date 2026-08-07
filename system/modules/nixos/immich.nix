@@ -608,6 +608,12 @@ in
 
     systemd.services.borgmatic = lib.mkIf cfg.backUpData {
       unitConfig.RequiresMountsFor = [ cfg.stateDir ];
+      serviceConfig = {
+        PrivateDevices = true;
+        DevicePolicy = "closed";
+        DeviceAllow = [ "/dev/zfs rw" ];
+        BindPaths = [ "/dev/zfs" ];
+      };
     };
 
     services.borgmatic.settings.commands = lib.mkIf cfg.backUpData [

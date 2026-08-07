@@ -9,6 +9,7 @@ let
   pkgs = inputs.nixpkgs.legacyPackages.${system};
   wardenConfig = self.nixosConfigurations.warden.config;
   services = wardenConfig.systemd.services;
+  borgmaticService = services.borgmatic;
   pullService = services."immich-image-pull";
   composeService = services."immich-compose";
   sshdService = services.sshd;
@@ -25,6 +26,15 @@ in
       storageBoxKnownHosts.hetzner-storage-box.publicKey
       == "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIICf9svRenC/PLKIL9nk6K/pxQgoiFC41wTNvoIncOxs";
     pkgs.runCommand "backup-ssh-host-key-contract" { } ''
+      touch "$out"
+    '';
+
+  backup-zfs-device-contract =
+    assert borgmaticService.serviceConfig.PrivateDevices;
+    assert borgmaticService.serviceConfig.DevicePolicy == "closed";
+    assert builtins.elem "/dev/zfs rw" borgmaticService.serviceConfig.DeviceAllow;
+    assert builtins.elem "/dev/zfs" borgmaticService.serviceConfig.BindPaths;
+    pkgs.runCommand "backup-zfs-device-contract" { } ''
       touch "$out"
     '';
 
