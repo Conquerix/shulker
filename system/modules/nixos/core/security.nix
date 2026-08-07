@@ -10,6 +10,23 @@ let
   checkedRebuild = import ../../../../nix/checked-rebuild.nix {
     inherit opnix pkgs;
   };
+  hostPrivateKey = config.services.onepassword-secrets.secrets.sshed25519HostKey.path;
+  repairHostPublicKey = ''
+    private_key=${lib.escapeShellArg hostPrivateKey}
+    public_key="$private_key.pub"
+    temporary_public_key="$public_key.tmp"
+
+    cleanup_public_key() {
+      ${pkgs.coreutils}/bin/rm -f "$temporary_public_key"
+    }
+    trap cleanup_public_key EXIT
+
+    ${pkgs.openssh}/bin/ssh-keygen -y -f "$private_key" > "$temporary_public_key"
+    ${pkgs.coreutils}/bin/chmod 0644 "$temporary_public_key"
+    ${pkgs.coreutils}/bin/mv -f "$temporary_public_key" "$public_key"
+
+    trap - EXIT
+  '';
 in
 with lib;
 {
@@ -77,7 +94,14 @@ with lib;
     systemd.services.sshd-keygen = {
       after = [ "opnix-secrets.service" ];
       wants = [ "opnix-secrets.service" ];
+      # keygen does not refresh an existing .pub file when OpNix replaces the
+      # private key. Rebuild it atomically so SSH clients never offer a stale
+      # public half when this host key is reused for backup authentication.
+      postStart = mkAfter repairHostPublicKey;
     };
+    # OpNix already restarts sshd when the private key changes. Repair the
+    # public half on every daemon start as well, covering runtime rotations.
+    systemd.services.sshd.preStart = mkAfter repairHostPublicKey;
     services.onepassword-secrets = {
       enable = true;
       tokenFile = "/etc/opnix-token";

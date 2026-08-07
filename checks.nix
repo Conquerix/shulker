@@ -11,6 +11,8 @@ let
   services = wardenConfig.systemd.services;
   pullService = services."immich-image-pull";
   composeService = services."immich-compose";
+  sshdService = services.sshd;
+  sshdKeygenService = services."sshd-keygen";
   storageBoxKnownHosts = wardenConfig.programs.ssh.knownHosts;
 in
 {
@@ -23,6 +25,16 @@ in
       storageBoxKnownHosts.hetzner-storage-box.publicKey
       == "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIICf9svRenC/PLKIL9nk6K/pxQgoiFC41wTNvoIncOxs";
     pkgs.runCommand "backup-ssh-host-key-contract" { } ''
+      touch "$out"
+    '';
+
+  ssh-host-public-key-contract =
+    assert builtins.elem "opnix-secrets.service" sshdKeygenService.after;
+    assert pkgs.lib.hasInfix "ssh-keygen" sshdKeygenService.postStart;
+    assert pkgs.lib.hasInfix "public_key.tmp" sshdKeygenService.postStart;
+    assert pkgs.lib.hasInfix "ssh-keygen" sshdService.preStart;
+    assert pkgs.lib.hasInfix "public_key.tmp" sshdService.preStart;
+    pkgs.runCommand "ssh-host-public-key-contract" { } ''
       touch "$out"
     '';
 
