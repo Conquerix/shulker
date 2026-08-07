@@ -89,6 +89,7 @@ let
         (service "newt" "Newt" "edge" modules.newt.enable modules.newt.endpoint)
         (service "nextcloud" "Nextcloud AIO" "collaboration" modules.nextcloud.enable null)
         (service "ollama" "Ollama" "ai" modules.ollama.enable null)
+        (service "opencloud" "OpenCloud" "storage" modules.opencloud.enable modules.opencloud.publicUrl)
         (service "pangolin" "Pangolin" "edge" modules.pangolin.enable null)
         (service "pelican-panel" "Pelican Panel" "gaming" modules.pelican.panel.enable
           modules.pelican.panel.appUrl
@@ -111,6 +112,7 @@ let
         (connection modules.pelican.wings.enable "pelican-wings" config.services.wings.node.remote
           "node control"
         )
+        (connection modules.opencloud.enable "opencloud" modules.opencloud.oidcIssuer "OIDC authentication")
       ];
     };
 

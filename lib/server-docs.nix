@@ -36,6 +36,7 @@ let
   code = value: "`${escapeCell value}`";
   yesNo = value: if value then "yes" else "no";
   enabledDisabled = value: if value then "enabled" else "disabled";
+  bytesAsGiB = value: "${toString (builtins.div value 1073741824)} GiB";
   orNone = values: if values == [ ] then "_None._" else concatStringsSep ", " values;
   codeList = values: orNone (map code values);
   bulletList =
@@ -125,6 +126,11 @@ let
       "Apache 127.0.0.1:${toString modules.nextcloud.mainPort}; admin 127.0.0.1:${toString modules.nextcloud.aioPort}"
       "Docker-managed volumes"
       "AIO manages its child containers"
+    )
+    (service "OpenCloud" modules.opencloud.enable
+      "${modules.opencloud.publicUrl} via ${modules.opencloud.bindAddress}:${toString modules.opencloud.port}"
+      "${modules.opencloud.stateDir} (${modules.opencloud.dataset})"
+      "Non-collaborative PosixFS; personal quota ${bytesAsGiB modules.opencloud.personalQuotaBytes}; planned Family space ${bytesAsGiB modules.opencloud.familyQuotaBytes}; snapshot backup ${enabledDisabled modules.opencloud.backUpData}"
     )
     (service "Ollama" modules.ollama.enable
       "Port ${toString modules.ollama.port}; firewall ${enabledDisabled modules.ollama.openFirewall}"
@@ -237,6 +243,7 @@ let
   );
 
   backupSources = sort builtins.lessThan (unique modules.backup.dirs);
+  opencloudSnapshotPath = "${modules.opencloud.stateDir}/.zfs/snapshot/${modules.opencloud.backupSnapshotName}";
   sqliteDatabases = config.services.borgmatic.settings.sqlite_databases or [ ];
   sqliteRows = map (database: [
     database.name
@@ -281,7 +288,15 @@ let
       && !(lib.any (
         source: hasPrefix modules.plex.dataDir source || hasPrefix source modules.plex.dataDir
       ) backupSources)
-    ) "Plex data is not present in the Borgmatic source list.";
+    ) "Plex data is not present in the Borgmatic source list."
+    ++ optional (
+      modules.opencloud.enable
+      && modules.opencloud.backUpData
+      && !(lib.elem opencloudSnapshotPath backupSources)
+    ) "OpenCloud snapshot data is not present in the Borgmatic source list."
+    ++ optional (
+      modules.opencloud.enable && !modules.opencloud.backUpData
+    ) "OpenCloud state is not included in Borgmatic backups.";
 
   revisionLine = if revision == null then "" else "\nFlake revision: `${revision}`.\n";
 
