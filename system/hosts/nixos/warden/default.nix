@@ -66,6 +66,17 @@
           publicUrl = "https://cloud.shulker.link";
           oidcIssuer = "https://sso.shulker.link";
         };
+        immich = {
+          enable = true;
+          stateDir = "/storage/flash/immich";
+          dataset = "flash_pool/flash/storage/immich";
+          datasetQuotaBytes = 1649267441664;
+          bindAddress = "127.0.0.1";
+          port = 23237;
+          publicUrl = "https://photos.shulker.link";
+          oidcIssuer = "https://sso.shulker.link";
+          allowSetup = true;
+        };
         torrent = {
           enable = true;
           downloadDir = "/storage/hdd/torrents";
