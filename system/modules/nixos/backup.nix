@@ -23,6 +23,11 @@ in
   };
 
   config = mkIf cfg.enable {
+    programs.ssh.knownHosts."hetzner-storage-box" = {
+      hostNames = [ "[${cfg.hetznerStorageBoxAccount}.your-storagebox.de]:23" ];
+      publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIICf9svRenC/PLKIL9nk6K/pxQgoiFC41wTNvoIncOxs";
+    };
+
     services.borgmatic = {
       enable = true;
       settings = {

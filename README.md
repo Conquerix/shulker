@@ -579,6 +579,11 @@ sudo borgmatic check --force
 sudo borgmatic repo-list
 ```
 
+The backup module pins Hetzner Storage Box's published ED25519 host key in the
+system-wide SSH known-hosts file. Keep that trust root declarative: verify any
+future key change against Hetzner's independently published fingerprint before
+updating the pin, rather than accepting a key interactively.
+
 Test file restoration into an empty temporary directory rather than over the
 live filesystem:
 

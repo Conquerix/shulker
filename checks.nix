@@ -7,11 +7,24 @@
 
 let
   pkgs = inputs.nixpkgs.legacyPackages.${system};
-  services = self.nixosConfigurations.warden.config.systemd.services;
+  wardenConfig = self.nixosConfigurations.warden.config;
+  services = wardenConfig.systemd.services;
   pullService = services."immich-image-pull";
   composeService = services."immich-compose";
+  storageBoxKnownHosts = wardenConfig.programs.ssh.knownHosts;
 in
 {
+
+  backup-ssh-host-key-contract =
+    assert builtins.hasAttr "hetzner-storage-box" storageBoxKnownHosts;
+    assert builtins.elem "[u515568-sub4.your-storagebox.de]:23"
+      storageBoxKnownHosts.hetzner-storage-box.hostNames;
+    assert
+      storageBoxKnownHosts.hetzner-storage-box.publicKey
+      == "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIICf9svRenC/PLKIL9nk6K/pxQgoiFC41wTNvoIncOxs";
+    pkgs.runCommand "backup-ssh-host-key-contract" { } ''
+      touch "$out"
+    '';
 
   immich-service-contract =
     assert builtins.hasAttr "immich-image-pull" services;
