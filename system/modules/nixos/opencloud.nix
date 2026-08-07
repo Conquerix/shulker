@@ -69,6 +69,116 @@ let
     OpenCloud
     OpenCloud-1
   '';
+  snapshot = "${cfg.dataset}@${cfg.backupSnapshotName}";
+  snapshotPath = "${cfg.stateDir}/.zfs/snapshot/${cfg.backupSnapshotName}";
+  maintenanceLock = "/run/lock/opencloud-maintenance.lock";
+  backupPrepare = pkgs.writeShellApplication {
+    name = "opencloud-backup-prepare";
+    runtimeInputs = [
+      config.boot.zfs.package
+      pkgs.systemd
+      pkgs.util-linux
+    ];
+    text = ''
+      readonly dataset=${lib.escapeShellArg cfg.dataset}
+      readonly snapshot_name=${lib.escapeShellArg cfg.backupSnapshotName}
+      readonly snapshot=${lib.escapeShellArg snapshot}
+      readonly service=${lib.escapeShellArg "${serviceName}.service"}
+
+      if [ "$snapshot" != "$dataset@$snapshot_name" ]; then
+        echo "Refusing unexpected OpenCloud snapshot target" >&2
+        exit 64
+      fi
+
+      exec 9>${maintenanceLock}
+      flock 9
+
+      if zfs list -H -o name -t snapshot "$snapshot" >/dev/null 2>&1; then
+        zfs destroy "$snapshot"
+      fi
+
+      if ! systemctl is-active --quiet "$service"; then
+        echo "OpenCloud must be active before taking its backup snapshot" >&2
+        exit 1
+      fi
+
+      service_stopped=0
+      snapshot_created=0
+      recover() {
+        status=$?
+        trap - EXIT
+        if [ "$service_stopped" -eq 1 ]; then
+          systemctl start "$service" || true
+        fi
+        if [ "$snapshot_created" -eq 1 ] && [ "$status" -ne 0 ]; then
+          zfs destroy "$snapshot" || true
+        fi
+        exit "$status"
+      }
+      trap recover EXIT
+      trap 'exit 1' INT TERM
+
+      systemctl stop "$service"
+      service_stopped=1
+      zfs snapshot "$snapshot"
+      snapshot_created=1
+      systemctl start "$service"
+      service_stopped=0
+
+      trap - EXIT INT TERM
+    '';
+  };
+  backupCleanup = pkgs.writeShellApplication {
+    name = "opencloud-backup-cleanup";
+    runtimeInputs = [
+      config.boot.zfs.package
+      pkgs.util-linux
+    ];
+    text = ''
+      readonly dataset=${lib.escapeShellArg cfg.dataset}
+      readonly snapshot_name=${lib.escapeShellArg cfg.backupSnapshotName}
+      readonly snapshot=${lib.escapeShellArg snapshot}
+
+      if [ "$snapshot" != "$dataset@$snapshot_name" ]; then
+        echo "Refusing unexpected OpenCloud snapshot target" >&2
+        exit 64
+      fi
+
+      exec 9>${maintenanceLock}
+      flock 9
+
+      if zfs list -H -o name -t snapshot "$snapshot" >/dev/null 2>&1; then
+        zfs destroy "$snapshot"
+      fi
+    '';
+  };
+  consistencyCheck = pkgs.writeShellApplication {
+    name = "opencloud-consistency-check";
+    runtimeInputs = [
+      config.virtualisation.docker.package
+      pkgs.util-linux
+    ];
+    text = ''
+      exec 9>${maintenanceLock}
+      flock 9
+      docker exec opencloud opencloud backup consistency \
+        -p /var/lib/opencloud/storage/users --fail
+    '';
+  };
+  maintenanceCleanup = pkgs.writeShellApplication {
+    name = "opencloud-maintenance-cleanup";
+    runtimeInputs = [
+      config.virtualisation.docker.package
+      pkgs.util-linux
+    ];
+    text = ''
+      exec 9>${maintenanceLock}
+      flock 9
+      docker exec opencloud opencloud storage-users uploads sessions \
+        --expired=true --clean
+      docker exec opencloud opencloud storage-users trash-bin purge-expired
+    '';
+  };
 in
 {
   options.shulker.system.modules.opencloud = {
@@ -313,6 +423,82 @@ in
         RestartSec = 5;
       };
     };
+
+    systemd.services.opencloud-consistency-check = {
+      description = "Check OpenCloud PosixFS consistency";
+      requires = [ "${serviceName}.service" ];
+      after = [ "${serviceName}.service" ];
+      unitConfig.RequiresMountsFor = cfg.stateDir;
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${consistencyCheck}/bin/opencloud-consistency-check";
+      };
+    };
+
+    systemd.timers.opencloud-consistency-check = {
+      description = "Run the OpenCloud consistency check weekly";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "weekly";
+        Persistent = true;
+        RandomizedDelaySec = "1h";
+      };
+    };
+
+    systemd.services.opencloud-maintenance-cleanup = {
+      description = "Purge expired OpenCloud uploads and trash";
+      requires = [
+        "borgmatic.service"
+        "${serviceName}.service"
+      ];
+      after = [
+        "borgmatic.service"
+        "${serviceName}.service"
+      ];
+      unitConfig.RequiresMountsFor = cfg.stateDir;
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${maintenanceCleanup}/bin/opencloud-maintenance-cleanup";
+      };
+    };
+
+    systemd.timers.opencloud-maintenance-cleanup = {
+      description = "Purge expired OpenCloud uploads and trash daily";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "daily";
+        Persistent = true;
+        RandomizedDelaySec = "1h";
+      };
+    };
+
+    systemd.services.borgmatic = lib.mkIf cfg.backUpData {
+      unitConfig.RequiresMountsFor = cfg.stateDir;
+    };
+
+    services.borgmatic.settings.commands = lib.mkIf cfg.backUpData [
+      {
+        before = "action";
+        when = [ "create" ];
+        run = [ "${backupPrepare}/bin/opencloud-backup-prepare" ];
+      }
+      {
+        after = "action";
+        when = [ "create" ];
+        states = [
+          "finish"
+          "fail"
+        ];
+        run = [ "${backupCleanup}/bin/opencloud-backup-cleanup" ];
+      }
+      {
+        after = "error";
+        when = [ "create" ];
+        run = [ "${backupCleanup}/bin/opencloud-backup-cleanup" ];
+      }
+    ];
+
+    shulker.system.modules.backup.dirs = lib.mkIf cfg.backUpData [ snapshotPath ];
 
     services.onepassword-secrets.secrets.opencloudEnv = {
       reference = "op://Shulker/${config.networking.hostName}/OpenCloud/Environment";
