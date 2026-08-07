@@ -57,6 +57,15 @@
           # Read finished downloads written by the torrent module.
           extraGroups = [ "torrent" ];
         };
+        opencloud = {
+          enable = true;
+          stateDir = "/storage/flash/opencloud";
+          dataset = "flash_pool/flash/storage/opencloud";
+          bindAddress = "127.0.0.1";
+          port = 23236;
+          publicUrl = "https://cloud.shulker.link";
+          oidcIssuer = "https://sso.shulker.link";
+        };
         torrent = {
           enable = true;
           downloadDir = "/storage/hdd/torrents";
