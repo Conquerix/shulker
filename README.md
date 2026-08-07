@@ -365,8 +365,9 @@ no default per-user quota. Password login remains disabled.
 
 ### Initial administrator bootstrap
 
-The initial Warden configuration temporarily sets `allowSetup = true`. Keep the
-instance private during this one-time sequence:
+Warden normally keeps `allowSetup = false`. Temporarily change it to `true`
+only while bootstrapping a new instance, and keep that instance private during
+this one-time sequence:
 
 1. Create the dataset, Pocket ID objects, and 1Password field.
 2. Deploy Immich without creating its Pangolin resource.

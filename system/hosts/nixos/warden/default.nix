@@ -75,7 +75,7 @@
           port = 23237;
           publicUrl = "https://photos.shulker.link";
           oidcIssuer = "https://sso.shulker.link";
-          allowSetup = true;
+          allowSetup = false;
         };
         torrent = {
           enable = true;
