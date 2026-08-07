@@ -383,6 +383,11 @@ leave `allowSetup = true` after the Pocket ID administrator is verified.
 
 ### Health, backups, and recovery
 
+Deployments pull all digest-pinned images through the separately bounded
+`immich-image-pull.service` before starting Compose. Image download has a
+30-minute limit; after it succeeds, `immich-compose.service` retains its
+separate five-minute container-health limit.
+
 Verify the local service before and after publishing it:
 
 ```sh

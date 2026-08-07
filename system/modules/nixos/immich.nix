@@ -8,6 +8,7 @@
 let
   cfg = config.shulker.system.modules.immich;
   composeServiceName = "immich-compose";
+  pullServiceName = "immich-image-pull";
   stateServiceName = "immich-state";
   environmentFile = config.services.onepassword-secrets.secrets.immichEnv.path;
   snapshot = "${cfg.dataset}@${cfg.backupSnapshotName}";
@@ -505,16 +506,42 @@ in
       };
     };
 
+    systemd.services.${pullServiceName} = {
+      description = "Pull Immich container images";
+      wants = [ "network-online.target" ];
+      requires = [
+        "opnix-secrets.service"
+        "docker.service"
+      ];
+      after = [
+        "opnix-secrets.service"
+        "docker.service"
+        "network-online.target"
+      ];
+      unitConfig.ConditionFileNotEmpty = environmentFile;
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        EnvironmentFile = environmentFile;
+        ExecStartPre = "${pkgs.docker-compose}/bin/docker-compose --project-name immich --file ${composeFile} config --quiet";
+        ExecStart = "${pkgs.docker-compose}/bin/docker-compose --project-name immich --file ${composeFile} pull";
+        TimeoutStartSec = 1800;
+        UMask = "0077";
+      };
+    };
+
     systemd.services.${composeServiceName} = {
       description = "Immich photo and video stack";
       wantedBy = [ "multi-user.target" ];
       wants = [ "network-online.target" ];
       requires = [
+        "${pullServiceName}.service"
         "${stateServiceName}.service"
         "opnix-secrets.service"
         "docker.service"
       ];
       after = [
+        "${pullServiceName}.service"
         "${stateServiceName}.service"
         "opnix-secrets.service"
         "docker.service"
@@ -609,7 +636,10 @@ in
 
     services.onepassword-secrets.secrets.immichEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Immich/Environment";
-      services = [ composeServiceName ];
+      services = [
+        pullServiceName
+        composeServiceName
+      ];
       owner = "root";
       group = "root";
       mode = "0400";

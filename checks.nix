@@ -1,9 +1,33 @@
 {
   inputs,
+  self,
   system,
   ...
 }:
+
+let
+  pkgs = inputs.nixpkgs.legacyPackages.${system};
+  services = self.nixosConfigurations.warden.config.systemd.services;
+  pullService = services."immich-image-pull";
+  composeService = services."immich-compose";
+in
 {
+
+  immich-service-contract =
+    assert builtins.hasAttr "immich-image-pull" services;
+    assert pullService.serviceConfig.Type == "oneshot";
+    assert pullService.serviceConfig.RemainAfterExit;
+    assert pullService.serviceConfig.TimeoutStartSec == 1800;
+    assert
+      pullService.unitConfig.ConditionFileNotEmpty == composeService.unitConfig.ConditionFileNotEmpty;
+    assert builtins.match ".*--project-name immich.* pull" pullService.serviceConfig.ExecStart != null;
+    assert builtins.elem "immich-image-pull.service" composeService.requires;
+    assert builtins.elem "immich-image-pull.service" composeService.after;
+    assert composeService.serviceConfig.TimeoutStartSec == 360;
+    assert builtins.match ".*--wait-timeout 300" composeService.serviceConfig.ExecStart != null;
+    pkgs.runCommand "immich-service-contract" { } ''
+      touch "$out"
+    '';
 
   pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
     src = ./.;

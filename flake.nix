@@ -233,7 +233,12 @@
       # Nix formatter available through 'nix fmt' https://github.com/NixOS/nixfmt
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
       # Pre-commit checks
-      checks = forAllSystems (system: import ./checks.nix { inherit inputs system; });
+      checks = forAllSystems (
+        system:
+        import ./checks.nix {
+          inherit inputs self system;
+        }
+      );
       #
       # ========= DevShell =========
       #
