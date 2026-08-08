@@ -322,10 +322,11 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        Environment = [ "COMPOSE_PARALLEL_LIMIT=1" ];
         EnvironmentFile = environmentFile;
         ExecStartPre = "${composeEnvironment}/bin/paperless-compose-environment ${pkgs.docker-compose}/bin/docker-compose --project-name paperless --file ${composeFile} config --quiet";
         ExecStart = "${composeEnvironment}/bin/paperless-compose-environment ${pkgs.docker-compose}/bin/docker-compose --project-name paperless --file ${composeFile} pull";
-        TimeoutStartSec = 1800;
+        TimeoutStartSec = 7200;
         UMask = "0077";
       };
     };

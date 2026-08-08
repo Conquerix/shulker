@@ -105,7 +105,10 @@ in
   paperless-stack-contract =
     assert paperlessPullService.serviceConfig.Type == "oneshot";
     assert paperlessPullService.serviceConfig.RemainAfterExit;
-    assert paperlessPullService.serviceConfig.TimeoutStartSec == 1800;
+    assert paperlessPullService.serviceConfig.TimeoutStartSec == 7200;
+    assert builtins.elem "COMPOSE_PARALLEL_LIMIT=1" (
+      paperlessPullService.serviceConfig.Environment or [ ]
+    );
     assert
       paperlessPullService.unitConfig.ConditionFileNotEmpty
       == paperlessComposeService.unitConfig.ConditionFileNotEmpty;

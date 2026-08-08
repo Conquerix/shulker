@@ -632,8 +632,9 @@ recoverable in trash for 90 days.
 
 ### Health and acceptance
 
-Image pulling has a separate 30-minute unit; Compose startup has a five-minute
-health limit. Verify the local stack before changing Pangolin:
+Image pulling is serialized in a separate unit with a bounded two-hour window;
+Compose startup has a five-minute health limit. Verify the local stack before
+changing Pangolin:
 
 ```sh
 sudo systemctl status \
