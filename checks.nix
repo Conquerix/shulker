@@ -13,6 +13,10 @@ let
   pullService = services."immich-image-pull";
   composeService = services."immich-compose";
   paperless = wardenConfig.shulker.system.modules.paperless;
+  paperlessComposeService = services."paperless-compose";
+  paperlessHealthService = services."paperless-health-check";
+  paperlessPullService = services."paperless-image-pull";
+  paperlessSchemaService = services."paperless-schema-check";
   paperlessStateService = services."paperless-state";
   sshdService = services.sshd;
   sshdKeygenService = services."sshd-keygen";
@@ -86,6 +90,50 @@ in
     assert builtins.hasAttr "paperless-state" services;
     assert paperlessStateService.unitConfig.RequiresMountsFor == paperless.stateDir;
     pkgs.runCommand "paperless-core-contract" { } ''
+      touch "$out"
+    '';
+
+  paperless-stack-contract =
+    assert paperlessPullService.serviceConfig.Type == "oneshot";
+    assert paperlessPullService.serviceConfig.RemainAfterExit;
+    assert paperlessPullService.serviceConfig.TimeoutStartSec == 1800;
+    assert
+      paperlessPullService.unitConfig.ConditionFileNotEmpty
+      == paperlessComposeService.unitConfig.ConditionFileNotEmpty;
+    assert
+      builtins.match ".*--project-name paperless.* pull" paperlessPullService.serviceConfig.ExecStart
+      != null;
+    assert builtins.elem "paperless-image-pull.service" paperlessComposeService.requires;
+    assert builtins.elem "paperless-image-pull.service" paperlessComposeService.after;
+    assert paperlessComposeService.serviceConfig.TimeoutStartSec == 360;
+    assert
+      builtins.match ".*--wait-timeout 300" paperlessComposeService.serviceConfig.ExecStart != null;
+    assert builtins.hasAttr "paperless-health-check" services;
+    assert builtins.hasAttr "paperless-schema-check" services;
+    assert paperlessHealthService.serviceConfig.Type == "oneshot";
+    assert paperlessSchemaService.serviceConfig.Type == "oneshot";
+    assert pkgs.lib.all (image: pkgs.lib.hasInfix "@sha256:" image) [
+      paperless.paperlessImage
+      paperless.valkeyImage
+      paperless.databaseImage
+      paperless.gotenbergImage
+      paperless.tikaImage
+    ];
+    assert paperless.composeConfig.name == "paperless";
+    assert
+      builtins.attrNames paperless.composeConfig.services == [
+        "broker"
+        "database"
+        "gotenberg"
+        "tika"
+        "webserver"
+      ];
+    assert paperless.composeConfig.services.webserver.ports == [ "127.0.0.1:23238:8000/tcp" ];
+    assert
+      paperless.composeConfig.services.webserver.environment.PAPERLESS_DISABLE_REGULAR_LOGIN == "true";
+    assert paperless.composeConfig.services.webserver.environment.PAPERLESS_SEARCH_LANGUAGE == "fr";
+    assert paperless.composeConfig.services.webserver.environment.PAPERLESS_EMPTY_TRASH_DELAY == "90";
+    pkgs.runCommand "paperless-stack-contract" { } ''
       touch "$out"
     '';
 

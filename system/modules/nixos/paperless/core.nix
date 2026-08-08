@@ -272,7 +272,6 @@ in
     services.onepassword-secrets.secrets.paperlessEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Paperless/Environment";
       services = [
-        "paperless-environment"
         "paperless-image-pull"
         "paperless-compose"
       ];
