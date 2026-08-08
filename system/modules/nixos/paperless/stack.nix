@@ -99,10 +99,11 @@ let
           PAPERLESS_REDIS = "redis://broker:6379";
           PAPERLESS_URL = cfg.publicUrl;
           PAPERLESS_TIME_ZONE = "Europe/Paris";
+          # Paperless 3.0.5 safely infers French search stemming from the
+          # primary OCR language; its explicit setting trips Django app init.
           PAPERLESS_OCR_LANGUAGE = cfg.ocrLanguage;
           PAPERLESS_OCR_LANGUAGES = "fra eng deu";
           PAPERLESS_DATE_PARSER_LANGUAGES = "fr+en+de";
-          PAPERLESS_SEARCH_LANGUAGE = cfg.searchLanguage;
           PAPERLESS_EMPTY_TRASH_DELAY = toString cfg.trashDelayDays;
           PAPERLESS_ARCHIVE_FILE_GENERATION = "auto";
           PAPERLESS_CONSUMER_RECURSIVE = "true";
@@ -139,6 +140,7 @@ let
           interval = "30s";
           timeout = "10s";
           retries = 5;
+          start_period = "30m";
         };
       };
     };
@@ -354,9 +356,9 @@ in
         RemainAfterExit = true;
         EnvironmentFile = environmentFile;
         ExecStartPre = "${composeEnvironment}/bin/paperless-compose-environment ${pkgs.docker-compose}/bin/docker-compose --project-name paperless --file ${composeFile} config --quiet";
-        ExecStart = "${composeEnvironment}/bin/paperless-compose-environment ${pkgs.docker-compose}/bin/docker-compose --project-name paperless --file ${composeFile} up --detach --remove-orphans --wait --wait-timeout 300";
+        ExecStart = "${composeEnvironment}/bin/paperless-compose-environment ${pkgs.docker-compose}/bin/docker-compose --project-name paperless --file ${composeFile} up --detach --remove-orphans --wait --wait-timeout 2100";
         ExecStop = "${composeEnvironment}/bin/paperless-compose-environment ${pkgs.docker-compose}/bin/docker-compose --project-name paperless --file ${composeFile} down --timeout 120";
-        TimeoutStartSec = 360;
+        TimeoutStartSec = 2160;
         TimeoutStopSec = 180;
         UMask = "0077";
       };

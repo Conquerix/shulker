@@ -633,8 +633,8 @@ recoverable in trash for 90 days.
 ### Health and acceptance
 
 Image pulling is serialized in a separate unit with a bounded two-hour window;
-Compose startup has a five-minute health limit. Verify the local stack before
-changing Pangolin:
+the webserver health check has a 30-minute startup grace period and Compose
+waits at most 35 minutes. Verify the local stack before changing Pangolin:
 
 ```sh
 sudo systemctl status \

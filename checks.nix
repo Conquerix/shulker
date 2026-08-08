@@ -91,7 +91,6 @@ in
     assert paperless.publicUrl == "https://documents.shulker.link";
     assert paperless.oidcIssuer == "https://sso.shulker.link";
     assert paperless.ocrLanguage == "fra+eng+deu";
-    assert paperless.searchLanguage == "fr";
     assert paperless.trashDelayDays == 90;
     assert builtins.hasAttr "paperless-state" services;
     assert paperlessStateService.unitConfig.RequiresMountsFor == paperless.stateDir;
@@ -117,9 +116,9 @@ in
       != null;
     assert builtins.elem "paperless-image-pull.service" paperlessComposeService.requires;
     assert builtins.elem "paperless-image-pull.service" paperlessComposeService.after;
-    assert paperlessComposeService.serviceConfig.TimeoutStartSec == 360;
+    assert paperlessComposeService.serviceConfig.TimeoutStartSec == 2160;
     assert
-      builtins.match ".*--wait-timeout 300" paperlessComposeService.serviceConfig.ExecStart != null;
+      builtins.match ".*--wait-timeout 2100" paperlessComposeService.serviceConfig.ExecStart != null;
     assert builtins.hasAttr "paperless-health-check" services;
     assert builtins.hasAttr "paperless-schema-check" services;
     assert paperlessHealthService.serviceConfig.Type == "oneshot";
@@ -141,9 +140,14 @@ in
         "webserver"
       ];
     assert paperless.composeConfig.services.webserver.ports == [ "127.0.0.1:23238:8000/tcp" ];
+    assert (paperless.composeConfig.services.webserver.healthcheck.start_period or null) == "30m";
     assert
       paperless.composeConfig.services.webserver.environment.PAPERLESS_DISABLE_REGULAR_LOGIN == "true";
-    assert paperless.composeConfig.services.webserver.environment.PAPERLESS_SEARCH_LANGUAGE == "fr";
+    assert
+      paperless.composeConfig.services.webserver.environment.PAPERLESS_OCR_LANGUAGE
+      == paperless.ocrLanguage;
+    assert
+      !(builtins.hasAttr "PAPERLESS_SEARCH_LANGUAGE" paperless.composeConfig.services.webserver.environment);
     assert paperless.composeConfig.services.webserver.environment.PAPERLESS_EMPTY_TRASH_DELAY == "90";
     pkgs.runCommand "paperless-stack-contract" { } ''
       touch "$out"

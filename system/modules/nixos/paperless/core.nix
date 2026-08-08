@@ -121,12 +121,6 @@ in
       description = "Tesseract languages used for document OCR.";
     };
 
-    searchLanguage = lib.mkOption {
-      type = lib.types.str;
-      default = "fr";
-      description = "Tantivy stemming language used for full-text search.";
-    };
-
     trashDelayDays = lib.mkOption {
       type = lib.types.ints.positive;
       default = 90;
