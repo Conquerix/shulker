@@ -551,18 +551,22 @@ access. Public share links remain disabled in practice and in permissions;
 enabling them later requires reviewing both Paperless permissions and the two
 Pangolin share-path denials.
 
-To remove an administrator, first revoke active Paperless authority locally,
-then remove Pocket ID access:
+To remove an administrator, first revoke active Paperless authority and disable
+the internal account so OIDC group synchronization cannot restore the admin
+group during the external identity change:
 
 ```sh
-sudo paperless-revoke-admin USERNAME
-# Use --disable-user only when the internal account must also be deactivated.
 sudo paperless-revoke-admin --disable-user USERNAME
+# Remove paperless_admins membership or Paperless client eligibility in Pocket ID.
+# Re-enable the existing non-admin account only when continued access is intended.
+sudo paperless-enable-user USERNAME
 ```
 
 The command terminates that user's sessions, revokes API tokens, removes the
-administrator group, and clears staff/superuser flags. Only after it succeeds
-should the user be removed from the Pocket ID group or client allowlist.
+administrator group, clears staff/superuser flags, and disables the account.
+`paperless-enable-user` refuses password-capable users and any account that
+still has local administrator authority. Run it only after the Pocket ID change
+has completed; omit it when all Paperless access should remain revoked.
 
 ### Permissions and intake
 
@@ -593,10 +597,10 @@ objects contain exactly:
 
 | Field | Value |
 | --- | --- |
-| `name` | Unique lowercase route identifier using letters, digits, and hyphens |
+| `name` | Unique lowercase route identifier using letters, digits, and hyphens; the family route must be exactly `family` |
 | `address` | Exact Fastmail alias or plus-addressed recipient |
 | `owner` | Exact username reported by `paperless-list-users` |
-| `scope` | `private` or `family`; exactly one route is `family` |
+| `scope` | `private` or `family`; exactly one route is `family`, and only the route named `family` may use it |
 
 Apply the routes without exposing credentials:
 

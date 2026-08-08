@@ -13,6 +13,7 @@ let
   pullService = services."immich-image-pull";
   composeService = services."immich-compose";
   paperless = wardenConfig.shulker.system.modules.paperless;
+  paperlessFastmailRoutesFilter = paperless.fastmailRoutesFilter;
   paperlessComposeService = services."paperless-compose";
   paperlessHealthService = services."paperless-health-check";
   paperlessLogicalBackupService = services."paperless-logical-backup";
@@ -150,14 +151,44 @@ in
     assert builtins.elem "paperless-revoke-admin" paperlessSystemPackageNames;
     assert builtins.elem "paperless-bootstrap-fastmail" paperlessSystemPackageNames;
     assert builtins.elem "paperless-list-users" paperlessSystemPackageNames;
+    assert builtins.elem "paperless-enable-user" paperlessSystemPackageNames;
     assert pkgs.lib.hasInfix "paperless_users" paperless.bootstrapContractText;
     assert pkgs.lib.hasInfix "paperless_family" paperless.bootstrapContractText;
     assert pkgs.lib.hasInfix "paperless_admins" paperless.bootstrapContractText;
     assert !(pkgs.lib.hasInfix "set_password(" paperless.bootstrapContractText);
     assert !(pkgs.lib.hasInfix "createsuperuser" paperless.bootstrapContractText);
-    pkgs.runCommand "paperless-bootstrap-contract" { } ''
-      touch "$out"
-    '';
+    assert pkgs.lib.hasInfix "user.is_active = False" paperless.bootstrapContractText;
+    assert pkgs.lib.hasInfix "Refusing to enable" paperless.bootstrapContractText;
+    pkgs.runCommand "paperless-bootstrap-contract"
+      {
+        nativeBuildInputs = [ pkgs.jq ];
+      }
+      ''
+        normalize_routes() {
+          jq --compact-output --exit-status ${pkgs.lib.escapeShellArg paperlessFastmailRoutesFilter} "$1"
+        }
+
+        valid_routes="$TMPDIR/valid-routes.json"
+        printf '%s' '[{"name":"family","address":"family@example.invalid","owner":"owner","scope":"family"},{"name":"private-alice","address":"alice@example.invalid","owner":"alice","scope":"private"}]' > "$valid_routes"
+        normalized="$(normalize_routes "$valid_routes")"
+        test "$normalized" = '[{"name":"family","address":"family@example.invalid","owner":"owner","scope":"family"},{"name":"private-alice","address":"alice@example.invalid","owner":"alice","scope":"private"}]'
+
+        invalid_scope="$TMPDIR/invalid-scope.json"
+        printf '%s' '[{"name":"family","address":"family@example.invalid","owner":"owner","scope":"private"},{"name":"another","address":"other@example.invalid","owner":"owner","scope":"family"}]' > "$invalid_scope"
+        if normalize_routes "$invalid_scope" >/dev/null 2>&1; then
+          echo "Paperless accepted a family scope under the wrong managed rule name" >&2
+          exit 1
+        fi
+
+        duplicate_address="$TMPDIR/duplicate-address.json"
+        printf '%s' '[{"name":"family","address":"same@example.invalid","owner":"owner","scope":"family"},{"name":"private-owner","address":"same@example.invalid","owner":"owner","scope":"private"}]' > "$duplicate_address"
+        if normalize_routes "$duplicate_address" >/dev/null 2>&1; then
+          echo "Paperless accepted duplicate Fastmail intake addresses" >&2
+          exit 1
+        fi
+
+        touch "$out"
+      '';
 
   paperless-backup-contract =
     assert paperless.backUpData;

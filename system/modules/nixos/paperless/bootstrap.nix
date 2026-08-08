@@ -97,7 +97,6 @@ let
     from rest_framework.authtoken.models import Token
 
     username = os.environ["PAPERLESS_BOOTSTRAP_USERNAME"]
-    disable_user = os.environ.get("PAPERLESS_BOOTSTRAP_DISABLE_USER") == "true"
     user = get_user_model().objects.get(username=username)
 
     session_ids = []
@@ -116,14 +115,39 @@ let
             user.groups.remove(admins)
         user.is_staff = False
         user.is_superuser = False
-        if disable_user:
-            user.is_active = False
+        user.is_active = False
         user.save(update_fields=["is_staff", "is_superuser", "is_active"])
 
     print(
         f"Revoked administrator {username}: sessions={deleted_sessions}, "
-        f"tokens={deleted_tokens}, disabled={disable_user}"
+        f"tokens={deleted_tokens}, disabled=True"
     )
+  '';
+  enableUserPython = ''
+    import os
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+    from django.db import transaction
+
+    username = os.environ["PAPERLESS_BOOTSTRAP_USERNAME"]
+    user = get_user_model().objects.get(username=username)
+    if user.has_usable_password():
+        raise RuntimeError("Refusing to enable a password-capable Paperless user")
+
+    try:
+        admins = Group.objects.get(name="paperless_admins")
+    except Group.DoesNotExist:
+        admins = None
+    if user.is_staff or user.is_superuser or (
+        admins is not None and user.groups.filter(pk=admins.pk).exists()
+    ):
+        raise RuntimeError("Refusing to enable a user with remaining administrator authority")
+
+    with transaction.atomic():
+        user.is_active = True
+        user.save(update_fields=["is_active"])
+
+    print(f"Enabled non-administrator Paperless user {username}")
   '';
   fastmailPython = ''
     import json
@@ -199,6 +223,39 @@ let
         f"obsolete_managed_rules_removed={removed}"
     )
   '';
+  fastmailRoutesFilter = ''
+    if (
+      type == "array" and length > 0 and
+      all(.[];
+        type == "object" and
+        ((keys | sort) == ["address", "name", "owner", "scope"]) and
+        (.name | type == "string" and test("^[a-z0-9][a-z0-9-]*$")) and
+        (.address | type == "string" and contains("@")) and
+        (.owner | type == "string" and length > 0) and
+        (.scope == "private" or .scope == "family") and
+        ((.scope == "family") == (.name == "family"))
+      ) and
+      ([.[].name] | length == (unique | length)) and
+      ([.[].address] | length == (unique | length)) and
+      ([.[] | select(.scope == "family")] | length == 1)
+    ) then
+      .
+    else
+      error("invalid Paperless Fastmail route document")
+    end
+  '';
+  fastmailRoutesNormalizer = pkgs.writeShellApplication {
+    name = "paperless-normalize-fastmail-routes";
+    runtimeInputs = [ pkgs.jq ];
+    text = ''
+      if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
+        echo "Usage: paperless-normalize-fastmail-routes FILE" >&2
+        exit 64
+      fi
+
+      jq --compact-output --exit-status ${lib.escapeShellArg fastmailRoutesFilter} "$1"
+    '';
+  };
   commonShell = ''
     if [ "$(id -u)" -ne 0 ]; then
       echo "This Paperless administration command must run as root" >&2
@@ -230,6 +287,7 @@ let
   listUsersScript = pkgs.writeText "paperless-list-users.py" listUsersPython;
   promoteAdminScript = pkgs.writeText "paperless-promote-oidc-admin.py" promoteAdminPython;
   revokeAdminScript = pkgs.writeText "paperless-revoke-admin.py" revokeAdminPython;
+  enableUserScript = pkgs.writeText "paperless-enable-user.py" enableUserPython;
   fastmailScript = pkgs.writeText "paperless-bootstrap-fastmail.py" fastmailPython;
   bootstrapGroups = pkgs.writeShellApplication {
     name = "paperless-bootstrap-groups";
@@ -267,28 +325,35 @@ let
     name = "paperless-revoke-admin";
     runtimeInputs = managementRuntimeInputs;
     text = ''
-      disable_user=false
-      if [ "''${1:-}" = --disable-user ]; then
-        disable_user=true
-        shift
-      fi
-      if [ "$#" -ne 1 ] || [ -z "$1" ]; then
-        echo "Usage: paperless-revoke-admin [--disable-user] USERNAME" >&2
+      if [ "$#" -ne 2 ] || [ "$1" != --disable-user ] || [ -z "$2" ]; then
+        echo "Usage: paperless-revoke-admin --disable-user USERNAME" >&2
         exit 64
       fi
-      export PAPERLESS_BOOTSTRAP_USERNAME="$1"
-      export PAPERLESS_BOOTSTRAP_DISABLE_USER="$disable_user"
+      export PAPERLESS_BOOTSTRAP_USERNAME="$2"
       ${commonShell}
       docker exec \
         --env PAPERLESS_BOOTSTRAP_USERNAME \
-        --env PAPERLESS_BOOTSTRAP_DISABLE_USER \
         paperless_webserver python manage.py shell \
         --command "$(<${revokeAdminScript})"
     '';
   };
+  enableUser = pkgs.writeShellApplication {
+    name = "paperless-enable-user";
+    runtimeInputs = managementRuntimeInputs;
+    text = ''
+      if [ "$#" -ne 1 ] || [ -z "$1" ]; then
+        echo "Usage: paperless-enable-user USERNAME" >&2
+        exit 64
+      fi
+      export PAPERLESS_BOOTSTRAP_USERNAME="$1"
+      ${commonShell}
+      docker exec --env PAPERLESS_BOOTSTRAP_USERNAME paperless_webserver \
+        python manage.py shell --command "$(<${enableUserScript})"
+    '';
+  };
   fastmailRunner = pkgs.writeShellApplication {
     name = "paperless-bootstrap-fastmail-runner";
-    runtimeInputs = managementRuntimeInputs ++ [ pkgs.jq ];
+    runtimeInputs = managementRuntimeInputs ++ [ fastmailRoutesNormalizer ];
     text = ''
       admin_username=""
       routes_file=""
@@ -329,19 +394,7 @@ let
         exit 65
       fi
 
-      routes_json="$(jq --compact-output --exit-status '
-        type == "array" and length > 0 and
-        all(.[];
-          type == "object" and
-          (.name | type == "string" and test("^[a-z0-9][a-z0-9-]*$")) and
-          (.address | type == "string" and contains("@")) and
-          (.owner | type == "string" and length > 0) and
-          (.scope == "private" or .scope == "family")
-        ) and
-        ([.[].name] | length == (unique | length)) and
-        ([.[].address] | length == (unique | length)) and
-        ([.[] | select(.scope == "family")] | length == 1)
-      ' "$routes_file")"
+      routes_json="$(paperless-normalize-fastmail-routes "$routes_file")"
 
       export PAPERLESS_BOOTSTRAP_ADMIN_USERNAME="$admin_username"
       export PAPERLESS_BOOTSTRAP_ROUTES_JSON="$routes_json"
@@ -377,6 +430,7 @@ let
     listUsersPython
     promoteAdminPython
     revokeAdminPython
+    enableUserPython
     fastmailPython
     commonShell
   ];
@@ -389,8 +443,16 @@ in
     description = "Paperless bootstrap source exposed for evaluation contracts.";
   };
 
+  options.shulker.system.modules.paperless.fastmailRoutesFilter = lib.mkOption {
+    type = lib.types.lines;
+    readOnly = true;
+    internal = true;
+    description = "Validated Fastmail route filter shared by bootstrap and native contracts.";
+  };
+
   config = lib.mkIf cfg.enable {
     shulker.system.modules.paperless.bootstrapContractText = bootstrapContractText;
+    shulker.system.modules.paperless.fastmailRoutesFilter = fastmailRoutesFilter;
 
     environment.systemPackages = [
       bootstrapGroups
@@ -398,6 +460,7 @@ in
       listUsers
       promoteAdmin
       revokeAdmin
+      enableUser
     ];
   };
 }
