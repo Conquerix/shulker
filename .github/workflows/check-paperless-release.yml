@@ -1,0 +1,89 @@
+name: Check Paperless-ngx release
+
+on:
+  schedule:
+    - cron: "19 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: paperless-release-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+      - name: Compare configured and upstream releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          configured_version="$(
+            nix eval --raw .#nixosConfigurations.warden.config.shulker.system.modules.paperless.version
+          )"
+          latest_tag="$(
+            gh api repos/paperless-ngx/paperless-ngx/releases/latest --jq .tag_name
+          )"
+          latest_version="${latest_tag#v}"
+
+          if [[ "$configured_version" == "$latest_version" ]]; then
+            echo "Paperless-ngx $configured_version is current."
+            exit 0
+          fi
+
+          marker='<!-- paperless-release-monitor -->'
+          issue_title='chore: review Paperless-ngx update'
+          release_url="https://github.com/paperless-ngx/paperless-ngx/releases/tag/$latest_tag"
+          body_file="$RUNNER_TEMP/paperless-release-issue.md"
+
+          cat > "$body_file" <<EOF
+          $marker
+          The weekly release monitor found a Paperless-ngx version to review.
+
+          - Configured version: \`$configured_version\`
+          - Latest upstream version: \`$latest_version\`
+          - Release: $release_url
+
+          This is a review reminder only. The workflow does not edit Nix files, update image digests, deploy, or restart Paperless.
+
+          Compatibility and recovery checklist:
+
+          - [ ] Read the upstream release notes and migration guidance.
+          - [ ] Run \`paperless-pre-upgrade-export\` and verify \`export/current\` records the configured version.
+          - [ ] Run and verify the logical PostgreSQL dump and the Borgmatic backup.
+          - [ ] Review Paperless-ngx, PostgreSQL, Valkey, Gotenberg, and Tika tags and immutable digests as one compatibility set.
+          - [ ] Update the evaluated version and all five image pins in a reviewed commit.
+          - [ ] Run every Paperless contract, \`nix flake check --no-build --all-systems\`, and \`nix flake check\`.
+          - [ ] Deploy through the checked rebuild path, then run the health and schema checks before completing the upgrade.
+          EOF
+
+          managed_issue=''
+          while IFS= read -r issue_number; do
+            issue_body="$(gh issue view "$issue_number" --json body --jq .body)"
+            if grep -F -- "$marker" <<< "$issue_body" >/dev/null; then
+              managed_issue="$issue_number"
+              break
+            fi
+          done < <(
+            gh issue list \
+              --state open \
+              --limit 100 \
+              --json number,title \
+              --jq ".[] | select(.title == \"$issue_title\") | .number"
+          )
+
+          if [[ -n "$managed_issue" ]]; then
+            gh issue edit "$managed_issue" --title "$issue_title" --body-file "$body_file"
+            echo "Updated managed issue #$managed_issue."
+          else
+            gh issue create --title "$issue_title" --body-file "$body_file"
+          fi

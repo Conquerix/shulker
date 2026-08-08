@@ -22,6 +22,21 @@ settings must permit GitHub Actions to create pull requests. Pull requests made
 with `GITHUB_TOKEN` may not trigger another workflow run, so the update workflow
 runs the complete validation before publishing its branch.
 
+## Paperless release reviews
+
+[`workflows/check-paperless-release.yml`](workflows/check-paperless-release.yml)
+runs every Monday and on demand. It compares the evaluated Warden Paperless
+version with the latest upstream GitHub release. When upstream is newer, it
+creates or refreshes one open issue carrying the
+`<!-- paperless-release-monitor -->` marker. A similarly titled human-authored
+issue is never edited.
+
+The workflow has only `contents: read` and `issues: write`. It reports the
+configured and latest versions and supplies the export, backup, compatibility,
+validation, and deployment review checklist. It never changes the repository
+or a host. Review all five pinned images—Paperless-ngx, PostgreSQL, Valkey,
+Gotenberg, and Tika—as one compatibility set before upgrading.
+
 ## Server Wiki
 
 [`workflows/wiki.yml`](workflows/wiki.yml) rebuilds the host reports after

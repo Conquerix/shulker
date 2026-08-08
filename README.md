@@ -897,6 +897,19 @@ as workflow artifacts, propose weekly flake-input updates, and publish the
 host reports to the [repository Wiki](https://github.com/Conquerix/shulker/wiki).
 Dependabot groups updates to pinned GitHub Actions into weekly pull requests.
 
+| Routine | Cadence | Result |
+| --- | --- | --- |
+| Checks | Push and pull request | Validates the flake and builds generated reports |
+| Publish infrastructure Wiki | Relevant push, weekly, or manual | Republishes evaluated reports and sanitized topology |
+| Update flake inputs | Weekly or manual | Opens or refreshes a validated dependency pull request |
+| Check Paperless-ngx release | Weekly or manual | Opens or refreshes one marked review issue when upstream is newer |
+
+The Paperless monitor is deliberately non-deploying: it cannot write repository
+contents and never edits pins, commits code, or touches Warden. Its issue asks
+the reviewer to treat the Paperless-ngx, PostgreSQL, Valkey, Gotenberg, and Tika
+tags and immutable digests as one compatibility set, then perform the documented
+export, backup, validation, and checked deployment sequence.
+
 See the [automation guide](.github/README.md) for workflow triggers,
 permissions, and Wiki synchronization behavior.
 

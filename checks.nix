@@ -212,6 +212,40 @@ in
     touch "$out"
   '';
 
+  paperless-release-workflow-contract = pkgs.runCommand "paperless-release-workflow-contract" { } ''
+    workflow=${./.}/.github/workflows/check-paperless-release.yml
+
+    test -f "$workflow"
+    for expected in \
+      'schedule:' \
+      'workflow_dispatch:' \
+      'contents: read' \
+      'issues: write' \
+      'paperless-release-monitor' \
+      'nix eval --raw .#nixosConfigurations.warden.config.shulker.system.modules.paperless.version' \
+      'gh api repos/paperless-ngx/paperless-ngx/releases/latest --jq .tag_name' \
+      'chore: review Paperless-ngx update' \
+      '<!-- paperless-release-monitor -->'
+    do
+      grep -F -- "$expected" "$workflow" >/dev/null
+    done
+
+    for forbidden in \
+      'contents: write' \
+      'pull-requests: write' \
+      'git commit' \
+      'git push' \
+      'nixos-rebuild'
+    do
+      if grep -F -- "$forbidden" "$workflow" >/dev/null; then
+        echo "Paperless release monitor contains forbidden mutation: $forbidden" >&2
+        exit 1
+      fi
+    done
+
+    touch "$out"
+  '';
+
   pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
     src = ./.;
     default_stages = [ "pre-commit" ];
