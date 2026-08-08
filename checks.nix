@@ -18,6 +18,7 @@ let
   paperlessPullService = services."paperless-image-pull";
   paperlessSchemaService = services."paperless-schema-check";
   paperlessStateService = services."paperless-state";
+  paperlessSystemPackageNames = map pkgs.lib.getName wardenConfig.environment.systemPackages;
   sshdService = services.sshd;
   sshdKeygenService = services."sshd-keygen";
   storageBoxKnownHosts = wardenConfig.programs.ssh.knownHosts;
@@ -134,6 +135,21 @@ in
     assert paperless.composeConfig.services.webserver.environment.PAPERLESS_SEARCH_LANGUAGE == "fr";
     assert paperless.composeConfig.services.webserver.environment.PAPERLESS_EMPTY_TRASH_DELAY == "90";
     pkgs.runCommand "paperless-stack-contract" { } ''
+      touch "$out"
+    '';
+
+  paperless-bootstrap-contract =
+    assert builtins.elem "paperless-bootstrap-groups" paperlessSystemPackageNames;
+    assert builtins.elem "paperless-promote-oidc-admin" paperlessSystemPackageNames;
+    assert builtins.elem "paperless-revoke-admin" paperlessSystemPackageNames;
+    assert builtins.elem "paperless-bootstrap-fastmail" paperlessSystemPackageNames;
+    assert builtins.elem "paperless-list-users" paperlessSystemPackageNames;
+    assert pkgs.lib.hasInfix "paperless_users" paperless.bootstrapContractText;
+    assert pkgs.lib.hasInfix "paperless_family" paperless.bootstrapContractText;
+    assert pkgs.lib.hasInfix "paperless_admins" paperless.bootstrapContractText;
+    assert !(pkgs.lib.hasInfix "set_password(" paperless.bootstrapContractText);
+    assert !(pkgs.lib.hasInfix "createsuperuser" paperless.bootstrapContractText);
+    pkgs.runCommand "paperless-bootstrap-contract" { } ''
       touch "$out"
     '';
 
