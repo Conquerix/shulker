@@ -95,6 +95,7 @@ in
     assert paperless.trashDelayDays == 90;
     assert builtins.hasAttr "paperless-state" services;
     assert paperlessStateService.unitConfig.RequiresMountsFor == paperless.stateDir;
+    assert pkgs.lib.hasInfix "validate_property acltype posix" paperless.validateStateScript;
     assert pkgs.lib.hasInfix "/consume/family" paperlessStateService.script;
     assert pkgs.lib.hasInfix "/consume/private" paperlessStateService.script;
     pkgs.runCommand "paperless-core-contract" { } ''

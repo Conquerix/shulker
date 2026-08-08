@@ -7,6 +7,39 @@
 
 let
   cfg = config.shulker.system.modules.paperless;
+  validateStateScript = ''
+    readonly state_dir=${lib.escapeShellArg cfg.stateDir}
+    readonly dataset=${lib.escapeShellArg cfg.dataset}
+    readonly expected_quota=${lib.escapeShellArg (toString cfg.datasetQuotaBytes)}
+
+    actual_source="$(findmnt --noheadings --output SOURCE --target "$state_dir")"
+    if [ "$actual_source" != "$dataset" ]; then
+      echo "Paperless state is not mounted from the expected ZFS dataset" >&2
+      exit 65
+    fi
+
+    actual_quota="$(zfs get -Hp -o value quota "$dataset")"
+    if [ "$actual_quota" != "$expected_quota" ]; then
+      echo "Paperless ZFS quota does not match the evaluated configuration" >&2
+      exit 65
+    fi
+
+    validate_property() {
+      property="$1"
+      expected="$2"
+      actual="$(zfs get -H -o value "$property" "$dataset")"
+      if [ "$actual" != "$expected" ]; then
+        echo "Paperless ZFS property $property does not match the evaluated configuration" >&2
+        exit 65
+      fi
+    }
+
+    validate_property compression zstd
+    validate_property atime off
+    validate_property acltype posix
+    validate_property xattr sa
+    validate_property dnodesize auto
+  '';
   validateState = pkgs.writeShellApplication {
     name = "paperless-validate-state";
     runtimeInputs = [
@@ -14,39 +47,7 @@ let
       pkgs.coreutils
       pkgs.util-linux
     ];
-    text = ''
-      readonly state_dir=${lib.escapeShellArg cfg.stateDir}
-      readonly dataset=${lib.escapeShellArg cfg.dataset}
-      readonly expected_quota=${lib.escapeShellArg (toString cfg.datasetQuotaBytes)}
-
-      actual_source="$(findmnt --noheadings --output SOURCE --target "$state_dir")"
-      if [ "$actual_source" != "$dataset" ]; then
-        echo "Paperless state is not mounted from the expected ZFS dataset" >&2
-        exit 65
-      fi
-
-      actual_quota="$(zfs get -Hp -o value quota "$dataset")"
-      if [ "$actual_quota" != "$expected_quota" ]; then
-        echo "Paperless ZFS quota does not match the evaluated configuration" >&2
-        exit 65
-      fi
-
-      validate_property() {
-        property="$1"
-        expected="$2"
-        actual="$(zfs get -H -o value "$property" "$dataset")"
-        if [ "$actual" != "$expected" ]; then
-          echo "Paperless ZFS property $property does not match the evaluated configuration" >&2
-          exit 65
-        fi
-      }
-
-      validate_property compression zstd
-      validate_property atime off
-      validate_property acltype posixacl
-      validate_property xattr sa
-      validate_property dnodesize auto
-    '';
+    text = validateStateScript;
   };
 in
 {
@@ -138,6 +139,13 @@ in
       description = "Include a consistent ZFS snapshot of Paperless in Borgmatic.";
     };
 
+    validateStateScript = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+      description = "ZFS state validation source exposed for evaluation contracts.";
+    };
+
     backupSnapshotName = lib.mkOption {
       type = lib.types.str;
       default = "borgmatic";
@@ -176,6 +184,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    shulker.system.modules.paperless.validateStateScript = validateStateScript;
+
     assertions = [
       {
         assertion = lib.hasPrefix "https://" cfg.publicUrl;
