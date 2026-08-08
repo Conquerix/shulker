@@ -12,6 +12,8 @@ let
   borgmaticService = services.borgmatic;
   pullService = services."immich-image-pull";
   composeService = services."immich-compose";
+  paperless = wardenConfig.shulker.system.modules.paperless;
+  paperlessStateService = services."paperless-state";
   sshdService = services.sshd;
   sshdKeygenService = services."sshd-keygen";
   storageBoxKnownHosts = wardenConfig.programs.ssh.knownHosts;
@@ -65,6 +67,25 @@ in
     assert composeService.serviceConfig.TimeoutStartSec == 360;
     assert builtins.match ".*--wait-timeout 300" composeService.serviceConfig.ExecStart != null;
     pkgs.runCommand "immich-service-contract" { } ''
+      touch "$out"
+    '';
+
+  paperless-core-contract =
+    assert paperless.enable;
+    assert paperless.version == "3.0.5";
+    assert paperless.stateDir == "/storage/flash/paperless";
+    assert paperless.dataset == "flash_pool/flash/storage/paperless";
+    assert paperless.datasetQuotaBytes == 536870912000;
+    assert paperless.bindAddress == "127.0.0.1";
+    assert paperless.port == 23238;
+    assert paperless.publicUrl == "https://documents.shulker.link";
+    assert paperless.oidcIssuer == "https://sso.shulker.link";
+    assert paperless.ocrLanguage == "fra+eng+deu";
+    assert paperless.searchLanguage == "fr";
+    assert paperless.trashDelayDays == 90;
+    assert builtins.hasAttr "paperless-state" services;
+    assert paperlessStateService.unitConfig.RequiresMountsFor == paperless.stateDir;
+    pkgs.runCommand "paperless-core-contract" { } ''
       touch "$out"
     '';
 

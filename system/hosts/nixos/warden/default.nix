@@ -79,6 +79,16 @@
           transcodingAcceleration = "qsv";
           preferredHardwareDevice = "/dev/dri/renderD128";
         };
+        paperless = {
+          enable = true;
+          stateDir = "/storage/flash/paperless";
+          dataset = "flash_pool/flash/storage/paperless";
+          datasetQuotaBytes = 536870912000;
+          bindAddress = "127.0.0.1";
+          port = 23238;
+          publicUrl = "https://documents.shulker.link";
+          oidcIssuer = "https://sso.shulker.link";
+        };
         torrent = {
           enable = true;
           downloadDir = "/storage/hdd/torrents";
