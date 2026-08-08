@@ -13,6 +13,14 @@ let
   environmentFile = config.services.onepassword-secrets.secrets.paperlessEnv.path;
   maintenanceLock = "/run/lock/paperless-maintenance.lock";
   composeYaml = pkgs.formats.yaml { };
+  healthCheckRuntimeInputs = [
+    cfg.validateStatePackage
+    config.virtualisation.docker.package
+    pkgs.coreutils
+    pkgs.curl
+    pkgs.systemd
+    pkgs.util-linux
+  ];
   composeConfig = {
     name = "paperless";
     services = {
@@ -198,13 +206,7 @@ let
   };
   healthCheck = pkgs.writeShellApplication {
     name = "paperless-health-check";
-    runtimeInputs = [
-      config.virtualisation.docker.package
-      pkgs.coreutils
-      pkgs.curl
-      pkgs.systemd
-      pkgs.util-linux
-    ];
+    runtimeInputs = healthCheckRuntimeInputs;
     text = ''
       if [ "''${PAPERLESS_MAINTENANCE_LOCK_HELD:-0}" != 1 ]; then
         exec 9>${maintenanceLock}
@@ -296,9 +298,17 @@ in
     description = "Evaluated Paperless Compose configuration before YAML rendering.";
   };
 
+  options.shulker.system.modules.paperless.healthCheckRuntimeInputs = lib.mkOption {
+    type = lib.types.listOf lib.types.package;
+    readOnly = true;
+    internal = true;
+    description = "Packages available on the Paperless health check's runtime PATH.";
+  };
+
   config = lib.mkIf cfg.enable {
     shulker.system.modules.paperless.composeConfig = composeConfig;
     shulker.system.modules.paperless.composeFile = composeFile;
+    shulker.system.modules.paperless.healthCheckRuntimeInputs = healthCheckRuntimeInputs;
 
     environment.systemPackages = [
       composeEnvironment

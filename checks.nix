@@ -123,6 +123,7 @@ in
     assert builtins.hasAttr "paperless-schema-check" services;
     assert paperlessHealthService.serviceConfig.Type == "oneshot";
     assert paperlessSchemaService.serviceConfig.Type == "oneshot";
+    assert builtins.elem paperless.validateStatePackage paperless.healthCheckRuntimeInputs;
     assert pkgs.lib.all (image: pkgs.lib.hasInfix "@sha256:" image) [
       paperless.paperlessImage
       paperless.valkeyImage

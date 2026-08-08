@@ -140,6 +140,13 @@ in
       description = "ZFS state validation source exposed for evaluation contracts.";
     };
 
+    validateStatePackage = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      internal = true;
+      description = "Packaged ZFS state validator shared by Paperless services.";
+    };
+
     backupSnapshotName = lib.mkOption {
       type = lib.types.str;
       default = "borgmatic";
@@ -179,6 +186,7 @@ in
 
   config = lib.mkIf cfg.enable {
     shulker.system.modules.paperless.validateStateScript = validateStateScript;
+    shulker.system.modules.paperless.validateStatePackage = validateState;
 
     assertions = [
       {
