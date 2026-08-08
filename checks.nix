@@ -23,6 +23,9 @@ let
   sshdService = services.sshd;
   sshdKeygenService = services."sshd-keygen";
   storageBoxKnownHosts = wardenConfig.programs.ssh.knownHosts;
+  wardenServerDocs = self.packages.${system}."server-docs-warden";
+  infrastructureData = self.packages.${system}.infrastructure-data;
+  wikiDocs = self.packages.${system}.wiki-docs;
 in
 {
 
@@ -178,6 +181,36 @@ in
     pkgs.runCommand "paperless-backup-contract" { } ''
       touch "$out"
     '';
+
+  paperless-docs-contract = pkgs.runCommand "paperless-docs-contract" { } ''
+    combined="$TMPDIR/paperless-generated-docs"
+    mkdir -p "$combined"
+    cp -R ${wardenServerDocs}/. "$combined/warden"
+    cp -R ${infrastructureData}/. "$combined/infrastructure"
+    cp -R ${wikiDocs}/. "$combined/wiki"
+
+    for expected in \
+      'Paperless-ngx' \
+      'https://documents.shulker.link' \
+      'flash_pool/flash/storage/paperless' \
+      '500 GiB' \
+      'fra+eng+deu' \
+      'paperless-health-check' \
+      'paperless-pre-upgrade-export'
+    do
+      grep -R -F -- "$expected" "$combined" >/dev/null
+    done
+
+    if grep -R -E \
+      'PAPERLESS_(DB_PASSWORD|OIDC_CLIENT_SECRET|FASTMAIL_APP_PASSWORD|SECRET_KEY)=|op://Shulker/warden/Paperless|[[:alnum:]._%+-]+@fastmail\.' \
+      "$combined" >/dev/null
+    then
+      echo "Generated Paperless documentation contains private configuration" >&2
+      exit 1
+    fi
+
+    touch "$out"
+  '';
 
   pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
     src = ./.;

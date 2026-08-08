@@ -432,6 +432,287 @@ Linux/amd64 image digests with `skopeo`, and update all four pins together.
 Repeat OAuth, upload, accelerator, and backup acceptance afterward. GitHub may
 propose dependency changes, but no workflow deploys Immich automatically.
 
+## Paperless family documents
+
+Warden runs [Paperless-ngx](https://docs.paperless-ngx.com/) as the family's
+authoritative searchable document archive. It is deliberately separate from
+OpenCloud: OpenCloud remains general file sync and collaboration, while
+Paperless owns document originals, PDF/A renditions, thumbnails, OCR text,
+metadata, permissions, search indexes, and ingestion history. Do not add any
+Paperless-managed directory to OpenCloud or edit it while Paperless is running.
+
+The generated Compose stack contains Paperless-ngx `3.0.5`, PostgreSQL 18,
+Valkey 9, Gotenberg 8.34, and Apache Tika 3.2.3.0. All five Linux/amd64 images
+are pinned by release tag and immutable digest. Paperless listens only on
+`127.0.0.1:23238`; PostgreSQL, Valkey, Gotenberg, and Tika publish no host
+ports. Pangolin is the sole public path at
+`https://documents.shulker.link`.
+
+### Storage and secrets
+
+All persistent state uses the dedicated legacy-mounted dataset
+`flash_pool/flash/storage/paperless` at `/storage/flash/paperless`. Its 500 GiB
+quota is an upper bound, not preallocated space. Before the first deployment,
+create and temporarily mount it:
+
+```sh
+sudo zfs create \
+  -o mountpoint=legacy \
+  -o quota=500G \
+  -o compression=zstd \
+  -o atime=off \
+  -o acltype=posixacl \
+  -o xattr=sa \
+  -o dnodesize=auto \
+  flash_pool/flash/storage/paperless
+sudo install -d -m 0750 /storage/flash/paperless
+sudo mount -t zfs \
+  flash_pool/flash/storage/paperless /storage/flash/paperless
+sudo zfs get -Hp -o property,value \
+  quota,compression,atime,acltype,xattr,dnodesize \
+  flash_pool/flash/storage/paperless
+```
+
+The quota must evaluate to `536870912000` bytes. `paperless-state.service`
+refuses to start the stack if the mounted dataset, quota, or any required ZFS
+property differs. It owns application paths as UID/GID 10002 and the database
+and broker paths as UID/GID 999.
+
+Create a `Paperless` section with an `Environment` field in Warden's existing
+Shulker 1Password item. Store a systemd-compatible environment document with
+exactly these keys and their real values:
+
+- `PAPERLESS_SECRET_KEY`: a stable value generated with a cryptographically
+  secure random generator;
+- `PAPERLESS_DB_PASSWORD`: a unique PostgreSQL password;
+- `PAPERLESS_OIDC_CLIENT_ID`: the Pocket ID client identifier;
+- `PAPERLESS_OIDC_CLIENT_SECRET`: the confidential Pocket ID client secret;
+- `PAPERLESS_FASTMAIL_USERNAME`: the dedicated Fastmail service account;
+- `PAPERLESS_FASTMAIL_APP_PASSWORD`: an app password limited to mail access.
+
+The evaluated secret is named `paperlessEnv`. The checked rebuild validates
+its 1Password reference before deployment. Compose receives values only in its
+process environment; generated Nix store files, reports, and Wiki pages contain
+placeholders and logical field names only.
+
+### Pocket ID-only login and bootstrap
+
+Create these groups in Pocket ID and identically named groups in Paperless:
+
+| Group | Purpose |
+| --- | --- |
+| `paperless_users` | Normal document users and owners |
+| `paperless_family` | Object-level view/change access to family documents |
+| `paperless_admins` | Privileged configuration and recovery |
+
+All family members belong to `paperless_users` and `paperless_family`.
+Designated administrators additionally belong to `paperless_admins`. Create one
+confidential authorization-code Pocket ID client restricted to the approved
+groups. Its callback is:
+
+```text
+https://documents.shulker.link/accounts/oidc/pocket-id/login/callback/
+```
+
+Paperless automatically provisions allowed OIDC users, synchronizes the
+`groups` claim on login, disables regular frontend login, and redirects to
+Pocket ID. Never use `createsuperuser` or assign a Paperless password.
+
+OIDC needs the production callback during initial provisioning. Create the
+Pangolin resource before the first login, but initially protect the entire
+resource with Pangolin authentication and grant access only to the owner. Then:
+
+```sh
+sudo paperless-bootstrap-groups
+# Sign in once through Pangolin and Pocket ID before continuing.
+sudo paperless-list-users
+sudo paperless-promote-oidc-admin USERNAME
+sudo paperless-list-users
+```
+
+Pass the exact OIDC username reported by `paperless-list-users`. Promotion
+refuses any account with a usable password. Configure the internal application
+through this OIDC administrator, verify permissions and ingestion privately,
+then replace the temporary Pangolin authentication gate with the final policy.
+
+The final Pangolin rules are ordered as follows:
+
+1. deny the exact `/admin` path;
+2. deny every `/admin/*` descendant;
+3. deny the exact `/share` path;
+4. deny every `/share/*` descendant;
+5. forward every other path to `http://127.0.0.1:23238` without Pangolin
+   authentication.
+
+Paperless itself remains the authentication layer for web, API, media, static,
+and OIDC callback traffic. Do not add a second login gate after bootstrap,
+because mobile/API clients and the OIDC redirect flow need direct application
+access. Public share links remain disabled in practice and in permissions;
+enabling them later requires reviewing both Paperless permissions and the two
+Pangolin share-path denials.
+
+To remove an administrator, first revoke active Paperless authority locally,
+then remove Pocket ID access:
+
+```sh
+sudo paperless-revoke-admin USERNAME
+# Use --disable-user only when the internal account must also be deactivated.
+sudo paperless-revoke-admin --disable-user USERNAME
+```
+
+The command terminates that user's sessions, revokes API tokens, removes the
+administrator group, and clears staff/superuser flags. Only after it succeeds
+should the user be removed from the Pocket ID group or client allowlist.
+
+### Permissions and intake
+
+Normal users receive only the global permissions required to upload and use
+shared metadata. Ownership and object-level permissions protect documents:
+
+- web/API uploads are owned by the authenticated uploader and private by
+  default;
+- a private mail or future scanner route assigns its named OIDC user and grants
+  no family access;
+- the family route assigns the designated administrator and a privileged
+  workflow grants `paperless_family` view/change access;
+- owners may explicitly grant `paperless_family` access later;
+- administrators retain recovery access.
+
+Only administrators may manage workflows or mail accounts. Configure one
+family-intake workflow that matches the managed `Shulker route - family` mail
+rule, assigns the designated administrator, and grants the family group view
+and change permissions. Private managed rules must not invoke this workflow.
+Test the resulting object permissions with two ordinary OIDC users; an
+administrator test does not prove isolation.
+
+The dedicated Fastmail account uses `imap.fastmail.com:993` over SSL. Each
+enabled person signs in to Paperless once before receiving a private route so
+their internal OIDC user exists. Create the `Paperless/Processed` IMAP folder,
+then prepare a root-owned mode-0600 JSON file outside Git. It is an array whose
+objects contain exactly:
+
+| Field | Value |
+| --- | --- |
+| `name` | Unique lowercase route identifier using letters, digits, and hyphens |
+| `address` | Exact Fastmail alias or plus-addressed recipient |
+| `owner` | Exact username reported by `paperless-list-users` |
+| `scope` | `private` or `family`; exactly one route is `family` |
+
+Apply the routes without exposing credentials:
+
+```sh
+sudo paperless-bootstrap-fastmail \
+  --admin-username USERNAME \
+  --routes-json /run/paperless-fastmail-routes.json
+sudo rm -f /run/paperless-fastmail-routes.json
+```
+
+The idempotent command upserts only `Fastmail Paperless` and rules prefixed
+`Shulker route - `. It accepts attachments, applies the global
+`Source: Fastmail` tag, assigns the route owner, moves successfully processed
+mail to `Paperless/Processed`, and removes only obsolete rules carrying its own
+prefix. Failed processing remains visible in Paperless task history and the
+source mailbox.
+
+The consume tree reserves `family` and `private` routes for a future scanner
+adapter, but no SMB, SFTP, FTP, WebDAV, or scanner listener is enabled. Once a
+scanner is selected, its adapter must write atomically or use a stability delay
+and must map each private drop to an existing OIDC user.
+
+Paperless OCR uses `fra+eng+deu`, with French full-text stemming and French,
+English, and German date parsing. Automatic archive generation retains the
+unaltered original and produces PDF/A when appropriate. Tika and Gotenberg add
+DOCX, XLSX, PPTX, ODT, and related Office formats. Duplicate content is retained
+and flagged for review, the audit log is enabled, and deleted documents remain
+recoverable in trash for 90 days.
+
+### Health and acceptance
+
+Image pulling has a separate 30-minute unit; Compose startup has a five-minute
+health limit. Verify the local stack before changing Pangolin:
+
+```sh
+sudo systemctl status \
+  paperless-state.service \
+  paperless-image-pull.service \
+  paperless-compose.service --no-pager
+sudo systemctl start paperless-health-check.service
+sudo systemctl start paperless-schema-check.service
+docker ps --filter label=com.docker.compose.project=paperless \
+  --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+sudo ss -ltnp | rg ':23238'
+curl --fail http://127.0.0.1:23238/
+```
+
+Exactly five containers must run and only Paperless may publish
+`127.0.0.1:23238`. The health command checks HTTP, a PostgreSQL query, Valkey,
+Tika, Gotenberg, and ZFS properties without printing document data. The schema
+command separately runs Django deployment checks and repairs the search index
+only when required.
+
+Before production use, upload non-sensitive French, English, and German scans
+and prove full-text search. Repeat with DOCX, XLSX, PPTX, and ODT and prove both
+rendering and original download. With two normal accounts, prove private
+non-discovery and shared-family editing. Prove every Fastmail route's ownership,
+permissions, processed-folder move, and retry behavior. Finally, verify normal
+OIDC/API access alongside public denial of regular login, `/admin`, and
+`/share`.
+
+Configure mobile or compatible API clients with
+`https://documents.shulker.link`. API tokens are created only from an already
+authenticated OIDC profile and are revoked by the administrator-removal
+procedure.
+
+### Backups, recovery, and upgrades
+
+`paperless-logical-backup.timer` creates a validated PostgreSQL custom-format
+dump every day and retains the newest 14 in
+`/storage/flash/paperless/dumps`. Borgmatic acquires the Paperless maintenance
+lock, creates a fresh logical dump, stops the stack only long enough to create
+`flash_pool/flash/storage/paperless@borgmatic`, restarts and health-checks the
+application, then archives
+`/storage/flash/paperless/.zfs/snapshot/borgmatic`. Finish and failure hooks
+destroy only this reserved snapshot; a preparation failure restarts Paperless
+and removes any snapshot it created.
+
+Before every Paperless update, run:
+
+```sh
+sudo paperless-pre-upgrade-export
+sudo borgmatic create --verbosity 1
+sudo borgmatic check --force
+```
+
+The exporter incrementally maintains
+`/storage/flash/paperless/export/current`, includes originals, archives,
+thumbnails, metadata, and settings, and records Paperless version `3.0.5`. It
+does not export API tokens. `document_importer` requires the exact Paperless
+version that produced the export, and client tokens must be regenerated after
+that recovery path.
+
+Recovery confidence has three levels:
+
+1. Borg repository/archive checks pass, Paperless is healthy, and no reserved
+   `@borgmatic` snapshot remains.
+2. Extract an archive to a fresh disposable directory and checksum a
+   representative original, PDF/A rendition, thumbnail, PostgreSQL dump, and
+   search-index file.
+3. Start an isolated non-public stack using the pinned versions and restored
+   state; prove OCR text, search, private/family permissions, original download,
+   Office rendering, and a new upload.
+
+Never restore over the live dataset. Keep production stopped for an actual
+restore, recreate only the dedicated dataset when necessary, preserve
+ownership/modes/ACLs/xattrs, and validate in isolation first. Do not treat
+Paperless as the sole copy of family records until several off-site archives
+exist and all three recovery levels have passed.
+
+Updates are reviewed, not automatically deployed. Compare the upstream release
+and migration notes, run the portable exporter and Borg checks, update the five
+compatible image tags/digests, build the generated Compose and Warden system,
+then repeat OIDC, permission, OCR, Office, mail, health, and backup acceptance.
+Scanner networking and public share links remain explicitly deferred decisions.
+
 ## Development and validation
 
 Use the smallest relevant check while iterating, then validate in proportion to

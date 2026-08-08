@@ -124,6 +124,11 @@ let
       "${modules.immich.stateDir} (${modules.immich.dataset})"
       "Quota ${bytesAsGiB modules.immich.datasetQuotaBytes}; upload-managed library; Immich server, OpenVINO ML, PostgreSQL, and Valkey; Quick Sync; first-admin setup ${enabledDisabled modules.immich.allowSetup}; snapshot backup ${enabledDisabled modules.immich.backUpData}"
     )
+    (service "Paperless-ngx" modules.paperless.enable
+      "${modules.paperless.publicUrl} via ${modules.paperless.bindAddress}:${toString modules.paperless.port}"
+      "${modules.paperless.stateDir} (${modules.paperless.dataset})"
+      "Version ${modules.paperless.version}; quota ${bytesAsGiB modules.paperless.datasetQuotaBytes}; OCR ${modules.paperless.ocrLanguage}; French search stemming; Office conversion with Tika and Gotenberg; Pocket ID-only login; ${toString modules.paperless.trashDelayDays}-day trash; snapshot backup ${enabledDisabled modules.paperless.backUpData}; scanner listener and public share links disabled"
+    )
     (service "Newt" modules.newt.enable modules.newt.endpoint modules.newt.stateDir
       "Outbound Pangolin tunnel"
     )
@@ -231,6 +236,35 @@ let
     }
   ];
   enabledImmichComposeContainers = optionals modules.immich.enable immichComposeContainers;
+  paperlessComposeContainers = [
+    {
+      name = "paperless_webserver";
+      image = modules.paperless.paperlessImage;
+      ports = [ "${modules.paperless.bindAddress}:${toString modules.paperless.port}:8000/tcp" ];
+    }
+    {
+      name = "paperless_postgres";
+      image = modules.paperless.databaseImage;
+      ports = [ ];
+    }
+    {
+      name = "paperless_broker";
+      image = modules.paperless.valkeyImage;
+      ports = [ ];
+    }
+    {
+      name = "paperless_gotenberg";
+      image = modules.paperless.gotenbergImage;
+      ports = [ ];
+    }
+    {
+      name = "paperless_tika";
+      image = modules.paperless.tikaImage;
+      ports = [ ];
+    }
+  ];
+  enabledPaperlessComposeContainers = optionals modules.paperless.enable paperlessComposeContainers;
+  enabledComposeContainers = enabledImmichComposeContainers ++ enabledPaperlessComposeContainers;
   containerRows =
     mapAttrsToList (name: container: [
       name
@@ -243,13 +277,13 @@ let
       container.image
       (codeList container.ports)
       (codeList [ "Compose private network" ])
-    ]) enabledImmichComposeContainers;
+    ]) enabledComposeContainers;
 
   publishedContainerPorts =
     concatLists (
       mapAttrsToList (_: container: container.ports) config.virtualisation.oci-containers.containers
     )
-    ++ concatLists (map (container: container.ports) enabledImmichComposeContainers);
+    ++ concatLists (map (container: container.ports) enabledComposeContainers);
   nonLoopbackContainerPorts = filter (
     port: !(hasPrefix "127.0.0.1:" port || hasPrefix "[::1]:" port)
   ) publishedContainerPorts;
@@ -260,7 +294,7 @@ let
       ) config.virtualisation.oci-containers.containers
     )
     ++ map (container: container.name) (
-      filter (container: !(hasInfix "@sha256:" container.image)) enabledImmichComposeContainers
+      filter (container: !(hasInfix "@sha256:" container.image)) enabledComposeContainers
     );
 
   fileSystemRows = mapAttrsToList (mountPoint: fileSystem: [
@@ -286,6 +320,7 @@ let
   backupSources = sort builtins.lessThan (unique modules.backup.dirs);
   immichSnapshotPath = "${modules.immich.stateDir}/.zfs/snapshot/${modules.immich.backupSnapshotName}";
   opencloudSnapshotPath = "${modules.opencloud.stateDir}/.zfs/snapshot/${modules.opencloud.backupSnapshotName}";
+  paperlessSnapshotPath = "${modules.paperless.stateDir}/.zfs/snapshot/${modules.paperless.backupSnapshotName}";
   sqliteDatabases = config.services.borgmatic.settings.sqlite_databases or [ ];
   sqliteRows = map (database: [
     database.name
@@ -354,7 +389,22 @@ let
     ) "Immich is not bound to host loopback."
     ++
       optional (modules.immich.enable && modules.immich.allowSetup)
-        "Immich first-administrator setup is enabled; keep the service loopback-only and disable setup immediately after bootstrap.";
+        "Immich first-administrator setup is enabled; keep the service loopback-only and disable setup immediately after bootstrap."
+    ++ optional (
+      modules.paperless.enable
+      && modules.paperless.backUpData
+      && !(lib.elem paperlessSnapshotPath backupSources)
+    ) "Paperless snapshot data is not present in the Borgmatic source list."
+    ++ optional (
+      modules.paperless.enable && !modules.paperless.backUpData
+    ) "Paperless state is not included in Borgmatic backups."
+    ++ optional (
+      modules.paperless.enable
+      && !(lib.elem modules.paperless.bindAddress [
+        "127.0.0.1"
+        "[::1]"
+      ])
+    ) "Paperless is not bound to host loopback.";
 
   revisionLine = if revision == null then "" else "\nFlake revision: `${revision}`.\n";
 
@@ -622,6 +672,32 @@ let
           Immich's off-host backup source is `${immichSnapshotPath}`. Follow the
           repository README for the guarded bootstrap and disposable restore
           rehearsal.
+        ''
+      else
+        ""
+    }
+
+    ${
+      if modules.paperless.enable then
+        ''
+          Inspect Paperless and run its declarative checks:
+
+          ```sh
+          sudo systemctl status paperless-compose.service --no-pager
+          sudo systemctl start paperless-health-check.service
+          sudo systemctl start paperless-schema-check.service
+          sudo paperless-list-users
+          sudo paperless-logical-backup
+          sudo paperless-pre-upgrade-export
+          curl --fail http://${modules.paperless.bindAddress}:${toString modules.paperless.port}/
+          ```
+
+          Paperless's off-host backup source is `${paperlessSnapshotPath}`.
+          Portable exports are written under `${modules.paperless.stateDir}/export/current`
+          and require Paperless ${modules.paperless.version} for import. The scanner
+          listener and public share links remain intentionally disabled. Follow the
+          repository README for the owner-only OIDC bootstrap, Fastmail routing,
+          Pangolin path denials, and isolated restore rehearsal.
         ''
       else
         ""

@@ -93,6 +93,10 @@ let
         (service "nextcloud" "Nextcloud AIO" "collaboration" modules.nextcloud.enable null)
         (service "ollama" "Ollama" "ai" modules.ollama.enable null)
         (service "opencloud" "OpenCloud" "storage" modules.opencloud.enable modules.opencloud.publicUrl)
+        (service "paperless" "Paperless-ngx (PostgreSQL, Valkey, Tika, Gotenberg)" "storage"
+          modules.paperless.enable
+          modules.paperless.publicUrl
+        )
         (service "pangolin" "Pangolin" "edge" modules.pangolin.enable null)
         (service "pelican-panel" "Pelican Panel" "gaming" modules.pelican.panel.enable
           modules.pelican.panel.appUrl
@@ -117,6 +121,7 @@ let
         )
         (connection modules.immich.enable "immich" modules.immich.oidcIssuer "OIDC authentication")
         (connection modules.opencloud.enable "opencloud" modules.opencloud.oidcIssuer "OIDC authentication")
+        (connection modules.paperless.enable "paperless" modules.paperless.oidcIssuer "OIDC authentication")
       ];
     };
 
