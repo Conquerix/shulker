@@ -15,6 +15,7 @@ let
   paperless = wardenConfig.shulker.system.modules.paperless;
   paperlessComposeService = services."paperless-compose";
   paperlessHealthService = services."paperless-health-check";
+  paperlessLogicalBackupService = services."paperless-logical-backup";
   paperlessPullService = services."paperless-image-pull";
   paperlessSchemaService = services."paperless-schema-check";
   paperlessStateService = services."paperless-state";
@@ -150,6 +151,29 @@ in
     assert !(pkgs.lib.hasInfix "set_password(" paperless.bootstrapContractText);
     assert !(pkgs.lib.hasInfix "createsuperuser" paperless.bootstrapContractText);
     pkgs.runCommand "paperless-bootstrap-contract" { } ''
+      touch "$out"
+    '';
+
+  paperless-backup-contract =
+    assert paperless.backUpData;
+    assert builtins.elem "/storage/flash/paperless/.zfs/snapshot/borgmatic"
+      wardenConfig.shulker.system.modules.backup.dirs;
+    assert builtins.hasAttr "paperless-logical-backup" services;
+    assert paperlessLogicalBackupService.serviceConfig.Type == "oneshot";
+    assert pkgs.lib.hasInfix "pg_dump" paperless.logicalBackupScript;
+    assert pkgs.lib.hasInfix "flash_pool/flash/storage/paperless@borgmatic"
+      paperless.backupPrepareScript;
+    assert pkgs.lib.hasInfix "PAPERLESS_BACKUP_TEST_FAIL_AFTER_SNAPSHOT" paperless.backupPrepareScript;
+    assert pkgs.lib.hasInfix "flash_pool/flash/storage/paperless@borgmatic"
+      paperless.backupCleanupScript;
+    assert builtins.elem paperless.stateDir borgmaticService.unitConfig.RequiresMountsFor;
+    assert pkgs.lib.hasInfix "paperless-backup-prepare" (
+      builtins.toJSON wardenConfig.services.borgmatic.settings.commands
+    );
+    assert pkgs.lib.hasInfix "paperless-backup-cleanup" (
+      builtins.toJSON wardenConfig.services.borgmatic.settings.commands
+    );
+    pkgs.runCommand "paperless-backup-contract" { } ''
       touch "$out"
     '';
 

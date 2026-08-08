@@ -204,8 +204,10 @@ let
       pkgs.util-linux
     ];
     text = ''
-      exec 9>${maintenanceLock}
-      flock 9
+      if [ "''${PAPERLESS_MAINTENANCE_LOCK_HELD:-0}" != 1 ]; then
+        exec 9>${maintenanceLock}
+        flock 9
+      fi
 
       if ! systemctl is-active --quiet ${composeServiceName}.service; then
         echo "Paperless Compose service is not active" >&2
