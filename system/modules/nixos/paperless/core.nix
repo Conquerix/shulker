@@ -257,6 +257,8 @@ in
           ${lib.escapeShellArg cfg.stateDir}/data \
           ${lib.escapeShellArg cfg.stateDir}/media \
           ${lib.escapeShellArg cfg.stateDir}/consume \
+          ${lib.escapeShellArg cfg.stateDir}/consume/family \
+          ${lib.escapeShellArg cfg.stateDir}/consume/private \
           ${lib.escapeShellArg cfg.stateDir}/export \
           ${lib.escapeShellArg cfg.stateDir}/dumps
         install -d -m 0700 -o 999 -g 999 \
