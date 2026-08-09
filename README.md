@@ -495,7 +495,13 @@ its 1Password reference before deployment. Compose receives values only in its
 process environment; generated Nix store files, reports, and Wiki pages contain
 placeholders and logical field names only.
 
-### Pocket ID-only login and bootstrap
+The native break-glass administrator password is application-managed and is
+not a seventh `paperlessEnv` key. Store it as a separate concealed field in
+1Password. Use a strong, unique value because this credential remains valid
+for the Django administrator and can obtain a local API token from
+`/api/token/` even though the regular Paperless frontend login is disabled.
+
+### Pocket ID login and break-glass administration
 
 Create these groups in Pocket ID and identically named groups in Paperless:
 
@@ -516,44 +522,77 @@ https://documents.shulker.link/accounts/oidc/pocket-id/login/callback/
 
 Paperless automatically provisions allowed OIDC users, synchronizes the
 `groups` claim on login, disables regular frontend login, and redirects to
-Pocket ID. Never use `createsuperuser` or assign a Paperless password.
+Pocket ID. Normal users and additional OIDC administrators remain passwordless.
+The policy permits exactly one password-capable native break-glass
+administrator. Link that account to Pocket ID for normal use, and do not assign
+a native password to any other Paperless account.
 
 OIDC needs the production callback during initial provisioning. Create the
 Pangolin resource before the first login, but initially protect the entire
-resource with Pangolin authentication and grant access only to the owner. Then:
+resource with Pangolin authentication and grant access only to the owner. On a
+new or restored instance:
 
 ```sh
 sudo paperless-bootstrap-groups
-# Sign in once through Pangolin and Pocket ID before continuing.
+# Create the first native administrator through Paperless's private first-run flow.
+# Link that same account to Pocket ID from My Profile, then verify a fresh OIDC login.
 sudo paperless-list-users
+# Promote only additional passwordless OIDC administrators when needed.
 sudo paperless-promote-oidc-admin USERNAME
 sudo paperless-list-users
 ```
 
-Pass the exact OIDC username reported by `paperless-list-users`. Promotion
-refuses any account with a usable password. Configure the internal application
-through this OIDC administrator, verify permissions and ingestion privately,
-then replace the temporary Pangolin authentication gate with the final policy.
+The break-glass account must report `usable_password=True`, staff and
+superuser authority, and a linked Pocket ID login. Verify recovery at
+`https://documents.shulker.link/admin/login/?next=/`, then return to normal use
+through Pocket ID. Pass the exact OIDC username reported by
+`paperless-list-users` when promoting an additional administrator; promotion
+intentionally refuses any account with a usable password. Configure permissions
+and ingestion privately before replacing the temporary whole-resource gate
+with the final policy.
 
-The final Pangolin rules are ordered as follows:
+The final policy keeps a Pangolin-authenticated /admin recovery surface while
+allowing native clients, OIDC, and administrator-created shares to reach
+Paperless directly. Pangolin matches path patterns segment by segment, so add
+each of these as a separate **Pass to Auth** rule above every bypass rule:
 
-1. deny the exact `/admin` path;
-2. deny every `/admin/*` descendant;
-3. deny the exact `/share` path;
-4. deny every `/share/*` descendant;
-5. forward every other path to `http://127.0.0.1:23238` without Pangolin
-   authentication.
+```text
+/admin
+/admin/*
+/admin/*/*
+/admin/*/*/*
+/admin/*/*/*/*
+/admin/*/*/*/*/*
+```
 
-Paperless itself remains the authentication layer for web, API, media, static,
-and OIDC callback traffic. Do not add a second login gate after bootstrap,
-because mobile/API clients and the OIDC redirect flow need direct application
-access. Public share links remain disabled in practice and in permissions;
-enabling them later requires reviewing both Paperless permissions and the two
-Pangolin share-path denials.
+The first four wildcard depths cover the current Paperless 3.0.5 Django
+administrator routes, including `/admin/auth/user/<id>/change/`; the fifth is an
+explicit safety margin. A deeper route would fall through, so inspect the
+administrator URLs on every upgrade and add another Pass to Auth depth before
+deployment if needed. In a signed-out session, probe the exact path and every
+configured descendant depth and require the Pangolin challenge before any
+Paperless response.
 
-To remove an administrator, first revoke active Paperless authority and disable
-the internal account so OIDC group synchronization cannot restore the admin
-group during the external identity change:
+Next add **Bypass Auth** rules for `/share` and `/share/*`, then a final general
+Bypass Auth rule forwarding every other path to `http://127.0.0.1:23238`.
+Paperless 3.0.5 share URLs contain one slug segment; recheck this route shape on
+upgrade. Paperless remains the authentication layer for web, API, media,
+static, and OIDC callback traffic; only `/admin` receives the additional
+Pangolin gate.
+
+This leaves an administrator-only public /share bearer-link surface. Ordinary
+groups retain no share-link permissions. Give each link the shortest practical
+expiry, share it as a secret, and revoke it when no longer needed. Anyone
+holding a live URL can access its document without Pocket ID or Pangolin
+authentication.
+
+The following removal procedure is for an additional passwordless OIDC
+administrator. Never run it against the sole native break-glass administrator.
+To replace that recovery account, first create, link, and successfully test a
+new native break-glass administrator from outside the current session. Then
+revoke active Paperless authority and disable the old account so OIDC group
+synchronization cannot restore its administrator group during the external
+identity change:
 
 ```sh
 sudo paperless-revoke-admin --disable-user USERNAME
@@ -566,7 +605,9 @@ The command terminates that user's sessions, revokes API tokens, removes the
 administrator group, clears staff/superuser flags, and disables the account.
 `paperless-enable-user` refuses password-capable users and any account that
 still has local administrator authority. Run it only after the Pocket ID change
-has completed; omit it when all Paperless access should remain revoked.
+has completed; omit it when all Paperless access should remain revoked. A
+disabled password-capable recovery account is deliberately not re-enabled by
+this helper.
 
 ### Permissions and intake
 
@@ -611,12 +652,14 @@ sudo paperless-bootstrap-fastmail \
 sudo rm -f /run/paperless-fastmail-routes.json
 ```
 
-The idempotent command upserts only `Fastmail Paperless` and rules prefixed
-`Shulker route - `. It accepts attachments, applies the global
-`Source: Fastmail` tag, assigns the route owner, moves successfully processed
-mail to `Paperless/Processed`, and removes only obsolete rules carrying its own
-prefix. Failed processing remains visible in Paperless task history and the
-source mailbox.
+Use an additional passwordless OIDC administrator for `--admin-username`, not
+the native break-glass account; the helper intentionally refuses any
+password-capable administrator or route owner. The idempotent command upserts
+only `Fastmail Paperless` and rules prefixed `Shulker route - `. It accepts
+attachments, applies the global `Source: Fastmail` tag, assigns the route
+owner, moves successfully processed mail to `Paperless/Processed`, and removes
+only obsolete rules carrying its own prefix. Failed processing remains visible
+in Paperless task history and the source mailbox.
 
 The consume tree reserves `family` and `private` routes for a future scanner
 adapter, but no SMB, SFTP, FTP, WebDAV, or scanner listener is enabled. Once a
@@ -660,13 +703,23 @@ and prove full-text search. Repeat with DOCX, XLSX, PPTX, and ODT and prove both
 rendering and original download. With two normal accounts, prove private
 non-discovery and shared-family editing. Prove every Fastmail route's ownership,
 permissions, processed-folder move, and retry behavior. Finally, verify normal
-OIDC/API access alongside public denial of regular login, `/admin`, and
-`/share`.
+OIDC/API and native-client access without a Pangolin prompt. Verify that regular
+frontend password login remains unavailable, `/admin` first requires Pangolin
+authentication and then accepts the break-glass credential, and each configured
+admin-path depth receives the same gate. As an ordinary document owner, prove
+that share-link creation and deletion are denied. Then, as an administrator,
+create a short-lived non-sensitive share, open its public /share URL in a
+signed-out browser, revoke it, and prove that the URL stops working.
 
 Configure mobile or compatible API clients with
-`https://documents.shulker.link`. API tokens are created only from an already
-authenticated OIDC profile and are revoked by the administrator-removal
-procedure.
+`https://documents.shulker.link`. Generate routine API tokens from an already
+authenticated OIDC profile and give clients the token, never the break-glass
+username and password. The bypassed `/api/token/` endpoint still accepts local
+credentials, so the break-glass password is effectively a full API
+administrator credential as well as a Django recovery credential. If it is
+exposed, revoke that account's tokens and rotate the password immediately. The
+administrator-removal procedure revokes tokens belonging to the additional
+administrator it disables.
 
 ### Backups, recovery, and upgrades
 
@@ -716,7 +769,8 @@ Updates are reviewed, not automatically deployed. Compare the upstream release
 and migration notes, run the portable exporter and Borg checks, update the five
 compatible image tags/digests, build the generated Compose and Warden system,
 then repeat OIDC, permission, OCR, Office, mail, health, and backup acceptance.
-Scanner networking and public share links remain explicitly deferred decisions.
+Repeat break-glass administrator recovery and public-share create, access,
+expiry, and revocation tests. Scanner networking remains explicitly deferred.
 
 ## Development and validation
 

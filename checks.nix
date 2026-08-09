@@ -224,10 +224,38 @@ in
 
   paperless-docs-contract = pkgs.runCommand "paperless-docs-contract" { } ''
     combined="$TMPDIR/paperless-generated-docs"
+    readme=${./README.md}
+    paperless_readme="$TMPDIR/paperless-readme"
+    paperless_readme_text="$TMPDIR/paperless-readme-text"
+    paperless_service_row="$TMPDIR/paperless-service-row"
+    paperless_operations="$TMPDIR/paperless-operations"
+    paperless_operations_text="$TMPDIR/paperless-operations-text"
     mkdir -p "$combined"
     cp -R ${wardenServerDocs}/. "$combined/warden"
     cp -R ${infrastructureData}/. "$combined/infrastructure"
     cp -R ${wikiDocs}/. "$combined/wiki"
+
+    warden_report="$combined/warden/warden.md"
+    test -f "$warden_report"
+
+    awk '
+      $0 == "## Paperless family documents" { in_section = 1 }
+      $0 == "## Development and validation" { in_section = 0 }
+      in_section { print }
+    ' "$readme" > "$paperless_readme"
+    test -s "$paperless_readme"
+    tr '\n' ' ' < "$paperless_readme" > "$paperless_readme_text"
+
+    grep -F -- '| Paperless-ngx |' "$warden_report" > "$paperless_service_row"
+    test "$(wc -l < "$paperless_service_row")" -eq 1
+
+    awk '
+      $0 == "Inspect Paperless and run its declarative checks:" { in_section = 1 }
+      $0 == "Roll back the active system profile:" { in_section = 0 }
+      in_section { print }
+    ' "$warden_report" > "$paperless_operations"
+    test -s "$paperless_operations"
+    tr '\n' ' ' < "$paperless_operations" > "$paperless_operations_text"
 
     for expected in \
       'Paperless-ngx' \
@@ -239,6 +267,40 @@ in
       'paperless-pre-upgrade-export'
     do
       grep -R -F -- "$expected" "$combined" >/dev/null
+    done
+
+    for expected_policy in \
+      'exactly one password-capable native break-glass administrator' \
+      'Pangolin-authenticated /admin' \
+      'administrator-only public /share'
+    do
+      if ! grep -F -- "$expected_policy" "$paperless_readme_text" >/dev/null; then
+        echo "README is missing Paperless access policy: $expected_policy" >&2
+        exit 1
+      fi
+      if ! grep -F -- "$expected_policy" "$paperless_service_row" >/dev/null; then
+        echo "Generated Warden service summary is missing Paperless access policy: $expected_policy" >&2
+        exit 1
+      fi
+      if ! grep -F -- "$expected_policy" "$paperless_operations_text" >/dev/null; then
+        echo "Generated Warden operations are missing Paperless access policy: $expected_policy" >&2
+        exit 1
+      fi
+    done
+
+    for obsolete_policy in \
+      'Pocket ID-only login' \
+      'public share links disabled' \
+      'public share links remain intentionally disabled' \
+      'Pangolin path denials'
+    do
+      if grep -F -- "$obsolete_policy" \
+        "$paperless_readme_text" "$paperless_service_row" \
+        "$paperless_operations_text" >/dev/null
+      then
+        echo "Paperless documentation contains obsolete access policy: $obsolete_policy" >&2
+        exit 1
+      fi
     done
 
     if grep -R -E \

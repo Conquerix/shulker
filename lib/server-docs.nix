@@ -127,7 +127,7 @@ let
     (service "Paperless-ngx" modules.paperless.enable
       "${modules.paperless.publicUrl} via ${modules.paperless.bindAddress}:${toString modules.paperless.port}"
       "${modules.paperless.stateDir} (${modules.paperless.dataset})"
-      "Version ${modules.paperless.version}; quota ${bytesAsGiB modules.paperless.datasetQuotaBytes}; OCR ${modules.paperless.ocrLanguage}; French search stemming; Office conversion with Tika and Gotenberg; Pocket ID-only login; ${toString modules.paperless.trashDelayDays}-day trash; snapshot backup ${enabledDisabled modules.paperless.backUpData}; scanner listener and public share links disabled"
+      "Version ${modules.paperless.version}; quota ${bytesAsGiB modules.paperless.datasetQuotaBytes}; OCR ${modules.paperless.ocrLanguage}; French search stemming; Office conversion with Tika and Gotenberg; Pocket ID for normal login; exactly one password-capable native break-glass administrator; Pangolin-authenticated /admin; administrator-only public /share bearer links; ${toString modules.paperless.trashDelayDays}-day trash; snapshot backup ${enabledDisabled modules.paperless.backUpData}; scanner listener disabled"
     )
     (service "Newt" modules.newt.enable modules.newt.endpoint modules.newt.stateDir
       "Outbound Pangolin tunnel"
@@ -694,10 +694,13 @@ let
 
           Paperless's off-host backup source is `${paperlessSnapshotPath}`.
           Portable exports are written under `${modules.paperless.stateDir}/export/current`
-          and require Paperless ${modules.paperless.version} for import. The scanner
-          listener and public share links remain intentionally disabled. Follow the
-          repository README for the owner-only OIDC bootstrap, Fastmail routing,
-          Pangolin path denials, and isolated restore rehearsal.
+          and require Paperless ${modules.paperless.version} for import. Normal login
+          uses Pocket ID; exactly one password-capable native break-glass
+          administrator is retained; Pangolin-authenticated /admin protects
+          recovery; and administrator-only public /share bearer links are enabled.
+          The scanner listener remains intentionally disabled. Follow the repository
+          README for bootstrap, Fastmail routing, path-rule ordering, and isolated
+          restore rehearsal.
         ''
       else
         ""
