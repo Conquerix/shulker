@@ -199,9 +199,10 @@ let
         state_dir=${lib.escapeShellArg cfg.stateDir}
         lock_file=/run/lock/seafile-maintenance.lock
         lock_timeout=1800
+        container_project=seafile
 
         usage() {
-          echo "usage: seafile-render-runtime-config [--source PATH --host-dir PATH --app-dir PATH --metadata-dir PATH --state-dir PATH --lock-file PATH --lock-timeout SECONDS]" >&2
+          echo "usage: seafile-render-runtime-config [--source PATH --host-dir PATH --app-dir PATH --metadata-dir PATH --state-dir PATH --lock-file PATH --lock-timeout SECONDS --container-project NAME]" >&2
           exit 64
         }
 
@@ -214,6 +215,7 @@ let
             --state-dir) state_dir="$2"; shift 2 ;;
             --lock-file) lock_file="$2"; shift 2 ;;
             --lock-timeout) lock_timeout="$2"; shift 2 ;;
+            --container-project) container_project="$2"; shift 2 ;;
             *) usage ;;
           esac
         done
@@ -225,6 +227,8 @@ let
 
         [ -d "$state_dir" ] && [ ! -L "$state_dir" ] \
           || fail_render "state directory is unavailable"
+        [[ "$container_project" =~ ^[a-z0-9][a-z0-9_.-]*$ ]] \
+          || fail_render "container project is malformed"
         install -d -m 0755 "$(dirname "$lock_file")"
 
         inherited_fd="''${SEAFILE_MAINTENANCE_LOCK_FD:-}"
@@ -245,7 +249,7 @@ let
 
         docker_command="''${SEAFILE_DOCKER_COMMAND:-docker}"
         set +e
-        live_containers="$($docker_command ps --quiet --filter label=com.docker.compose.project=seafile 2>/dev/null)"
+        live_containers="$($docker_command ps --quiet --filter "label=com.docker.compose.project=$container_project" 2>/dev/null)"
         docker_status=$?
         set -e
         [ "$docker_status" -eq 0 ] || fail_render "owned-container state could not be verified"

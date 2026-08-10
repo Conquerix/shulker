@@ -14,6 +14,7 @@
   metadata,
   publishApplicationPorts ? true,
   enableExternalEgress ? true,
+  serviceLabels ? { },
   seafileExtraVolumes ? [ ],
   onlyOfficeExtraVolumes ? [ ],
 }:
@@ -108,6 +109,7 @@ let
         container_name = containerNames.database;
         image = images.database;
         restart = "no";
+        labels = serviceLabels;
         networks = privateNetwork;
         environment = databaseEnvironment;
         volumes = [ "${stateDir}/database:/var/lib/mysql" ];
@@ -129,6 +131,7 @@ let
         container_name = containerNames.redis;
         image = images.redis;
         restart = "no";
+        labels = serviceLabels;
         networks = privateNetwork;
         environment.REDIS_PASSWORD = required "REDIS_PASSWORD";
         entrypoint = [ "/usr/local/sbin/seafile-start-redis" ];
@@ -157,6 +160,7 @@ let
         container_name = containerNames.seafile;
         image = images.seafile;
         restart = "no";
+        labels = serviceLabels;
         networks = applicationNetworks;
         ports =
           if publishApplicationPorts then [ "${bindAddress}:${toString ports.seafile}:80/tcp" ] else [ ];
@@ -185,6 +189,7 @@ let
         container_name = containerNames.seasearch;
         image = images.seasearch;
         restart = "no";
+        labels = serviceLabels;
         networks = privateNetwork;
         environment = {
           SS_MAX_OBJ_CACHE_SIZE = "10GB";
@@ -207,6 +212,7 @@ let
         container_name = containerNames.notification;
         image = images.notification;
         restart = "no";
+        labels = serviceLabels;
         networks = privateNetwork;
         ports =
           if publishApplicationPorts then
@@ -243,6 +249,7 @@ let
         container_name = containerNames.metadata;
         image = images.metadata;
         restart = "no";
+        labels = serviceLabels;
         networks = privateNetwork;
         environment = {
           JWT_PRIVATE_KEY = required "JWT_PRIVATE_KEY";
@@ -285,6 +292,7 @@ let
         container_name = containerNames.onlyoffice;
         image = images.onlyoffice;
         restart = "no";
+        labels = serviceLabels;
         networks = applicationNetworks;
         ports =
           if publishApplicationPorts then [ "${bindAddress}:${toString ports.onlyoffice}:80/tcp" ] else [ ];

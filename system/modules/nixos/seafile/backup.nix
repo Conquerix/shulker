@@ -12,6 +12,90 @@ let
   validatorStateDir = "${cfg.stateDir}/control/backup-validator";
   snapshotPath = "${cfg.stateDir}/.zfs/snapshot/${cfg.backupSnapshotName}";
   restoreProxyImage = "docker.io/library/nginx:alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752";
+  restoreIdentifyNativeAdminScript = ''
+    from seaserv import ccnet_api
+    from seahub.auth.models import SocialAuthUser
+
+    active_users = [user for user in ccnet_api.get_emailusers("DB", -1, -1) if user.is_active]
+    oauth_usernames = set(
+        SocialAuthUser.objects.filter(provider="pocket-id").values_list("username", flat=True)
+    )
+    oauth_users = [user for user in active_users if user.email in oauth_usernames]
+    native_admins = [
+        user
+        for user in active_users
+        if user.email not in oauth_usernames and user.password != "!" and user.is_staff
+    ]
+    recognized = len(oauth_users) + len(native_admins)
+    valid = (
+        len(active_users) == ${toString cfg.licenseUserLimit}
+        and len(oauth_users) == 2
+        and all(user.password == "!" for user in oauth_users)
+        and len(native_admins) == 1
+        and native_admins[0].email != "restore-admin@restore.invalid"
+        and recognized == len(active_users)
+    )
+    if not valid:
+        raise RuntimeError("Restored identity boundary is not safe for native recovery")
+    print(native_admins[0].email)
+  '';
+  restoreIdentifyNativeAdmin = pkgs.writeText "seafile-restore-identify-native-admin.py" restoreIdentifyNativeAdminScript;
+  restoreVerifyNativeAdminScript = ''
+    import os
+
+    from seaserv import ccnet_api
+    from seahub.auth.models import SocialAuthUser
+    from seahub.base.accounts import User
+
+    native_email = os.environ["RESTORE_NATIVE_EMAIL"]
+    active_users = [user for user in ccnet_api.get_emailusers("DB", -1, -1) if user.is_active]
+    oauth_usernames = set(
+        SocialAuthUser.objects.filter(provider="pocket-id").values_list("username", flat=True)
+    )
+    oauth_users = [user for user in active_users if user.email in oauth_usernames]
+    native_admins = [
+        user
+        for user in active_users
+        if user.email not in oauth_usernames and user.password != "!" and user.is_staff
+    ]
+    recognized = len(oauth_users) + len(native_admins)
+    valid = (
+        len(active_users) == ${toString cfg.licenseUserLimit}
+        and len(oauth_users) == 2
+        and all(user.password == "!" for user in oauth_users)
+        and len(native_admins) == 1
+        and native_admins[0].email != "restore-admin@restore.invalid"
+        and recognized == len(active_users)
+    )
+    if not valid:
+        raise RuntimeError("Native recovery changed the restored identity boundary")
+    if native_admins[0].email != native_email:
+        raise RuntimeError("Native recovery targeted an unexpected restored identity")
+    user = User.objects.get(email=native_email)
+    if not user.check_password(os.environ["RESTORE_PASSWORD"]):
+        raise RuntimeError("Native restore-only credential verification failed")
+  '';
+  restoreVerifyNativeAdmin = pkgs.writeText "seafile-restore-verify-native-admin.py" restoreVerifyNativeAdminScript;
+  restoreResetNativeAdminScript = ''
+    import os
+
+    from seahub.auth.models import SocialAuthUser
+    from seahub.base.accounts import User
+
+    native_email = os.environ["RESTORE_NATIVE_EMAIL"]
+    user = User.objects.get(email=native_email)
+    if not user.is_active or not user.is_staff or user.enc_password == "!":
+        raise RuntimeError("Refusing to reset a non-native restored administrator")
+    if SocialAuthUser.objects.filter(username=user.username, provider="pocket-id").exists():
+        raise RuntimeError("Refusing to reset an OAuth-linked restored administrator")
+    user.set_password(os.environ["RESTORE_PASSWORD"])
+    if user.save() != 0:
+        raise RuntimeError("Seafile refused the restore-only password update")
+    refreshed = User.objects.get(email=native_email)
+    if not refreshed.check_password(os.environ["RESTORE_PASSWORD"]):
+        raise RuntimeError("Restore-only password update did not persist")
+  '';
+  restoreResetNativeAdmin = pkgs.writeText "seafile-restore-reset-native-admin.py" restoreResetNativeAdminScript;
   composeFactory = import ../../../../lib/seafile-compose.nix { inherit pkgs; };
   restoreBase = composeFactory {
     projectName = "seafile-restore";
@@ -53,6 +137,11 @@ let
       cacheSize = cfg.metadataCacheSize;
       checkUpdateInterval = cfg.metadataCheckUpdateInterval;
     };
+    enableExternalEgress = false;
+    serviceLabels = {
+      "shulker.seafile.restore-invocation" =
+        "\${SEAFILE_RESTORE_INVOCATION:?SEAFILE_RESTORE_INVOCATION is required}";
+    };
     publishApplicationPorts = false;
     seafileExtraVolumes = [
       "\${SEAFILE_RESTORE_RUNTIME:?}/ca/ca.crt:/usr/local/share/ca-certificates/seafile-restore-ca.crt:ro"
@@ -66,6 +155,10 @@ let
       container_name = "seafile-restore-proxy";
       image = restoreProxyImage;
       restart = "no";
+      labels = {
+        "shulker.seafile.restore-invocation" =
+          "\${SEAFILE_RESTORE_INVOCATION:?SEAFILE_RESTORE_INVOCATION is required}";
+      };
       environment = {
         RESTORE_FILES_URL = "https://files.restore.invalid:24239";
         RESTORE_ONLYOFFICE_URL = "https://office.restore.invalid:24240";
@@ -101,6 +194,7 @@ let
   restoreComposeFile =
     (pkgs.formats.yaml { }).generate "seafile-restore-compose.yml"
       restoreComposeConfig;
+  restoreBootstrapComposeFile = restoreBase.bootstrapComposeFile;
 
   commonScript = ''
     systemctl_command="''${SEAFILE_SYSTEMCTL_COMMAND:-systemctl}"
@@ -200,14 +294,11 @@ let
       || fail_backup "MariaDB is not running for logical dumps"
     [ -f "$environment_file" ] && [ ! -L "$environment_file" ] \
       || fail_backup "protected runtime environment is unavailable"
-    set -a
-    # Generated by the strict allow-listed Seafile parser; values contain no shell syntax.
-    # shellcheck disable=SC1090
-    . "$environment_file"
-    set +a
-    MYSQL_PWD="''${SEAFILE_MYSQL_DB_PASSWORD:?}"
+    password_count="$(grep -c '^SEAFILE_MYSQL_DB_PASSWORD=' "$environment_file" || true)"
+    [ "$password_count" -eq 1 ] || fail_backup "runtime database credential is unavailable"
+    MYSQL_PWD="$(sed -n 's/^SEAFILE_MYSQL_DB_PASSWORD=//p' "$environment_file")"
+    [ -n "$MYSQL_PWD" ] || fail_backup "runtime database credential is empty"
     export MYSQL_PWD
-    unset SEAFILE_MYSQL_DB_PASSWORD INIT_SEAFILE_ADMIN_PASSWORD INIT_SEAFILE_MYSQL_ROOT_PASSWORD
 
     backups_dir="$state_dir/backups"
     temporary="$backups_dir/.seafile-dump-$invocation"
@@ -375,6 +466,12 @@ let
     logical_command="''${SEAFILE_LOGICAL_BACKUP_COMMAND:-seafile-logical-backup}"
     validate_logical_command="''${SEAFILE_VALIDATE_LOGICAL_BACKUP_COMMAND:-seafile-validate-logical-backup}"
     validate_state_command="''${SEAFILE_VALIDATE_STATE_COMMAND:-${lib.getExe cfg.validateStatePackage}}"
+    compose_file="''${SEAFILE_COMPOSE_FILE:-${cfg.composeFile}}"
+    compose_environment="''${SEAFILE_COMPOSE_ENVIRONMENT:-/run/seafile-host/environment}"
+    compose_established() {
+      "$docker_command" compose --project-name seafile --file "$compose_file" \
+        --env-file "$compose_environment" "$@"
+    }
     "$install_command" -d -m 0700 -o 0 -g 0 "$runtime_dir"
     exec 9>"$lock_file"
     flock 9
@@ -399,15 +496,50 @@ let
     done
     onlyoffice_original=1
 
-    restart_owned() {
-      local container seen=0
-      for container in "''${stopped[@]}"; do
-        "$docker_command" start "$container" >/dev/null 2>&1 || true
-        [ "$container" = seafile-onlyoffice ] && seen=1
+    stop_gracefully() {
+      local container="$1"
+      "$docker_command" kill --signal TERM "$container" >/dev/null
+      stopped+=("$container")
+      [ "''${SEAFILE_TEST_NO_SLEEP:-0}" != 1 ] || return 0
+      for _ in $(seq 1 120); do
+        [ "$("$docker_command" inspect --format '{{.State.Running}}' "$container" 2>/dev/null)" = false ] \
+          && return 0
+        sleep 1
       done
-      if [ "$onlyoffice_prepare_attempted" -eq 1 ] && [ "$onlyoffice_original" -eq 1 ] && [ "$seen" -eq 0 ]; then
-        "$docker_command" start seafile-onlyoffice >/dev/null 2>&1 || true
+      fail_backup "$container did not stop after TERM; refusing SIGKILL"
+    }
+
+    was_stopped() {
+      local expected="$1" container
+      for container in "''${stopped[@]}"; do
+        [ "$container" = "$expected" ] && return 0
+      done
+      return 1
+    }
+
+    restart_owned() {
+      local mapping container service
+      if [ "$onlyoffice_prepare_attempted" -eq 1 ] && [ "$onlyoffice_original" -eq 1 ] \
+        && ! was_stopped seafile-onlyoffice; then
+        stop_gracefully seafile-onlyoffice || return $?
       fi
+      for mapping in \
+        seafile-mariadb:database \
+        seafile-redis:redis \
+        seafile:seafile \
+        seafile-seasearch:seasearch \
+        seafile-notification:notification \
+        seafile-metadata:metadata \
+        seafile-onlyoffice:onlyoffice
+      do
+        container="''${mapping%%:*}"
+        service="''${mapping#*:}"
+        if was_stopped "$container"; then
+          compose_established up --detach --no-deps --no-recreate --wait --wait-timeout 1800 "$service" \
+            || return $?
+        fi
+      done
+      stopped=()
     }
 
     destroy_current_snapshot() {
@@ -430,8 +562,10 @@ let
     recover_prepare() {
       status=$?
       trap - EXIT
-      restart_owned
+      restart_status=0
+      restart_owned || restart_status=$?
       [ "$status" -eq 0 ] || destroy_current_snapshot
+      if [ "$status" -eq 0 ] && [ "$restart_status" -ne 0 ]; then status="$restart_status"; fi
       exit "$status"
     }
     trap recover_prepare EXIT
@@ -439,17 +573,6 @@ let
 
     onlyoffice_prepare_attempted=1
     "$timeout_command" 330 "$docker_command" exec seafile-onlyoffice documentserver-prepare4shutdown.sh
-    stop_gracefully() {
-      local container="$1"
-      "$docker_command" kill --signal TERM "$container" >/dev/null
-      stopped+=("$container")
-      [ "''${SEAFILE_TEST_NO_SLEEP:-0}" != 1 ] || return 0
-      for _ in $(seq 1 120); do
-        [ "$("$docker_command" inspect --format '{{.State.Running}}' "$container" 2>/dev/null)" = false ] && return 0
-        sleep 1
-      done
-      fail_backup "$container did not stop after TERM; refusing SIGKILL"
-    }
     for container in seafile-onlyoffice seafile-notification seafile-metadata seafile-seasearch seafile seafile-redis; do
       stop_gracefully "$container"
     done
@@ -532,175 +655,481 @@ let
   restoreCommonScript = ''
     docker_command="''${SEAFILE_DOCKER_COMMAND:-docker}"
     systemctl_command="''${SEAFILE_SYSTEMCTL_COMMAND:-systemctl}"
-    production_state="${cfg.stateDir}"
+    curl_command="''${SEAFILE_CURL_COMMAND:-curl}"
+    timeout_command="''${SEAFILE_TIMEOUT_COMMAND:-timeout}"
+    findmnt_command="''${SEAFILE_FINDMNT_COMMAND:-findmnt}"
+    free_command="''${SEAFILE_FREE_COMMAND:-free}"
+    df_command="''${SEAFILE_DF_COMMAND:-df}"
+    zfs_command="''${SEAFILE_ZFS_COMMAND:-zfs}"
+    render_command="''${SEAFILE_RENDER_RUNTIME_CONFIG_COMMAND:-${lib.getExe cfg.renderRuntimeConfigPackage}}"
+    production_state="''${SEAFILE_STATE_DIR:-${cfg.stateDir}}"
     restore_project=seafile-restore
     restore_network=seafile-restore-net
     restore_compose=${lib.escapeShellArg restoreComposeFile}
+    restore_bootstrap_compose=${lib.escapeShellArg restoreBootstrapComposeFile}
+    restore_invocation=
     install_command="''${SEAFILE_INSTALL_COMMAND:-install}"
     fail_restore() { echo "Seafile restore rehearsal failed: $1" >&2; exit 69; }
-    restore_field() { grep -m1 "^$2=" "$1" | sed "s/^$2=//"; }
-    : "$docker_command" "$systemctl_command" "$install_command" "$production_state" "$restore_project" "$restore_network" "$restore_compose"
+    path_present() { [ -e "$1" ] || [ -L "$1" ]; }
+    restore_field() {
+      local file="$1" key="$2" count value
+      [ -f "$file" ] && [ ! -L "$file" ] || return 1
+      count="$(grep -c "^$key=" "$file" || true)"
+      [ "$count" -eq 1 ] || return 1
+      value="$(sed -n "s/^$key=//p" "$file")"
+      [ -n "$value" ] || return 1
+      printf '%s\n' "$value"
+    }
+    require_safe_empty_directory() {
+      local directory="$1" purpose="$2"
+      [ -d "$directory" ] && [ ! -L "$directory" ] \
+        || fail_restore "$purpose must be an existing dedicated directory"
+      [ "$(stat --format '%a' "$directory")" = 700 ] \
+        || fail_restore "$purpose must have mode 0700"
+      if [ "''${SEAFILE_TEST_SKIP_OWNERSHIP:-0}" != 1 ]; then
+        [ "$(stat --format '%u:%g' "$directory")" = 0:0 ] \
+          || fail_restore "$purpose must be owned by root"
+      fi
+      [ -z "$(find "$directory" -mindepth 1 -maxdepth 1 -print -quit)" ] \
+        || fail_restore "$purpose is not empty"
+    }
+    compose_restore() {
+      SEAFILE_RESTORE_TARGET="$target" SEAFILE_RESTORE_RUNTIME="$runtime" \
+        SEAFILE_RESTORE_INVOCATION="''${restore_invocation:?restore invocation is unavailable}" \
+        "$docker_command" compose --project-name "$restore_project" \
+        --file "$restore_compose" --env-file "$runtime/compose.environment" "$@"
+    }
+    compose_restore_bootstrap() {
+      SEAFILE_RESTORE_TARGET="$target" SEAFILE_RESTORE_RUNTIME="$runtime" \
+        SEAFILE_RESTORE_INVOCATION="''${restore_invocation:?restore invocation is unavailable}" \
+        "$docker_command" compose --project-name "$restore_project" \
+        --file "$restore_compose" --file "$restore_bootstrap_compose" \
+        --env-file "$runtime/source.environment" "$@"
+    }
+    : "$docker_command" "$systemctl_command" "$curl_command" "$timeout_command" "$findmnt_command" \
+      "$free_command" "$df_command" "$zfs_command" "$render_command" \
+      "$install_command" "$production_state" "$restore_project" "$restore_network" \
+      "$restore_compose" "$restore_bootstrap_compose"
   '';
 
   restorePrepareScript = ''
-        ${restoreCommonScript}
-        target=
-        runtime=
-        while [ "$#" -gt 0 ]; do
-          case "$1" in
-            --target) target="$2"; shift 2 ;;
-            --runtime-dir) runtime="$2"; shift 2 ;;
-            *) fail_restore "unexpected restore-prepare argument" ;;
-          esac
+    ${restoreCommonScript}
+    target=
+    runtime=
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --target) target="$2"; shift 2 ;;
+        --runtime-dir) runtime="$2"; shift 2 ;;
+        *) fail_restore "unexpected restore-prepare argument" ;;
+      esac
+    done
+    [ -n "$target" ] && [ -n "$runtime" ] || fail_restore "target and runtime directory are required"
+    [[ "$target" =~ ^/[A-Za-z0-9._/-]+$ ]] && [[ "$runtime" =~ ^/[A-Za-z0-9._/-]+$ ]] \
+      || fail_restore "restore paths contain unsupported characters"
+    canonical_production="$(realpath -e -- "$production_state")" \
+      || fail_restore "production state cannot be canonicalized"
+    canonical_target="$(realpath -e -- "$target")" \
+      || fail_restore "restore target cannot be canonicalized"
+    [ "$canonical_target" = "$target" ] \
+      || fail_restore "restore target must be canonical and contain no symlinked parent"
+    case "$canonical_target" in
+      /|"$canonical_production"|"$canonical_production"/*|/run/*) fail_restore "production or unsafe target is forbidden" ;;
+      /*) ;;
+      *) fail_restore "restore target must be absolute" ;;
+    esac
+    [ "$(stat --format '%d:%i' "$canonical_target")" != "$(stat --format '%d:%i' "$canonical_production")" ] \
+      || fail_restore "restore target aliases production state"
+    production_source="$($findmnt_command --noheadings --output SOURCE --target "$canonical_production")" \
+      || fail_restore "production mount source cannot be verified"
+    target_source="$($findmnt_command --noheadings --output SOURCE --target "$canonical_target")" \
+      || fail_restore "restore target mount source cannot be verified"
+    production_source="''${production_source%%\[*}"
+    target_source="''${target_source%%\[*}"
+    [ -n "$production_source" ] && [ -n "$target_source" ] && [ "$target_source" != "$production_source" ] \
+      || fail_restore "restore target shares the production mount source"
+    case "$runtime" in
+      /|/etc|/etc/*|/run/seafile|/run/seafile-host|/run/seafile-app|/run/seafile-metadata|"$target"|"$target"/*)
+        fail_restore "runtime collision"
+        ;;
+      /*) ;;
+      *) fail_restore "restore runtime must be absolute" ;;
+    esac
+    require_safe_empty_directory "$target" "restore target"
+    if path_present "$runtime"; then
+      canonical_runtime="$(realpath -e -- "$runtime")" \
+        || fail_restore "restore runtime cannot be canonicalized"
+      [ "$canonical_runtime" = "$runtime" ] \
+        || fail_restore "restore runtime must be canonical and contain no symlinked parent"
+      case "$canonical_runtime" in
+        "$canonical_production"|"$canonical_production"/*|"$canonical_target"|"$canonical_target"/*)
+          fail_restore "restore runtime aliases protected state"
+          ;;
+      esac
+      [ "$(stat --format '%d:%i' "$canonical_runtime")" != "$(stat --format '%d:%i' "$canonical_production")" ] \
+        || fail_restore "restore runtime aliases production state"
+      runtime_source="$($findmnt_command --noheadings --output SOURCE --target "$canonical_runtime")" \
+        || fail_restore "restore runtime mount source cannot be verified"
+      runtime_source="''${runtime_source%%\[*}"
+      [ -n "$runtime_source" ] && [ "$runtime_source" != "$production_source" ] \
+        || fail_restore "restore runtime shares the production mount source"
+      require_safe_empty_directory "$runtime" "restore runtime"
+      runtime_created=0
+    else
+      runtime_parent="''${runtime%/*}"
+      canonical_runtime_parent="$(realpath -e -- "$runtime_parent")" \
+        || fail_restore "restore runtime parent cannot be canonicalized"
+      [ "$canonical_runtime_parent" = "$runtime_parent" ] \
+        || fail_restore "restore runtime parent must be canonical and not symlinked"
+      case "$canonical_runtime_parent" in
+        "$canonical_production"|"$canonical_production"/*|"$canonical_target"|"$canonical_target"/*)
+          fail_restore "restore runtime parent aliases protected state"
+          ;;
+      esac
+      [ "$(stat --format '%d:%i' "$canonical_runtime_parent")" != "$(stat --format '%d:%i' "$canonical_production")" ] \
+        || fail_restore "restore runtime parent aliases production state"
+      runtime_parent_source="$($findmnt_command --noheadings --output SOURCE --target "$canonical_runtime_parent")" \
+        || fail_restore "restore runtime parent mount source cannot be verified"
+      runtime_parent_source="''${runtime_parent_source%%\[*}"
+      [ -n "$runtime_parent_source" ] && [ "$runtime_parent_source" != "$production_source" ] \
+        || fail_restore "restore runtime parent shares the production mount source"
+      [ -d "$runtime_parent" ] && [ ! -L "$runtime_parent" ] \
+        || fail_restore "restore runtime parent is unsafe"
+      if [ "''${SEAFILE_TEST_SKIP_OWNERSHIP:-0}" != 1 ]; then
+        [ "$(stat --format '%u' "$runtime_parent")" = 0 ] \
+          || fail_restore "restore runtime parent is not root-owned"
+      fi
+      "$install_command" -d -m 0700 -o 0 -g 0 "$runtime"
+      runtime_created=1
+    fi
+    session="$runtime/rehearsal-session"
+    invocation="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+    [[ "$invocation" =~ ^[a-f0-9-]+$ ]] || fail_restore "invalid invocation"
+    restore_invocation="$invocation"
+    target_prepared=0
+    session_written=0
+    restore_names=(
+      seafile-restore-seafile seafile-restore-mariadb seafile-restore-redis
+      seafile-restore-seasearch seafile-restore-notification seafile-restore-metadata
+      seafile-restore-onlyoffice seafile-restore-proxy
+    )
+
+    rollback_prepare() {
+      status=$?
+      trap - EXIT
+      if [ "$status" -ne 0 ] && [ "$session_written" -eq 0 ]; then
+        cleanup_failed=0
+        for name in "''${restore_names[@]}"; do
+          if "$docker_command" inspect "$name" >/dev/null 2>&1; then
+            owner="$("$docker_command" inspect --format '{{index .Config.Labels "com.docker.compose.project"}}' "$name" 2>/dev/null || true)"
+            container_invocation="$("$docker_command" inspect --format '{{index .Config.Labels "shulker.seafile.restore-invocation"}}' "$name" 2>/dev/null || true)"
+            if [ "$owner" = "$restore_project" ] && [ "$container_invocation" = "$invocation" ]; then
+              "$docker_command" rm -f "$name" >/dev/null 2>&1 || cleanup_failed=1
+            else
+              cleanup_failed=1
+            fi
+          fi
         done
-        [ -n "$target" ] && [ -n "$runtime" ] || fail_restore "target and runtime directory are required"
-        case "$target" in "$production_state"|"$production_state"/*|/run/*) fail_restore "production target is forbidden" ;; esac
-        case "$runtime" in /run/seafile|/run/seafile-host|/run/seafile-app|/run/seafile-metadata|"$target"|"$target"/*) fail_restore "runtime collision" ;; esac
-        [ -d "$target" ] && [ ! -L "$target" ] || fail_restore "restore target must be an existing directory"
-        [ -z "$(find "$target" -mindepth 1 -maxdepth 1 -print -quit)" ] || fail_restore "restore target is not empty"
-        "$install_command" -d -m 0700 -o 0 -g 0 "$runtime"
-        [ -z "$(find "$runtime" -mindepth 1 -maxdepth 1 -print -quit)" ] || fail_restore "restore runtime is not empty"
-        session="$runtime/rehearsal-session"
-        invocation="$(uuidgen | tr '[:upper:]' '[:lower:]')"
-        [[ "$invocation" =~ ^[a-f0-9-]+$ ]] || fail_restore "invalid invocation"
-        if [ "''${SEAFILE_RESTORE_TEST_MODE:-0}" = 1 ]; then
-          "$install_command" -d -m 0700 "$target/shared" "$target/database" "$target/search" "$target/onlyoffice" "$target/backups" "$target/control"
-          printf 'invocation=%s\ntarget=%s\nproject=%s\nnetwork=%s\n' \
-            "$invocation" "$target" "$restore_project" "$restore_network" >"$session"
-          chmod 0600 "$session"
-          exit 0
+        if "$docker_command" network inspect "$restore_network" >/dev/null 2>&1; then
+          owner="$("$docker_command" network inspect --format '{{index .Labels "shulker.seafile.restore-invocation"}}' "$restore_network" 2>/dev/null || true)"
+          if [ "$owner" = "$invocation" ]; then
+            "$docker_command" network rm "$restore_network" >/dev/null 2>&1 || cleanup_failed=1
+          else
+            cleanup_failed=1
+          fi
         fi
+        if [ "$cleanup_failed" -eq 0 ]; then
+          [ "$target_prepared" -eq 0 ] || find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          find "$runtime" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          [ "$runtime_created" -eq 0 ] || rmdir "$runtime" 2>/dev/null || true
+        else
+          echo "Seafile restore rollback is incomplete; retry seafile-restore-teardown with $runtime" >&2
+        fi
+      fi
+      exit "$status"
+    }
+    trap rollback_prepare EXIT
+    trap 'exit 75' HUP INT TERM
 
-        available_ram_kib="$(free --kibi | awk '/^Mem:/ {print $7}')"
-        swap_kib="$(free --kibi | awk '/^Swap:/ {print $2}')"
-        [ "$available_ram_kib" -ge 10485760 ] || fail_restore "less than 10 GiB available RAM"
-        [ "$swap_kib" -ge 4194304 ] || fail_restore "less than 4 GiB swap"
-        target_bytes="$(( $(df --output=avail -B1 "$target" | tail -1) ))"
-        target_inodes="$(( $(df --output=iavail "$target" | tail -1) ))"
-        [ "$target_bytes" -ge 53687091200 ] && [ "$target_inodes" -ge 100000 ] \
-          || fail_restore "target bytes or inodes are insufficient"
-        docker_root="$("$docker_command" info --format '{{.DockerRootDir}}')"
-        docker_bytes="$(( $(df --output=avail -B1 "$docker_root" | tail -1) ))"
-        [ "$docker_bytes" -ge 12884901888 ] || fail_restore "Docker storage has less than 12 GiB"
-        zfs_available="$(zfs get -Hp -o value available ${lib.escapeShellArg cfg.dataset})"
-        [ "$zfs_available" -ge 53687091200 ] || fail_restore "ZFS pool and COW reserve are insufficient"
-        "$docker_command" network inspect "$restore_network" >/dev/null 2>&1 && fail_restore "restore network collision"
-        for name in seafile-restore-seafile seafile-restore-mariadb seafile-restore-redis \
-          seafile-restore-seasearch seafile-restore-notification seafile-restore-metadata \
-          seafile-restore-onlyoffice seafile-restore-proxy; do
-          "$docker_command" inspect "$name" >/dev/null 2>&1 && fail_restore "restore container collision"
-        done
+    available_ram_kib="$($free_command --kibi | awk '/^Mem:/ {print $7}')"
+    swap_kib="$($free_command --kibi | awk '/^Swap:/ {print $2}')"
+    [ "$available_ram_kib" -ge 10485760 ] || fail_restore "less than 10 GiB available RAM"
+    [ "$swap_kib" -ge 4194304 ] || fail_restore "less than 4 GiB swap"
+    target_bytes="$(( $($df_command --output=avail -B1 "$target" | tail -1) ))"
+    target_inodes="$(( $($df_command --output=iavail "$target" | tail -1) ))"
+    [ "$target_bytes" -ge 53687091200 ] && [ "$target_inodes" -ge 100000 ] \
+      || fail_restore "target bytes or inodes are insufficient"
+    docker_root="$("$docker_command" info --format '{{.DockerRootDir}}')"
+    docker_bytes="$(( $($df_command --output=avail -B1 "$docker_root" | tail -1) ))"
+    [ "$docker_bytes" -ge 12884901888 ] || fail_restore "Docker storage has less than 12 GiB"
+    zfs_available="$($zfs_command get -Hp -o value available ${lib.escapeShellArg cfg.dataset})"
+    [ "$zfs_available" -ge 53687091200 ] || fail_restore "ZFS pool and COW reserve are insufficient"
+    "$docker_command" network inspect "$restore_network" >/dev/null 2>&1 \
+      && fail_restore "restore network collision"
+    for name in "''${restore_names[@]}"; do
+      "$docker_command" inspect "$name" >/dev/null 2>&1 && fail_restore "restore container collision"
+    done
 
-        "$install_command" -d -m 0700 "$runtime/app" "$runtime/metadata" "$runtime/ca" "$runtime/proxy" "$runtime/browser"
-        "$install_command" -d -m 0750 "$target/shared" "$target/search" "$target/onlyoffice" \
-          "$target/onlyoffice/logs" "$target/onlyoffice/data" "$target/onlyoffice/lib"
-        "$install_command" -d -m 0700 "$target/database" "$target/backups" "$target/control"
-        "$install_command" -d -m 0750 "$target/shared/seafile/conf"
-        for name in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
-          ln -s "$runtime/app/$name" "$target/shared/seafile/conf/$name"
-        done
-        credential="$runtime/environment"
-        restore_password="$(openssl rand -hex 32)"
-        emit_restore_environment() { printf '%s=%s\n' "$1" "$2"; }
-        {
-          emit_restore_environment SEAFILE_RESTORE_TARGET "$target"
-          emit_restore_environment SEAFILE_RESTORE_RUNTIME "$runtime"
-          emit_restore_environment SEAFILE_MYSQL_DB_PASSWORD "$(openssl rand -hex 32)"
-          emit_restore_environment REDIS_PASSWORD "$(openssl rand -hex 32)"
-          emit_restore_environment JWT_PRIVATE_KEY "$(openssl rand -hex 32)"
-          emit_restore_environment SEAHUB_SECRET_KEY "$(openssl rand -hex 32)"
-          emit_restore_environment INIT_SEAFILE_ADMIN_EMAIL restore-admin@restore.invalid
-          emit_restore_environment INIT_SEAFILE_ADMIN_PASSWORD "$restore_password"
-          emit_restore_environment SEAFILE_OAUTH_CLIENT_ID restore-disabled
-          emit_restore_environment SEAFILE_OAUTH_CLIENT_SECRET "$(openssl rand -hex 32)"
-          emit_restore_environment ONLYOFFICE_JWT_SECRET "$(openssl rand -hex 32)"
-        } >"$credential"
-        chmod 0600 "$credential"
-        openssl req -x509 -newkey rsa:3072 -nodes -days 2 -subj '/CN=Seafile restore rehearsal CA' \
-          -keyout "$runtime/ca/ca.key" -out "$runtime/ca/ca.crt" >/dev/null 2>&1
-        for host in files.restore.invalid office.restore.invalid; do
-          openssl req -newkey rsa:3072 -nodes -subj "/CN=$host" \
-            -keyout "$runtime/ca/$host.key" -out "$runtime/ca/$host.csr" >/dev/null 2>&1
-          printf 'subjectAltName=DNS:%s\n' "$host" >"$runtime/ca/$host.ext"
-          openssl x509 -req -days 2 -in "$runtime/ca/$host.csr" -CA "$runtime/ca/ca.crt" \
-            -CAkey "$runtime/ca/ca.key" -CAcreateserial -extfile "$runtime/ca/$host.ext" \
-            -out "$runtime/ca/$host.crt" >/dev/null 2>&1
-        done
-        chmod 0600 "$runtime/ca"/*.key "$credential"
-        cat >"$runtime/proxy/nginx.conf" <<'NGINX'
+    "$install_command" -d -m 0700 "$runtime/host" "$runtime/app" "$runtime/metadata" "$runtime/ca" "$runtime/proxy"
+    "$install_command" -d -m 0750 "$target/shared" "$target/search" "$target/onlyoffice" \
+      "$target/onlyoffice/logs" "$target/onlyoffice/data" "$target/onlyoffice/lib"
+    "$install_command" -d -m 0700 "$target/database" "$target/backups" "$target/control"
+    "$install_command" -d -m 0750 "$target/shared/seafile/conf"
+    target_prepared=1
+
+    source_environment="$runtime/source.environment"
+    emit_restore_environment() { printf '%s=%s\n' "$1" "$2"; }
+    {
+      emit_restore_environment INIT_SEAFILE_MYSQL_ROOT_PASSWORD "$(openssl rand -hex 32)"
+      emit_restore_environment SEAFILE_MYSQL_DB_PASSWORD "$(openssl rand -hex 32)"
+      emit_restore_environment REDIS_PASSWORD "$(openssl rand -hex 32)"
+      emit_restore_environment JWT_PRIVATE_KEY "$(openssl rand -hex 32)"
+      emit_restore_environment SEAHUB_SECRET_KEY "$(openssl rand -hex 32)"
+      emit_restore_environment INIT_SEAFILE_ADMIN_EMAIL restore-admin@restore.invalid
+      emit_restore_environment INIT_SEAFILE_ADMIN_PASSWORD "$(openssl rand -hex 32)"
+      emit_restore_environment INIT_SS_ADMIN_USER restore-seasearch
+      emit_restore_environment INIT_SS_ADMIN_PASSWORD "$(openssl rand -hex 32)"
+      emit_restore_environment SEAFILE_OAUTH_CLIENT_ID restore-disabled
+      emit_restore_environment SEAFILE_OAUTH_CLIENT_SECRET "$(openssl rand -hex 32)"
+      emit_restore_environment ONLYOFFICE_JWT_SECRET "$(openssl rand -hex 32)"
+    } >"$source_environment"
+    chmod 0600 "$source_environment"
+    "$render_command" --source "$source_environment" --host-dir "$runtime/host" \
+      --app-dir "$runtime/app" --metadata-dir "$runtime/metadata" \
+      --state-dir "$target" --lock-file "$runtime/maintenance.lock" --lock-timeout 0 \
+      --container-project "$restore_project"
+    compose_environment="$runtime/compose.environment"
+    {
+      printf 'SEAFILE_RESTORE_TARGET=%s\nSEAFILE_RESTORE_RUNTIME=%s\n' "$target" "$runtime"
+      cat "$runtime/host/environment"
+    } >"$compose_environment"
+    chmod 0600 "$compose_environment"
+
+    chmod 0600 "$runtime/app/seafile.env" "$runtime/app/seahub_settings.py"
+    sed -i -E 's|^SEAFILE_SERVER_HOSTNAME=.*$|SEAFILE_SERVER_HOSTNAME=files.restore.invalid:24239|' \
+      "$runtime/app/seafile.env"
+    sed -i -E \
+      -e 's|^ENABLE_OAUTH = True$|ENABLE_OAUTH = False|' \
+      -e 's|^OAUTH_CREATE_UNKNOWN_USER = True$|OAUTH_CREATE_UNKNOWN_USER = False|' \
+      -e 's|^ONLYOFFICE_APIJS_URL = .*$|ONLYOFFICE_APIJS_URL = "https://office.restore.invalid:24240/web-apps/apps/api/documents/api.js"|' \
+      -e 's|^SERVICE_URL = .*$|SERVICE_URL = "http://seafile-restore-seafile:80"|' \
+      "$runtime/app/seahub_settings.py"
+    chmod 0400 "$runtime/app/seafile.env" "$runtime/app/seahub_settings.py"
+    for mapping in .env:seafile.env seahub_settings.py:seahub_settings.py \
+      seafevents.conf:seafevents.conf seafile.conf:seafile.conf seafdav.conf:seafdav.conf; do
+      name="''${mapping%%:*}"
+      source_name="''${mapping#*:}"
+      ln -s "$runtime/app/$source_name" "$target/shared/seafile/conf/$name"
+    done
+
+    openssl req -x509 -newkey rsa:3072 -nodes -days 2 -subj '/CN=Seafile restore rehearsal CA' \
+      -keyout "$runtime/ca/ca.key" -out "$runtime/ca/ca.crt" >/dev/null 2>&1
+    for host in files.restore.invalid office.restore.invalid; do
+      openssl req -newkey rsa:3072 -nodes -subj "/CN=$host" \
+        -keyout "$runtime/ca/$host.key" -out "$runtime/ca/$host.csr" >/dev/null 2>&1
+      printf 'subjectAltName=DNS:%s\n' "$host" >"$runtime/ca/$host.ext"
+      openssl x509 -req -days 2 -in "$runtime/ca/$host.csr" -CA "$runtime/ca/ca.crt" \
+        -CAkey "$runtime/ca/ca.key" -CAcreateserial -extfile "$runtime/ca/$host.ext" \
+        -out "$runtime/ca/$host.crt" >/dev/null 2>&1
+    done
+    chmod 0600 "$runtime/ca"/*.key "$source_environment" "$compose_environment"
+    cat >"$runtime/proxy/nginx.conf" <<'NGINX'
     events {}
     http {
-      server { listen 443 ssl; server_name files.restore.invalid; ssl_certificate /run/seafile-restore-ca/files.restore.invalid.crt; ssl_certificate_key /run/seafile-restore-ca/files.restore.invalid.key; location / { proxy_pass http://seafile-restore-seafile:80; } }
-      server { listen 444 ssl; server_name office.restore.invalid; ssl_certificate /run/seafile-restore-ca/office.restore.invalid.crt; ssl_certificate_key /run/seafile-restore-ca/office.restore.invalid.key; location / { proxy_pass http://seafile-restore-onlyoffice:80; } }
-      server { listen 445 ssl; server_name files.restore.invalid; ssl_certificate /run/seafile-restore-ca/files.restore.invalid.crt; ssl_certificate_key /run/seafile-restore-ca/files.restore.invalid.key; location / { proxy_pass http://seafile-restore-notification:8083; } }
+      map $http_upgrade $connection_upgrade { default upgrade; "" close; }
+      server {
+        listen 443 ssl;
+        server_name files.restore.invalid;
+        ssl_certificate /run/seafile-restore-ca/files.restore.invalid.crt;
+        ssl_certificate_key /run/seafile-restore-ca/files.restore.invalid.key;
+        location / { proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; proxy_pass http://seafile-restore-seafile:80; }
+      }
+      server {
+        listen 444 ssl;
+        server_name office.restore.invalid;
+        ssl_certificate /run/seafile-restore-ca/office.restore.invalid.crt;
+        ssl_certificate_key /run/seafile-restore-ca/office.restore.invalid.key;
+        location / { proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; proxy_pass http://seafile-restore-onlyoffice:80; }
+      }
+      server {
+        listen 445 ssl;
+        server_name files.restore.invalid;
+        ssl_certificate /run/seafile-restore-ca/files.restore.invalid.crt;
+        ssl_certificate_key /run/seafile-restore-ca/files.restore.invalid.key;
+        location /notification/ {
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection $connection_upgrade;
+          proxy_pass http://seafile-restore-notification:8083/;
+        }
+      }
     }
     NGINX
-        chmod 0600 "$runtime/proxy/nginx.conf"
-        "$docker_command" network create --internal --label "shulker.seafile.restore-invocation=$invocation" "$restore_network" >/dev/null
-        network_id="$("$docker_command" network inspect --format '{{.Id}}' "$restore_network")"
-        SEAFILE_RESTORE_TARGET="$target" SEAFILE_RESTORE_RUNTIME="$runtime" \
-          "$docker_command" compose --project-name "$restore_project" --file "$restore_compose" --env-file "$credential" create
-        services=(database redis seafile seasearch notification metadata onlyoffice)
-        app_ids=()
-        for service in "''${services[@]}"; do
-          id="$(SEAFILE_RESTORE_TARGET="$target" SEAFILE_RESTORE_RUNTIME="$runtime" \
-            "$docker_command" compose --project-name "$restore_project" --file "$restore_compose" --env-file "$credential" ps -q "$service")"
-          [ -n "$id" ] || fail_restore "missing restore container ID"
-          app_ids+=("$id")
-        done
-        proxy_id="$(SEAFILE_RESTORE_TARGET="$target" SEAFILE_RESTORE_RUNTIME="$runtime" \
-          "$docker_command" compose --project-name "$restore_project" --file "$restore_compose" --env-file "$credential" ps -q proxy)"
-        browser_unit="seafile-restore-browser-$invocation.service"
-        systemd-run --unit="''${browser_unit%.service}" --property=DynamicUser=yes \
-          --property="RuntimeDirectory=seafile-restore-browser-$invocation" \
-          ${lib.getExe pkgs.chromium} --headless --enable-sandbox --user-data-dir="$runtime/browser/profile" \
-          --host-resolver-rules='MAP files.restore.invalid 127.0.0.1,MAP office.restore.invalid 127.0.0.1' \
-          https://files.restore.invalid:24239 >/dev/null
-        browser_pid="$(systemctl show "$browser_unit" --property=MainPID --value)"
-        browser_uid="$(systemctl show "$browser_unit" --property=UID --value)"
-        ca_fingerprint="$(openssl x509 -in "$runtime/ca/ca.crt" -noout -fingerprint -sha256)"
-        {
-          printf 'invocation=%s\ntarget=%s\nruntime=%s\nproject=%s\nnetwork=%s\nnetwork_id=%s\n' \
-            "$invocation" "$target" "$runtime" "$restore_project" "$restore_network" "$network_id"
-          printf 'proxy_id=%s\nbrowser_unit=%s\nbrowser_pid=%s\nbrowser_uid=%s\nbrowser_profile=%s\n' \
-            "$proxy_id" "$browser_unit" "$browser_pid" "$browser_uid" "$runtime/browser/profile"
-          printf 'ca_fingerprint=%s\ncredential_file=%s\n' "$ca_fingerprint" "$credential"
-          for index in "''${!app_ids[@]}"; do printf 'container_%s=%s\n' "''${services[$index]}" "''${app_ids[$index]}"; done
-        } >"$session"
-        chmod 0600 "$session"
-        unset restore_password
-        echo "Restore rehearsal prepared; no data was restored"
+    chmod 0600 "$runtime/proxy/nginx.conf"
+
+    provisional="$runtime/.rehearsal-session.$invocation"
+    {
+      printf 'invocation=%s\ntarget=%s\nruntime=%s\nproject=%s\nnetwork=%s\nnetwork_id=%s\n' \
+        "$invocation" "$target" "$runtime" "$restore_project" "$restore_network" "$restore_network"
+      printf 'credential_file=%s\ncompose_environment=%s\n' "$source_environment" "$compose_environment"
+      printf 'container_database=seafile-restore-mariadb\ncontainer_redis=seafile-restore-redis\n'
+      printf 'container_seafile=seafile-restore-seafile\ncontainer_seasearch=seafile-restore-seasearch\n'
+      printf 'container_notification=seafile-restore-notification\ncontainer_metadata=seafile-restore-metadata\n'
+      printf 'container_onlyoffice=seafile-restore-onlyoffice\ncontainer_proxy=seafile-restore-proxy\n'
+    } >"$provisional"
+    chmod 0600 "$provisional"
+    mv -T -- "$provisional" "$session"
+
+    "$docker_command" network create --internal \
+      --label "com.docker.compose.project=$restore_project" \
+      --label "com.docker.compose.network=$restore_network" \
+      --label "shulker.seafile.restore-invocation=$invocation" "$restore_network" >/dev/null
+    network_id="$("$docker_command" network inspect --format '{{.Id}}' "$restore_network")"
+    compose_restore_bootstrap create
+    services=(database redis seafile seasearch notification metadata onlyoffice proxy)
+    app_ids=()
+    for service in "''${services[@]}"; do
+      id="$(compose_restore_bootstrap ps -q "$service")"
+      [ -n "$id" ] || fail_restore "missing restore container ID"
+      app_ids+=("$id")
+    done
+    session_temporary="$runtime/.rehearsal-session.$invocation"
+    {
+      printf 'invocation=%s\ntarget=%s\nruntime=%s\nproject=%s\nnetwork=%s\nnetwork_id=%s\n' \
+        "$invocation" "$target" "$runtime" "$restore_project" "$restore_network" "$network_id"
+      printf 'credential_file=%s\ncompose_environment=%s\n' "$source_environment" "$compose_environment"
+      for index in "''${!app_ids[@]}"; do
+        printf 'container_%s=%s\n' "''${services[$index]}" "''${app_ids[$index]}"
+      done
+    } >"$session_temporary"
+    chmod 0600 "$session_temporary"
+    mv -T -- "$session_temporary" "$session"
+    session_written=1
+    trap - EXIT HUP INT TERM
+    echo "Restore rehearsal prepared; extract one selected archive before verification"
   '';
 
   restoreVerifyScript = ''
     ${restoreCommonScript}
     runtime=
-    while [ "$#" -gt 0 ]; do case "$1" in --runtime-dir) runtime="$2"; shift 2 ;; *) fail_restore "unexpected verify argument" ;; esac; done
+    backup_set=
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --runtime-dir) runtime="$2"; shift 2 ;;
+        --backup-set) backup_set="$2"; shift 2 ;;
+        *) fail_restore "unexpected verify argument" ;;
+      esac
+    done
+    [ -n "$runtime" ] && [[ "$backup_set" =~ ^seafile-[A-Za-z0-9._-]+$ ]] \
+      || fail_restore "runtime directory and safe backup-set name are required"
     session="$runtime/rehearsal-session"
     [ -f "$session" ] && [ ! -L "$session" ] && [ "$(stat --format '%a' "$session")" = 600 ] \
       || fail_restore "owned rehearsal session is missing"
     target="$(restore_field "$session" target)"
+    restore_invocation="$(restore_field "$session" invocation)"
+    [[ "$restore_invocation" =~ ^[a-f0-9-]+$ ]] || fail_restore "restore invocation is malformed"
     case "$target" in "$production_state"|"$production_state"/*) fail_restore "production target is forbidden" ;; esac
-    [ "''${SEAFILE_RESTORE_TEST_MODE:-0}" != 1 ] || exit 0
-    for service in database redis seafile seasearch notification metadata onlyoffice; do
+    source_environment="$(restore_field "$session" credential_file)"
+    compose_environment="$(restore_field "$session" compose_environment)"
+    [ "$source_environment" = "$runtime/source.environment" ] \
+      && [ "$compose_environment" = "$runtime/compose.environment" ] \
+      || fail_restore "foreign restore credential source"
+    [ -f "$source_environment" ] && [ ! -L "$source_environment" ] \
+      && [ "$(stat --format '%a' "$source_environment")" = 600 ] \
+      || fail_restore "protected restore credentials are missing"
+
+    candidate="$target/backups/$backup_set"
+    [ -d "$candidate" ] && [ ! -L "$candidate" ] || fail_restore "selected backup set is missing"
+    manifest="$candidate/manifest.json"
+    expected_versions=${lib.escapeShellArg (builtins.toJSON cfg.releaseVersions)}
+    jq -e --argjson expected "$expected_versions" \
+      '.release_versions == $expected
+       and .schema_format == "mariadb-sql-v1"
+       and .transaction_kind == "writers_quiesced=true"
+       and ([.databases[].name] | sort) == ["ccnet_db","seafile_db","seahub_db"]
+       and ([.databases[].file] | sort) == ["ccnet_db.sql","seafile_db.sql","seahub_db.sql"]
+       and (.databases | length) == 3' "$manifest" >/dev/null \
+      || fail_restore "backup manifest or release matrix is incompatible"
+    for database in ccnet_db seafile_db seahub_db; do
+      dump="$candidate/$database.sql"
+      expected_size="$(jq -er --arg name "$database" '.databases[] | select(.name == $name) | .size_bytes' "$manifest")"
+      expected_checksum="$(jq -er --arg name "$database" '.databases[] | select(.name == $name) | .sha256' "$manifest")"
+      [ -f "$dump" ] && [ ! -L "$dump" ] && [ "$(stat --format '%s' "$dump")" = "$expected_size" ] \
+        && [ "$(sha256sum "$dump" | cut -d' ' -f1)" = "$expected_checksum" ] \
+        || fail_restore "$database dump checksum or size is invalid"
+    done
+    for mapping in .env:seafile.env seahub_settings.py:seahub_settings.py \
+      seafevents.conf:seafevents.conf seafile.conf:seafile.conf seafdav.conf:seafdav.conf; do
+      name="''${mapping%%:*}"
+      source_name="''${mapping#*:}"
+      [ -L "$target/shared/seafile/conf/$name" ] \
+        && [ "$(readlink "$target/shared/seafile/conf/$name")" = "$runtime/app/$source_name" ] \
+        || fail_restore "restore runtime configuration link is missing"
+    done
+    for service in database redis seafile seasearch notification metadata onlyoffice proxy; do
       id="$(restore_field "$session" "container_$service")"
       if [ -z "$id" ] || ! "$docker_command" inspect "$id" >/dev/null; then
         fail_restore "recorded restore container is missing"
       fi
+      [ "$("$docker_command" inspect --format '{{index .Config.Labels "com.docker.compose.project"}}' "$id")" = "$restore_project" ] \
+        || fail_restore "recorded restore container is foreign"
+      [ "$("$docker_command" inspect --format '{{index .Config.Labels "shulker.seafile.restore-invocation"}}' "$id")" = "$restore_invocation" ] \
+        || fail_restore "recorded restore container belongs to another invocation"
+      [ "$("$docker_command" inspect --format '{{.State.Running}}' "$id")" = false ] \
+        || fail_restore "restore verification requires every recorded container to be stopped"
     done
-    credential="$(restore_field "$session" credential_file)"
-    [ "$credential" = "$runtime/environment" ] || fail_restore "foreign restore credential source"
-    restore_password="$(openssl rand -hex 32)"
+
+    compose_restore_bootstrap up --detach --no-deps --wait --wait-timeout 1800 database redis
+    secret_value() {
+      local key="$1" count
+      count="$(grep -c "^$key=" "$source_environment" || true)"
+      [ "$count" -eq 1 ] || fail_restore "restore credential schema is incomplete"
+      sed -n "s/^$key=//p" "$source_environment"
+    }
+    MYSQL_PWD="$(secret_value INIT_SEAFILE_MYSQL_ROOT_PASSWORD)"
+    database_password="$(secret_value SEAFILE_MYSQL_DB_PASSWORD)"
+    export MYSQL_PWD
+    database_id="$(restore_field "$session" container_database)"
+    for database in ccnet_db seafile_db seahub_db; do
+      "$timeout_command" 3600 "$docker_command" exec -i --env MYSQL_PWD "$database_id" \
+        mariadb --user root <"$candidate/$database.sql"
+    done
+    printf "CREATE USER IF NOT EXISTS 'seafile'@'%%' IDENTIFIED BY '%s'; GRANT ALL ON ccnet_db.* TO 'seafile'@'%%'; GRANT ALL ON seafile_db.* TO 'seafile'@'%%'; GRANT ALL ON seahub_db.* TO 'seafile'@'%%'; FLUSH PRIVILEGES;\n" \
+      "$database_password" | "$docker_command" exec -i --env MYSQL_PWD "$database_id" mariadb --user=root
+    unset MYSQL_PWD database_password
+
+    compose_restore_bootstrap up --detach --no-recreate --wait --wait-timeout 2100
     seafile_id="$(restore_field "$session" container_seafile)"
-    printf '%s\n' "$restore_password" | "$docker_command" exec -i "$seafile_id" \
-      /opt/seafile/seafile-server-latest/reset-admin.sh restore-admin@restore.invalid --password-stdin
-    unset restore_password
+    native_email="$("$docker_command" exec -i \
+      --env SEAFILE_RESTORE_NATIVE_MODE=identify "$seafile_id" \
+      /opt/seafile/seafile-server-latest/seahub.sh python-env python - \
+      <${restoreIdentifyNativeAdmin})"
+    [[ "$native_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]] \
+      || fail_restore "restored native administrator could not be identified safely"
+    restore_password="$(secret_value INIT_SEAFILE_ADMIN_PASSWORD)"
+    RESTORE_NATIVE_EMAIL="$native_email"
+    RESTORE_PASSWORD="$restore_password"
+    export RESTORE_NATIVE_EMAIL RESTORE_PASSWORD
+    "$docker_command" exec -i --env RESTORE_NATIVE_EMAIL --env RESTORE_PASSWORD \
+      --env SEAFILE_RESTORE_NATIVE_MODE=reset "$seafile_id" \
+      /opt/seafile/seafile-server-latest/seahub.sh python-env python - \
+      <${restoreResetNativeAdmin} >/dev/null
+    "$docker_command" exec -i --env RESTORE_NATIVE_EMAIL --env RESTORE_PASSWORD \
+      --env SEAFILE_RESTORE_NATIVE_MODE=verify "$seafile_id" \
+      /opt/seafile/seafile-server-latest/seahub.sh python-env python - \
+      <${restoreVerifyNativeAdmin} >/dev/null
+    unset RESTORE_NATIVE_EMAIL RESTORE_PASSWORD restore_password native_email
+
     "$docker_command" exec "$seafile_id" /opt/seafile/seafile-server-latest/seaf-fsck.sh --readonly
     "$docker_command" exec "$(restore_field "$session" container_metadata)" test -r /run/seafile/seafile.conf
-    "$docker_command" exec "$(restore_field "$session" container_seasearch)" /opt/seasearch/bin/rebuild-index --all
-    curl --fail --cacert "$runtime/ca/ca.crt" --resolve files.restore.invalid:24239:127.0.0.1 \
+    "$curl_command" --fail --cacert "$runtime/ca/ca.crt" --resolve files.restore.invalid:24239:127.0.0.1 \
       https://files.restore.invalid:24239/ >/dev/null
-    echo "Isolated restore versions, databases, ownership, ACLs/xattrs, checksum, login, share, and upload verified"
+    "$curl_command" --fail --cacert "$runtime/ca/ca.crt" --resolve files.restore.invalid:24241:127.0.0.1 \
+      https://files.restore.invalid:24241/notification/ping >/dev/null
+    [ "$("$curl_command" --fail --silent --cacert "$runtime/ca/ca.crt" \
+      --resolve office.restore.invalid:24240:127.0.0.1 \
+      https://office.restore.invalid:24240/healthcheck)" = true ] \
+      || fail_restore "OnlyOffice restore health check failed"
+    echo "Compatible releases, three database checksums/imports, restore-only native recovery, read-only fsck, Metadata config, and isolated HTTPS health verified"
   '';
 
   restoreTeardownScript = ''
@@ -711,18 +1140,25 @@ let
     [ -e "$session" ] || exit 0
     [ -f "$session" ] && [ ! -L "$session" ] || fail_restore "foreign rehearsal session"
     target="$(restore_field "$session" target)"
+    invocation="$(restore_field "$session" invocation)"
+    restore_invocation="$invocation"
+    [[ "$invocation" =~ ^[a-f0-9-]+$ ]] || fail_restore "restore invocation is malformed"
     case "$target" in "$production_state"|"$production_state"/*) fail_restore "production target is forbidden" ;; esac
-    if [ "''${SEAFILE_RESTORE_TEST_MODE:-0}" != 1 ]; then
-      browser_unit="$(restore_field "$session" browser_unit)"
-      case "$browser_unit" in seafile-restore-browser-*.service) "$systemctl_command" stop "$browser_unit" || true ;; *) fail_restore "foreign browser unit" ;; esac
-      for service in database redis seafile seasearch notification metadata onlyoffice; do
-        id="$(restore_field "$session" "container_$service")"
-        [ -z "$id" ] || "$docker_command" rm -f "$id" >/dev/null
-      done
-      proxy_id="$(restore_field "$session" proxy_id)"
-      [ -z "$proxy_id" ] || "$docker_command" rm -f "$proxy_id" >/dev/null
-      network_id="$(restore_field "$session" network_id)"
-      [ -z "$network_id" ] || "$docker_command" network rm "$network_id" >/dev/null
+    for service in database redis seafile seasearch notification metadata onlyoffice proxy; do
+      id="$(restore_field "$session" "container_$service")"
+      if "$docker_command" inspect "$id" >/dev/null 2>&1; then
+        [ "$("$docker_command" inspect --format '{{index .Config.Labels "com.docker.compose.project"}}' "$id")" = "$restore_project" ] \
+          || fail_restore "recorded restore container is foreign"
+        [ "$("$docker_command" inspect --format '{{index .Config.Labels "shulker.seafile.restore-invocation"}}' "$id")" = "$invocation" ] \
+          || fail_restore "recorded restore container belongs to another invocation"
+        "$docker_command" rm -f "$id" >/dev/null || fail_restore "restore container removal failed"
+      fi
+    done
+    network_id="$(restore_field "$session" network_id)"
+    if "$docker_command" network inspect "$network_id" >/dev/null 2>&1; then
+      [ "$("$docker_command" network inspect --format '{{index .Labels "shulker.seafile.restore-invocation"}}' "$network_id")" = "$invocation" ] \
+        || fail_restore "recorded restore network is foreign"
+      "$docker_command" network rm "$network_id" >/dev/null || fail_restore "restore network removal failed"
     fi
     find "$runtime" -mindepth 1 -maxdepth 1 ! -name rehearsal-session -exec rm -rf -- {} +
     rm -f -- "$session"
@@ -743,6 +1179,7 @@ let
         pkgs.gnused
         pkgs.jq
         pkgs.openssl
+        pkgs.procps
         pkgs.systemd
         pkgs.util-linux
       ]
@@ -759,7 +1196,7 @@ let
   backupCleanup = mkBackupPackage "seafile-backup-cleanup" backupCleanupScript [ ];
   backupStatus = mkBackupPackage "seafile-backup-status" backupStatusScript [ ];
   preUpgradeCheck = mkBackupPackage "seafile-pre-upgrade-check" preUpgradeCheckScript [ ];
-  restorePrepare = mkBackupPackage "seafile-restore-prepare" restorePrepareScript [ pkgs.chromium ];
+  restorePrepare = mkBackupPackage "seafile-restore-prepare" restorePrepareScript [ ];
   restoreVerify = mkBackupPackage "seafile-restore-verify" restoreVerifyScript [ pkgs.curl ];
   restoreTeardown = mkBackupPackage "seafile-restore-teardown" restoreTeardownScript [ ];
   backupContractText = lib.concatStringsSep "\n" [
@@ -775,7 +1212,7 @@ let
     (builtins.toJSON restoreComposeConfig)
     ''
       Persistent logs are scanned before backup by seafile-health-check.
-      Chromium --sandbox remains enabled under a DynamicUser identity.
+      Restore verification checks the selected release matrix, dump checksums and imports before application health.
       Import validation is bounded to 3600 seconds per dump and 14400 seconds total.
       Graceful stop timeout is 120 seconds and never escalates to SIGKILL.
     ''
@@ -818,6 +1255,36 @@ in
       readOnly = true;
       internal = true;
     };
+    restoreIdentifyNativeAdminFile = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      internal = true;
+    };
+    restoreIdentifyNativeAdminScript = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+    };
+    restoreResetNativeAdminFile = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      internal = true;
+    };
+    restoreResetNativeAdminScript = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+    };
+    restoreVerifyNativeAdminFile = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      internal = true;
+    };
+    restoreVerifyNativeAdminScript = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+    };
     backupContractText = lib.mkOption {
       type = lib.types.lines;
       readOnly = true;
@@ -849,6 +1316,12 @@ in
         restoreVerifyScript
         validateLogicalBackupScript
         ;
+      restoreIdentifyNativeAdminFile = restoreIdentifyNativeAdmin;
+      inherit restoreIdentifyNativeAdminScript;
+      restoreResetNativeAdminFile = restoreResetNativeAdmin;
+      inherit restoreResetNativeAdminScript;
+      restoreVerifyNativeAdminFile = restoreVerifyNativeAdmin;
+      inherit restoreVerifyNativeAdminScript;
     };
 
     environment.systemPackages = [

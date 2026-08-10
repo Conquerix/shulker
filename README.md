@@ -432,17 +432,20 @@ sudo seafile-restore-prepare \
 # Extract one selected Borg archive into the prepared target, preserving
 # numeric ownership, modes, POSIX ACLs, and extended attributes.
 sudo seafile-restore-verify \
-  --runtime-dir /srv/seafile-restore/runtime
+  --runtime-dir /srv/seafile-restore/runtime \
+  --backup-set seafile-YYYYMMDDTHHMMSS-INVOCATION
 sudo seafile-restore-teardown \
   --runtime-dir /srv/seafile-restore/runtime
 ```
 
 The helpers enforce a distinct project/network/ports, generated restore-only
-credentials, isolated certificates and names, capacity headroom, compatible
-images, read-only fsck, Metadata reconciliation/probe, and SeaSearch rebuild.
-They do not extract archive data automatically. Teardown removes only recorded
-runtime artifacts and preserves the restored target until separately approved
-destruction.
+credentials, isolated certificates and names, capacity headroom, an exact
+release matrix, checksums and imports for all three databases, read-only fsck,
+Metadata configuration readability, and Seafile, Notification, and OnlyOffice
+health. They do not extract archive data or automate browser login, sharing,
+upload, ACL, or xattr acceptance. Perform those checks manually before relying
+on the archive. Teardown removes only recorded runtime artifacts and preserves
+the restored target until separately approved destruction.
 
 For upgrades, review all seven upstream releases and migrations as one matrix,
 resolve fresh Linux/amd64 digests, run `seafile-pre-upgrade-check`, update all

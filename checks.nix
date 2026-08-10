@@ -311,8 +311,8 @@ in
       ];
     assert
       compose.networks == {
-        seafile-egress = {
-          name = "seafile-egress";
+        seafile-net-egress = {
+          name = "seafile-net-egress";
           internal = false;
         };
         seafile-net = {
@@ -323,12 +323,12 @@ in
     assert
       services'.seafile.networks == [
         "seafile-net"
-        "seafile-egress"
+        "seafile-net-egress"
       ];
     assert
       services'.onlyoffice.networks == [
         "seafile-net"
-        "seafile-egress"
+        "seafile-net-egress"
       ];
     assert pkgs.lib.all (name: services'.${name}.networks == [ "seafile-net" ]) [
       "database"
@@ -546,6 +546,9 @@ in
     assert pkgs.lib.hasInfix "/run/seafile-app" seafile.runtimeConfigContractText;
     assert pkgs.lib.hasInfix "/run/seafile-metadata" seafile.runtimeConfigContractText;
     assert pkgs.lib.hasInfix "RuntimeDirectoryPreserve" seafile.runtimeConfigContractText;
+    assert pkgs.lib.hasInfix "--container-project" seafile.renderRuntimeConfigScript;
+    assert pkgs.lib.hasInfix "label=com.docker.compose.project=$container_project"
+      seafile.renderRuntimeConfigScript;
     pkgs.runCommand "seafile-secret-contract" { } ''
       touch "$out"
     '';
@@ -562,6 +565,24 @@ in
       ''
         ${./tests/seafile-identity-boundary.sh} \
           ${./.}/scripts/validate-seafile-identities.sh
+        touch "$out"
+      '';
+
+  seafile-restore-identity-contract =
+    let
+      identify = pkgs.writeText "seafile-restore-identify-native-admin.py" seafile.restoreIdentifyNativeAdminScript;
+      reset = pkgs.writeText "seafile-restore-reset-native-admin.py" seafile.restoreResetNativeAdminScript;
+      verify = pkgs.writeText "seafile-restore-verify-native-admin.py" seafile.restoreVerifyNativeAdminScript;
+    in
+    pkgs.runCommand "seafile-restore-identity-contract"
+      {
+        nativeBuildInputs = [ pkgs.python3 ];
+      }
+      ''
+        python ${./tests/seafile-restore-identity.py} \
+          --identify ${identify} \
+          --reset ${reset} \
+          --verify ${verify}
         touch "$out"
       '';
 
@@ -798,6 +819,22 @@ in
 
   seafile-backup-state-machine-contract =
     let
+      restoreIdentify = pkgs.writeText "seafile-restore-identify-native-admin.py" seafile.restoreIdentifyNativeAdminScript;
+      restoreReset = pkgs.writeText "seafile-restore-reset-native-admin.py" seafile.restoreResetNativeAdminScript;
+      restoreVerifyIdentity = pkgs.writeText "seafile-restore-verify-native-admin.py" seafile.restoreVerifyNativeAdminScript;
+      restoreVerifyText =
+        builtins.replaceStrings
+          [
+            (toString seafile.restoreIdentifyNativeAdminFile)
+            (toString seafile.restoreResetNativeAdminFile)
+            (toString seafile.restoreVerifyNativeAdminFile)
+          ]
+          [
+            (toString restoreIdentify)
+            (toString restoreReset)
+            (toString restoreVerifyIdentity)
+          ]
+          seafile.restoreVerifyScript;
       mkBackupHelper =
         name: text: inputs:
         pkgs.writeShellApplication {
@@ -810,6 +847,7 @@ in
             pkgs.gnused
             pkgs.jq
             pkgs.openssl
+            pkgs.procps
             pkgs.util-linux
           ]
           ++ inputs;
@@ -824,7 +862,11 @@ in
       restorePrepare =
         mkBackupHelper "seafile-restore-prepare-under-test" seafile.restorePrepareScript
           [ ];
-      restoreVerify = mkBackupHelper "seafile-restore-verify-under-test" seafile.restoreVerifyScript [ ];
+      restoreVerify = mkBackupHelper "seafile-restore-verify-under-test" restoreVerifyText [
+        restoreIdentify
+        restoreReset
+        restoreVerifyIdentity
+      ];
       restoreTeardown =
         mkBackupHelper "seafile-restore-teardown-under-test" seafile.restoreTeardownScript
           [ ];
@@ -835,6 +877,7 @@ in
           pkgs.bash
           pkgs.coreutils
           pkgs.gnugrep
+          pkgs.jq
         ];
       }
       ''
@@ -854,6 +897,7 @@ in
       contract = seafile.backupContractText;
       borgmatic = wardenConfig.services.borgmatic.settings;
       commands = builtins.toJSON borgmatic.commands;
+      restoreInvocationLabel = "\${SEAFILE_RESTORE_INVOCATION:?SEAFILE_RESTORE_INVOCATION is required}";
       backupPackageNames = [
         "seafile-backup-cleanup"
         "seafile-backup-prepare"
@@ -887,6 +931,9 @@ in
     assert seafile.restoreComposeConfig.services.seafile.ports == [ ];
     assert seafile.restoreComposeConfig.services.onlyoffice.ports == [ ];
     assert seafile.restoreComposeConfig.services.notification.ports == [ ];
+    assert pkgs.lib.all (
+      service: service.labels."shulker.seafile.restore-invocation" == restoreInvocationLabel
+    ) (builtins.attrValues seafile.restoreComposeConfig.services);
     assert
       seafile.restoreComposeConfig.services.proxy.ports == [
         "127.0.0.1:24239:443/tcp"
@@ -906,9 +953,12 @@ in
     assert pkgs.lib.hasInfix "seafile-restore-net" contract;
     assert pkgs.lib.hasInfix "https://files.restore.invalid:24239" contract;
     assert pkgs.lib.hasInfix "https://office.restore.invalid:24240" contract;
-    assert pkgs.lib.hasInfix "DynamicUser" contract;
-    assert pkgs.lib.hasInfix "--sandbox" contract;
-    assert !(pkgs.lib.hasInfix "--no-sandbox" contract);
+    assert pkgs.lib.hasInfix "--backup-set" contract;
+    assert pkgs.lib.hasInfix "--no-recreate" contract;
+    assert pkgs.lib.hasInfix "--container-project" contract;
+    assert pkgs.lib.hasInfix "SEAFILE_RESTORE_NATIVE_MODE=reset" contract;
+    assert !(pkgs.lib.hasInfix "reset-admin.sh" contract);
+    assert pkgs.lib.hasInfix "backup manifest or release matrix is incompatible" contract;
     assert !(pkgs.lib.hasInfix "--ignore-certificate-errors" contract);
     assert !(pkgs.lib.hasInfix "/storage/flash/immich" contract);
     assert !(pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_PASSWORD=" contract);
@@ -1049,7 +1099,7 @@ in
           'OpenCloud remains enabled as the rollback path' \
           'Immich is the sole authoritative store' \
           'no documented server-side switch that enforces this preference' \
-          'They do not extract archive data automatically' \
+          'They do not extract archive data or automate browser login' \
           'OpenCloud removal and dataset deletion are separate, destructive, approval-gated work'
         do
           grep -F -- "$policy" "$seafile_readme_text" >/dev/null
@@ -1593,6 +1643,7 @@ in
           self.checks.${system}.seafile-secret-contract
           self.checks.${system}.seafile-stack-contract
           self.checks.${system}.seafile-identity-boundary-contract
+          self.checks.${system}.seafile-restore-identity-contract
           self.checks.${system}.seafile-bootstrap-contract
           self.checks.${system}.seafile-maintenance-contract
           self.checks.${system}.seafile-backup-state-machine-contract
