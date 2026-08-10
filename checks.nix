@@ -528,6 +528,16 @@ in
     let
       settings = pkgs.writeText "seahub_settings.py" seafile.seahubSettingsText;
       contract = seafile.bootstrapContractText;
+      revokeStart = "from django.contrib.sessions.models import Session";
+      revokeAfterStart = builtins.elemAt (pkgs.lib.splitString revokeStart contract) 1;
+      revokeBody = builtins.unsafeDiscardStringContext (
+        builtins.elemAt (pkgs.lib.splitString "\nfrom seaserv import ccnet_api" revokeAfterStart) 0
+      );
+      revokeScript = pkgs.writeText "seafile-revoke-oauth-admin.py" ''
+        import os
+
+        ${revokeStart}${revokeBody}
+      '';
     in
     assert pkgs.lib.all (name: builtins.elem name systemPackageNames) seafileBootstrapPackageNames;
     assert builtins.length seafileBootstrapPackages == builtins.length seafileBootstrapPackageNames;
@@ -619,6 +629,8 @@ in
         }
         assert settings["ONLYOFFICE_JWT_SECRET"] == "fixture-office-secret"
         PY
+
+        python ${./tests/seafile-revoke-admin.py} ${revokeScript}
 
         touch "$out"
       '';

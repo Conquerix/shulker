@@ -84,7 +84,7 @@ let
     from seahub.auth.models import SocialAuthUser
     from seahub.base.accounts import User
     from seahub.role_permissions.models import AdminRole
-    from seahub.utils import clear_token
+    from seahub.utils import inactive_user
 
     user_id = int(os.environ["SEAFILE_ADMIN_USER_ID"])
     user = User.objects.get(id=user_id)
@@ -106,7 +106,7 @@ let
     with transaction.atomic():
         Session.objects.filter(session_key__in=session_keys).delete()
         AdminRole.objects.filter(email=user.username).delete()
-        clear_token(user.username)
+        inactive_user(user.username)
         user.password = user.enc_password
         user.is_staff = False
         user.is_active = False
