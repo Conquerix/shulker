@@ -1265,12 +1265,19 @@ Dependabot groups updates to pinned GitHub Actions into weekly pull requests.
 | Publish infrastructure Wiki | Relevant push, weekly, or manual | Republishes evaluated reports and sanitized topology |
 | Update flake inputs | Weekly or manual | Opens or refreshes a validated dependency pull request |
 | Check Paperless-ngx release | Weekly or manual | Opens or refreshes one marked review issue when upstream is newer |
+| Check Seafile stack releases | Weekly or manual | Opens or refreshes one marked review issue when a reviewed component is newer |
 
 The Paperless monitor is deliberately non-deploying: it cannot write repository
 contents and never edits pins, commits code, or touches Warden. Its issue asks
 the reviewer to treat the Paperless-ngx, PostgreSQL, Valkey, Gotenberg, and Tika
 tags and immutable digests as one compatibility set, then perform the documented
 export, backup, validation, and checked deployment sequence.
+
+The Seafile stack monitor is likewise non-deploying. It compares the evaluated
+Seafile, MariaDB, Redis, SeaSearch, Notification, Metadata, and OnlyOffice
+release matrix with their reviewed upstream release lines, then maintains one
+marker-owned compatibility-review issue. It never edits pins, commits, pushes,
+opens a pull request, deploys, or mutates a host.
 
 See the [automation guide](.github/README.md) for workflow triggers,
 permissions, and Wiki synchronization behavior.

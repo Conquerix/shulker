@@ -37,6 +37,30 @@ validation, and deployment review checklist. It never changes the repository
 or a host. Review all five pinned images—Paperless-ngx, PostgreSQL, Valkey,
 Gotenberg, and Tika—as one compatibility set before upgrading.
 
+## Seafile stack release reviews
+
+[`workflows/check-seafile-release.yml`](workflows/check-seafile-release.yml)
+runs every Monday and on demand. It reads the evaluated Warden release matrix
+once, then checks the official Docker Hub tag API independently for stable
+Seafile, MariaDB 10.11, Redis 7.4, SeaSearch 1.0, Notification 13.0, Metadata
+13.0, and OnlyOffice 9.4 releases.
+
+When a component is newer within its reviewed release line, the workflow
+creates or refreshes one open issue carrying the
+`<!-- seafile-release-monitor -->` ownership marker and the title
+`chore: review Seafile stack updates`. It checks the marker before editing, so
+a similarly titled human-authored issue is never changed. The issue records
+every configured and detected version, links to upstream release information,
+and provides compatibility, migration, security, backup, restore-rehearsal,
+digest-refresh, validation, deployment-approval, and post-deployment review
+items.
+
+The workflow never edits image pins. It has only `contents: read` and
+`issues: write`, and never commits or pushes repository changes, opens a pull
+request, deploys, or mutates a host. The regular checks and flake-update validation explicitly build
+the build-backed `seafile-contract-suite`; all live changes remain separate,
+reviewed operator actions.
+
 ## Server Wiki
 
 [`workflows/wiki.yml`](workflows/wiki.yml) rebuilds the host reports after

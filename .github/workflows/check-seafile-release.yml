@@ -1,0 +1,146 @@
+name: Check Seafile stack releases
+
+on:
+  schedule:
+    - cron: "43 5 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: seafile-release-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+      - name: Compare configured and upstream releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          configured_json="$(
+            nix eval --json \
+              .#nixosConfigurations.warden.config.shulker.system.modules.seafile.releaseVersions
+          )"
+          components=(seafile mariadb redis seasearch notification metadata onlyoffice)
+          declare -A repositories=(
+            [seafile]='seafileltd/seafile-pro-mc'
+            [mariadb]='library/mariadb'
+            [redis]='library/redis'
+            [seasearch]='seafileltd/seasearch'
+            [notification]='seafileltd/notification-server'
+            [metadata]='seafileltd/seafile-md-server'
+            [onlyoffice]='onlyoffice/documentserver'
+          )
+          declare -A stable_patterns=(
+            [seafile]='^13[.]0[.][0-9]+$'
+            [mariadb]='^10[.]11[.][0-9]+$'
+            [redis]='^7[.]4[.][0-9]+-alpine$'
+            [seasearch]='^1[.]0[.][0-9]+$'
+            [notification]='^13[.]0[.][0-9]+$'
+            [metadata]='^13[.]0[.][0-9]+$'
+            [onlyoffice]='^9[.]4[.][0-9]+[.][0-9]+$'
+          )
+          declare -A release_links=(
+            [seafile]='https://manual.seafile.com/latest/upgrade/'
+            [mariadb]='https://mariadb.com/docs/release-notes/community-server/'
+            [redis]='https://github.com/redis/redis/releases'
+            [seasearch]='https://hub.docker.com/r/seafileltd/seasearch/tags'
+            [notification]='https://hub.docker.com/r/seafileltd/notification-server/tags'
+            [metadata]='https://hub.docker.com/r/seafileltd/seafile-md-server/tags'
+            [onlyoffice]='https://github.com/ONLYOFFICE/DocumentServer/blob/master/CHANGELOG.md'
+          )
+          declare -A configured detected_tags
+
+          normalized_version() { printf '%s\n' "${1%-alpine}"; }
+          newer_than() {
+            local current candidate newest
+            current="$(normalized_version "$1")"
+            candidate="$(normalized_version "$2")"
+            [ "$current" != "$candidate" ] || return 1
+            newest="$(printf '%s\n%s\n' "$current" "$candidate" | sort -V | tail -1)"
+            [ "$newest" = "$candidate" ]
+          }
+          latest_stable_tag() {
+            local repository="$1" pattern="$2"
+            curl --fail --silent --show-error --retry 3 \
+              "https://hub.docker.com/v2/repositories/$repository/tags?page_size=100&ordering=last_updated" |
+              jq -r '.results[].name' |
+              grep -E "$pattern" |
+              sort -V |
+              tail -1
+          }
+
+          updates=0
+          for component in "${components[@]}"; do
+            configured[$component]="$(jq -r --arg component "$component" '.[$component]' <<<"$configured_json")"
+            [ -n "${configured[$component]}" ] && [ "${configured[$component]}" != null ]
+            detected_tags[$component]="$(latest_stable_tag \
+              "${repositories[$component]}" "${stable_patterns[$component]}")"
+            [ -n "${detected_tags[$component]}" ]
+            if newer_than "${configured[$component]}" "${detected_tags[$component]}"; then
+              updates=$((updates + 1))
+            fi
+          done
+          if [ "$updates" -eq 0 ]; then
+            echo "Every configured Seafile stack component is current within its reviewed release line."
+            exit 0
+          fi
+
+          marker='<!-- seafile-release-monitor -->'
+          issue_title='chore: review Seafile stack updates'
+          body_file="$RUNNER_TEMP/seafile-release-issue.md"
+          {
+            printf '%s\n' "$marker"
+            printf '%s\n\n' 'The weekly release monitor found Seafile stack versions to review.'
+            printf '%s\n' '| Component | Configured | Latest stable in reviewed line | Upstream |'
+            printf '%s\n' '| --- | --- | --- | --- |'
+            for component in "${components[@]}"; do
+              printf '| `%s` | `%s` | `%s` | [release notes/tags](%s) |\n' \
+                "$component" "${configured[$component]}" "${detected_tags[$component]}" \
+                "${release_links[$component]}"
+            done
+            cat <<'EOF'
+
+          This is a review reminder only. The workflow does not edit pins, refresh image digests, create a pull request, deploy, or restart the stack.
+
+          Compatibility, recovery, and rollout checklist:
+
+          - [ ] Review every component's changelog, migration guidance, and security notes.
+          - [ ] Confirm the seven candidate releases remain a compatible Linux/amd64 stack.
+          - [ ] Run a fresh ownership-safe Borg backup and verify its validated quiesced dump set.
+          - [ ] Complete an isolated restore rehearsal from the prospective archive.
+          - [ ] Resolve and review every image's new immutable digest.
+          - [ ] Update the evaluated release matrix and all seven pins in one reviewed commit.
+          - [ ] Run the focused Seafile contract suite and required repository validation.
+          - [ ] Obtain approval before deploying through the checked rebuild path.
+          - [ ] Repeat local health, schema, search, OnlyOffice, backup, and client checks after deployment.
+          EOF
+          } >"$body_file"
+
+          managed_issue=''
+          while IFS= read -r issue_number; do
+            issue_body="$(gh issue view "$issue_number" --json body --jq .body)"
+            if grep -F -- "$marker" <<<"$issue_body" >/dev/null; then
+              managed_issue="$issue_number"
+              break
+            fi
+          done < <(
+            gh issue list --state open --limit 100 --json number,title \
+              --jq ".[] | select(.title == \"$issue_title\") | .number"
+          )
+          if [ -n "$managed_issue" ]; then
+            gh issue edit "$managed_issue" --title "$issue_title" --body-file "$body_file"
+            echo "Updated managed issue #$managed_issue."
+          else
+            gh issue create --title "$issue_title" --body-file "$body_file"
+          fi

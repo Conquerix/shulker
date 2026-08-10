@@ -23,6 +23,8 @@ jobs:
         run: nix flake check --no-build --all-systems
       - name: Run repository checks
         run: nix build --no-link .#checks.x86_64-linux.pre-commit-check
+      - name: Run Seafile contract suite
+        run: nix build --no-link .#checks.x86_64-linux.seafile-contract-suite
       - name: Build generated Wiki documentation
         run: |
           nix build .#host-docs --out-link host-docs-result

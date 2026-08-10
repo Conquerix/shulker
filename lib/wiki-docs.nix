@@ -448,6 +448,7 @@ let
     | [Publish infrastructure Wiki](https://github.com/Conquerix/shulker/actions/workflows/wiki.yml) | Relevant push, weekly schedule, manual | Refreshes Pangolin data and synchronizes generated Wiki pages |
     | [Update flake inputs](https://github.com/Conquerix/shulker/actions/workflows/update-flake.yml) | Weekly schedule, manual | Opens or refreshes a validated dependency-update pull request |
     | [Check Paperless-ngx release](https://github.com/Conquerix/shulker/actions/workflows/check-paperless-release.yml) | Weekly schedule, manual | Opens or refreshes one marked review issue when upstream is newer; never deploys |
+    | [Check Seafile stack releases](https://github.com/Conquerix/shulker/actions/workflows/check-seafile-release.yml) | Weekly or manual | Opens or refreshes one marker-owned compatibility-review issue; non-deploying |
     | Dependabot | Weekly | Groups pinned GitHub Action updates into pull requests |
 
     ## Documentation pipeline

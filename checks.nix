@@ -1422,6 +1422,171 @@ in
     touch "$out"
   '';
 
+  seafile-release-workflow-contract =
+    pkgs.runCommand "seafile-release-workflow-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.gawk
+          pkgs.gnugrep
+        ];
+      }
+      ''
+        workflow=${./.}/.github/workflows/check-seafile-release.yml
+        check_workflow=${./.}/.github/workflows/check.yml
+        update_workflow=${./.}/.github/workflows/update-flake.yml
+        root_readme=${./README.md}
+        github_readme=${./.github/README.md}
+        wiki_automation=${wikiDocs}/Automation.md
+
+        test -f "$workflow"
+
+        test "$(grep -F -c -- 'workflow_dispatch:' "$workflow")" -eq 1
+        test "$(grep -F -c -- 'cron: "43 5 * * 1"' "$workflow")" -eq 1
+
+        concurrency="$TMPDIR/seafile-release-concurrency"
+        awk '
+          $0 == "concurrency:" { in_block = 1; next }
+          $0 == "permissions:" { in_block = 0 }
+          in_block && NF { print }
+        ' "$workflow" > "$concurrency"
+        test "$(wc -l < "$concurrency")" -eq 2
+        grep -F -x -- '  group: seafile-release-monitor' "$concurrency" >/dev/null
+        grep -F -x -- '  cancel-in-progress: false' "$concurrency" >/dev/null
+
+        permissions="$TMPDIR/seafile-release-permissions"
+        awk '
+          $0 == "permissions:" { in_block = 1; next }
+          $0 == "jobs:" { in_block = 0 }
+          in_block && NF { print }
+        ' "$workflow" > "$permissions"
+        test "$(wc -l < "$permissions")" -eq 2
+        grep -F -x -- '  contents: read' "$permissions" >/dev/null
+        grep -F -x -- '  issues: write' "$permissions" >/dev/null
+
+        test "$(grep -E -c '^[[:space:]]*- uses:' "$workflow")" -eq 2
+        test "$(grep -E -c '^[[:space:]]*- uses: [^@]+@[0-9a-f]{40}( # .*)?$' "$workflow")" -eq 2
+        grep -F -- \
+          'actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2' \
+          "$workflow" >/dev/null
+        grep -F -- \
+          'cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0' \
+          "$workflow" >/dev/null
+
+        test "$(grep -F -c -- 'nix eval --json' "$workflow")" -eq 1
+        test "$(grep -F -c -- '.#nixosConfigurations.warden.config.shulker.system.modules.seafile.releaseVersions' "$workflow")" -eq 1
+        grep -F -- \
+          'components=(seafile mariadb redis seasearch notification metadata onlyoffice)' \
+          "$workflow" >/dev/null
+        grep -F -- 'https://hub.docker.com/v2/repositories/$repository/tags' "$workflow" >/dev/null
+        grep -F -- 'for component in "''${components[@]}"' "$workflow" >/dev/null
+        grep -F -- 'configured[$component]' "$workflow" >/dev/null
+        grep -F -- 'detected_tags[$component]' "$workflow" >/dev/null
+
+        for expected in \
+          "[seafile]='seafileltd/seafile-pro-mc'" \
+          "[mariadb]='library/mariadb'" \
+          "[redis]='library/redis'" \
+          "[seasearch]='seafileltd/seasearch'" \
+          "[notification]='seafileltd/notification-server'" \
+          "[metadata]='seafileltd/seafile-md-server'" \
+          "[onlyoffice]='onlyoffice/documentserver'" \
+          "[seafile]='^13[.]0[.][0-9]+$'" \
+          "[mariadb]='^10[.]11[.][0-9]+$'" \
+          "[redis]='^7[.]4[.][0-9]+-alpine$'" \
+          "[seasearch]='^1[.]0[.][0-9]+$'" \
+          "[notification]='^13[.]0[.][0-9]+$'" \
+          "[metadata]='^13[.]0[.][0-9]+$'" \
+          "[onlyoffice]='^9[.]4[.][0-9]+[.][0-9]+$'"
+        do
+          grep -F -- "$expected" "$workflow" >/dev/null
+        done
+
+        test "$(grep -F -c -- '<!-- seafile-release-monitor -->' "$workflow")" -eq 1
+        test "$(grep -F -c -- 'chore: review Seafile stack updates' "$workflow")" -eq 1
+        for expected in \
+          'gh issue list --state open' \
+          'select(.title == \"$issue_title\")' \
+          'if grep -F -- "$marker" <<<"$issue_body"' \
+          'gh issue edit "$managed_issue"' \
+          'gh issue create --title "$issue_title"'
+        do
+          grep -F -- "$expected" "$workflow" >/dev/null
+        done
+
+        for expected in \
+          'Check Seafile stack releases' \
+          'weekly or manual' \
+          'non-deploying'
+        do
+          grep -F -i -- "$expected" "$root_readme" >/dev/null
+          grep -F -i -- "$expected" "$wiki_automation" >/dev/null
+        done
+        for expected in \
+          'every Monday and on demand' \
+          'contents: read' \
+          'issues: write' \
+          'official Docker Hub tag API' \
+          '<!-- seafile-release-monitor -->' \
+          'similarly titled human-authored issue is never changed' \
+          'never edits image pins' \
+          'mutates a host'
+        do
+          grep -F -i -- "$expected" "$github_readme" >/dev/null
+        done
+
+        suite_command='nix build --no-link .#checks.x86_64-linux.seafile-contract-suite'
+        grep -F -- "$suite_command" "$check_workflow" >/dev/null
+        grep -F -- "$suite_command" "$update_workflow" >/dev/null
+
+        for forbidden in \
+          'contents: write' \
+          'pull-requests: write' \
+          'git add' \
+          'git apply' \
+          'git checkout' \
+          'git commit' \
+          'git push' \
+          'git switch' \
+          'nixos-rebuild' \
+          'ssh ' \
+          'op://' \
+          '1password' \
+          'pocket id' \
+          'pangolin'
+        do
+          if grep -F -i -- "$forbidden" "$workflow" >/dev/null; then
+            echo "Seafile release monitor contains forbidden access or mutation: $forbidden" >&2
+            exit 1
+          fi
+        done
+
+        touch "$out"
+      '';
+
+  seafile-contract-suite =
+    pkgs.runCommand "seafile-contract-suite"
+      {
+        contractInputs = [
+          self.checks.${system}.seafile-core-contract
+          self.checks.${system}.seafile-runtime-state-machine-contract
+          self.checks.${system}.seafile-secret-contract
+          self.checks.${system}.seafile-stack-contract
+          self.checks.${system}.seafile-identity-boundary-contract
+          self.checks.${system}.seafile-bootstrap-contract
+          self.checks.${system}.seafile-maintenance-contract
+          self.checks.${system}.seafile-backup-state-machine-contract
+          self.checks.${system}.seafile-backup-contract
+          self.checks.${system}.seafile-docs-contract
+          self.checks.${system}.seafile-release-workflow-contract
+        ];
+      }
+      ''
+        for contract in $contractInputs; do
+          test -e "$contract"
+        done
+        touch "$out"
+      '';
+
   pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
     src = ./.;
     default_stages = [ "pre-commit" ];
