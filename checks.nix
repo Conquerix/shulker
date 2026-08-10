@@ -12,6 +12,8 @@ let
   borgmaticService = services.borgmatic;
   pullService = services."immich-image-pull";
   composeService = services."immich-compose";
+  seafile = wardenConfig.shulker.system.modules.seafile;
+  seafileStateService = services."seafile-state";
   paperless = wardenConfig.shulker.system.modules.paperless;
   paperlessFastmailRoutesFilter = paperless.fastmailRoutesFilter;
   paperlessComposeService = services."paperless-compose";
@@ -79,6 +81,102 @@ in
     pkgs.runCommand "immich-service-contract" { } ''
       touch "$out"
     '';
+
+  seafile-core-contract =
+    assert seafile.enable;
+    assert seafile.version == "13.0.25";
+    assert seafile.licenseUserLimit == 3;
+    assert seafile.stateDir == "/storage/flash/seafile";
+    assert seafile.dataset == "flash_pool/flash/storage/seafile";
+    assert seafile.datasetQuotaBytes == 1649267441664;
+    assert seafile.bindAddress == "127.0.0.1";
+    assert seafile.port == 23239;
+    assert seafile.onlyOfficePort == 23240;
+    assert seafile.notificationPort == 23241;
+    assert seafile.publicUrl == "https://files.shulker.link";
+    assert seafile.onlyOfficePublicUrl == "https://office.shulker.link";
+    assert seafile.oidcIssuer == "https://sso.shulker.link";
+    assert seafile.oauthCallbackUrl == "https://files.shulker.link/oauth/callback/";
+    assert seafile.notificationPublicUrl == "https://files.shulker.link/notification";
+    assert seafile.notificationInternalUrl == "http://seafile-notification:8083";
+    assert seafile.onlyOfficeApiUrl == "https://office.shulker.link/web-apps/apps/api/documents/api.js";
+    assert seafile.metadataFileCountLimit == 100000;
+    assert seafile.metadataCacheSize == "1GB";
+    assert seafile.metadataCheckUpdateInterval == "30m";
+    assert seafile.logicalDumpRetention == 14;
+    assert
+      seafile.editableExtensions == [
+        "docx"
+        "xlsx"
+        "pptx"
+        "csv"
+      ];
+    assert
+      seafile.seafileImage
+      == "docker.io/seafileltd/seafile-pro-mc:13.0.25@sha256:82fa05a844303912066a7ded86864dbf6fb45273f08f6448a0842863beefabb4";
+    assert
+      seafile.databaseImage
+      == "docker.io/library/mariadb:10.11.18@sha256:992d5668eb9a5f153253c2f13d4e72717b7c24a27f271f47647af3b7e5a3c109";
+    assert
+      seafile.redisImage
+      == "docker.io/library/redis:7.4.10-alpine@sha256:9702d01c1f10c3ea9f48211b4362e44f154ff02d063e6f7268eba804059f53bf";
+    assert
+      seafile.seasearchImage
+      == "docker.io/seafileltd/seasearch:1.0.4@sha256:192284f4f2fe7ca879fdfb8301dd0ebc6a5da6efaa4a99c53febfad8a75b7edc";
+    assert
+      seafile.notificationImage
+      == "docker.io/seafileltd/notification-server:13.0.21@sha256:be7b6c6887b921a86ec4990c0c8b0b57f7f5ba3046dcf0adb007bbc80abaec86";
+    assert
+      seafile.metadataImage
+      == "docker.io/seafileltd/seafile-md-server:13.0.22@sha256:8ccee7ea9139c288a24bf1d7e29c5a1579256ee5f887eb93967e790f571eb973";
+    assert
+      seafile.onlyOfficeImage
+      == "docker.io/onlyoffice/documentserver:9.4.0.1@sha256:e231bc62da8c1f0c1f78188f8c7e17e67716f38955d0ad1d703cf911ad6db84b";
+    assert pkgs.lib.all (image: pkgs.lib.hasInfix "@sha256:" image) [
+      seafile.seafileImage
+      seafile.databaseImage
+      seafile.redisImage
+      seafile.seasearchImage
+      seafile.notificationImage
+      seafile.metadataImage
+      seafile.onlyOfficeImage
+    ];
+    assert builtins.hasAttr "seafile-state" services;
+    assert seafileStateService.unitConfig.RequiresMountsFor == seafile.stateDir;
+    assert
+      wardenConfig.services.onepassword-secrets.secrets.seafileEnv.services == [
+        "seafile-config"
+        "seafile-image-pull"
+        "seafile-compose"
+      ];
+    pkgs.runCommand "seafile-core-contract" { } ''
+      touch "$out"
+    '';
+
+  seafile-runtime-state-machine-contract =
+    let
+      validator = pkgs.writeText "seafile-validate-state-under-test" ''
+        ${seafile.validateStateScript}
+      '';
+      validatorPackage = pkgs.writeShellApplication {
+        name = "seafile-validate-state-contract-wrapper";
+        text = seafile.validateStateScript;
+      };
+    in
+    pkgs.runCommand "seafile-runtime-state-machine-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnused
+          validatorPackage
+        ];
+      }
+      ''
+        ${./tests/seafile-runtime-state-machine.sh} ${validator}
+        touch "$out"
+      '';
 
   paperless-core-contract =
     assert paperless.enable;

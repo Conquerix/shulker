@@ -89,6 +89,19 @@
           publicUrl = "https://documents.shulker.link";
           oidcIssuer = "https://sso.shulker.link";
         };
+        seafile = {
+          enable = true;
+          stateDir = "/storage/flash/seafile";
+          dataset = "flash_pool/flash/storage/seafile";
+          datasetQuotaBytes = 1649267441664;
+          bindAddress = "127.0.0.1";
+          port = 23239;
+          onlyOfficePort = 23240;
+          notificationPort = 23241;
+          publicUrl = "https://files.shulker.link";
+          onlyOfficePublicUrl = "https://office.shulker.link";
+          oidcIssuer = "https://sso.shulker.link";
+        };
         torrent = {
           enable = true;
           downloadDir = "/storage/hdd/torrents";
