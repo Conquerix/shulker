@@ -312,7 +312,7 @@ let
           exit 70
         fi
         if [ "''${#running_services_before[@]}" -gt 0 ] \
-          && ! compose_established up --detach "''${running_services_before[@]}"; then
+          && ! compose_established up --detach --no-deps "''${running_services_before[@]}"; then
           echo "Seafile stack orchestration failed: failure recovery could not restore the entry stack" >&2
           exit 70
         fi

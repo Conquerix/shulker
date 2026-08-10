@@ -1030,6 +1030,15 @@ if [ "$1" = compose ]; then
     && [ "${services[*]:-}" = "seafile database" ]; then
     exit 1
   fi
+  if [ "${STUB_FAIL_AUTO_DEPS:-0}" = 1 ] \
+    && [ "${services[*]:-}" = seafile ] \
+    && [[ " $* " != *" --no-deps "* ]]; then
+    add_line "${STUB_CONTAINER_FILE:?}" seafile-mariadb
+    add_line "${STUB_CONTAINER_FILE:?}" seafile-redis
+    add_line "${STUB_RUNNING_FILE:?}" seafile-mariadb
+    add_line "${STUB_RUNNING_FILE:?}" seafile-redis
+    exit 1
+  fi
   if [ "${#services[@]}" -eq 0 ]; then
     services=(database metadata notification onlyoffice redis seafile seasearch)
   fi
@@ -1108,8 +1117,8 @@ EOF
 	export STUB_INSPECT_ENV_KEYS="INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD"
 	export STUB_SYSTEMD_ACTIVE=0
 	unset STUB_CAPTURE_MAX_BYTES STUB_DOCKER_LOG_CONTENT STUB_DOCKER_LOG_PAD_BYTES \
-		STUB_FAIL_RESTORE STUB_FAIL_STAGE STUB_FAIL_FINAL_ONCE STUB_JOURNAL_CONTENT \
-		STUB_JOURNAL_PAD_BYTES
+		STUB_FAIL_AUTO_DEPS STUB_FAIL_RESTORE STUB_FAIL_STAGE STUB_FAIL_FINAL_ONCE \
+		STUB_JOURNAL_CONTENT STUB_JOURNAL_PAD_BYTES
 }
 
 run_stack_helper() {
@@ -1148,6 +1157,26 @@ done
 grep -F -- '--force-recreate database seasearch' "$stack_log" >/dev/null
 grep -F -- '--env-file '"$stack_host/environment" "$stack_log" >/dev/null
 
+# Rollback restores an exact running set without Compose dependency traversal.
+# With only Seafile running on entry, MariaDB and Redis remain stopped.
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+printf '%s\n' seafile seafile-mariadb seafile-redis >"$STUB_CONTAINER_FILE"
+printf '%s\n' seafile >"$STUB_RUNNING_FILE"
+export STUB_FAIL_AUTO_DEPS=1 STUB_FAIL_FINAL_ONCE=1
+no_deps_output="$stack_root/no-deps-output"
+if run_stack_helper start >"$no_deps_output" 2>&1; then
+	echo "startup unexpectedly succeeded after the injected final failure" >&2
+	exit 1
+fi
+if grep -F 'failure recovery could not restore the entry stack' "$no_deps_output"; then
+	echo "rollback allowed Compose to traverse stopped dependencies" >&2
+	exit 1
+fi
+grep -F -- 'up --detach --no-deps seafile' "$stack_log" >/dev/null
+printf '%s\n' seafile >"$stack_root/expected-running"
+cmp "$stack_root/expected-running" "$STUB_RUNNING_FILE"
+
 # Mid-stage failure stops work started by this invocation. When the unit owned
 # an established stack on entry, only those exact known containers are brought
 # back through Compose; Docker start is never used.
@@ -1158,7 +1187,7 @@ printf '%s\n' seafile seafile-mariadb seafile-metadata seafile-notification \
 printf '%s\n' seafile seafile-mariadb >"$STUB_RUNNING_FILE"
 export STUB_FAIL_FINAL_ONCE=1
 expect_failure run_stack_helper start
-grep -F -- 'up --detach seafile database' "$stack_log" >/dev/null
+grep -F -- 'up --detach --no-deps seafile database' "$stack_log" >/dev/null
 if grep -F -- 'up --detach seafile seafile-mariadb' "$stack_log"; then
 	echo "failure recovery passed container names to Compose" >&2
 	exit 1
