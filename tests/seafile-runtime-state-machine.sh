@@ -17,6 +17,7 @@ quota="1649267441664"
 
 mkdir -p "$state_dir" "$stub_dir"
 real_mv="$(command -v mv)"
+real_rmdir="$(command -v rmdir)"
 real_unlink="$(command -v unlink)"
 
 cat >"$stub_dir/findmnt" <<'EOF'
@@ -82,7 +83,7 @@ elif [ -f "$path" ]; then
   file_type="regular file"
   owner="0:0"
   case "$path" in
-    */.seafile-state-transaction) mode="600" ;;
+    */.seafile-state-transaction|*/.seafile-state-transaction.next) mode="600" ;;
     *) mode="644" ;;
   esac
 else
@@ -121,8 +122,22 @@ done
 if [ "$directory" -eq 1 ]; then
   for path in "${paths[@]}"; do
     printf '%s\t%s\t%s\t%s\n' "$mode" "$owner" "$group" "$path" >> "${STUB_INSTALL_LOG:?}"
+    mkdir -p "$path"
+    if [[ "$path" == "${STUB_STAGING_ROOT:?}/"* ]] && [ "$path" != "$STUB_STAGING_ROOT" ]; then
+      count_file="${STUB_INSTALL_COUNT_PREFIX:?}-$mode"
+      count=0
+      if [ -f "$count_file" ]; then
+        count="$(cat "$count_file")"
+      fi
+      count="$((count + 1))"
+      printf '%s\n' "$count" >"$count_file"
+      if [ "${STUB_INSTALL_CRASH_MODE:-}" = "$mode" ] \
+        && [ "$count" -eq "${STUB_INSTALL_CRASH_AFTER:-0}" ]; then
+        kill -KILL "$PPID"
+        exit 137
+      fi
+    fi
   done
-  mkdir -p "${paths[@]}"
 else
   [ "${#paths[@]}" -eq 2 ] && [ "${paths[0]}" = /dev/null ]
   printf '%s\t%s\t%s\t%s\n' "$mode" "$owner" "$group" "${paths[1]}" >> "${STUB_INSTALL_LOG:?}"
@@ -133,19 +148,34 @@ EOF
 cat >"$stub_dir/mv" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-count=0
-if [ -f "${STUB_MV_COUNT:?}" ]; then
-  count="$(cat "$STUB_MV_COUNT")"
+source_path="$2"
+destination_path="$3"
+source_phase=""
+if [ "$source_path" = "${STUB_MARKER_NEXT:?}" ] && [ -f "$source_path" ]; then
+  source_phase="$(tr -d '\n' <"$source_path")"
 fi
-count="$((count + 1))"
-printf '%s\n' "$count" > "$STUB_MV_COUNT"
-printf 'mv:%s\n' "$2" >> "${STUB_EVENT_LOG:?}"
-if [ -n "${STUB_MV_CRASH_AFTER:-}" ] && [ "$count" -eq "$STUB_MV_CRASH_AFTER" ]; then
-  "${STUB_REAL_MV:?}" "$@"
+printf 'mv:%s:%s\n' "$source_path" "$destination_path" >>"${STUB_EVENT_LOG:?}"
+"${STUB_REAL_MV:?}" "$@"
+
+if [ -n "${STUB_MV_CRASH_MARKER_PHASE:-}" ] \
+  && [ "$source_phase" = "v1 $STUB_MV_CRASH_MARKER_PHASE" ]; then
   kill -KILL "$PPID"
   exit 137
 fi
-exec "${STUB_REAL_MV:?}" "$@"
+
+if [[ "$source_path" == "${STUB_STAGING_ROOT:?}/"* ]] \
+  && [ "${source_path%/*}" = "$STUB_STAGING_ROOT" ]; then
+  count=0
+  if [ -f "${STUB_MV_COUNT:?}" ]; then
+    count="$(cat "$STUB_MV_COUNT")"
+  fi
+  count="$((count + 1))"
+  printf '%s\n' "$count" >"$STUB_MV_COUNT"
+  if [ -n "${STUB_MV_CRASH_AFTER:-}" ] && [ "$count" -eq "$STUB_MV_CRASH_AFTER" ]; then
+    kill -KILL "$PPID"
+    exit 137
+  fi
+fi
 EOF
 
 cat >"$stub_dir/sync" <<'EOF'
@@ -153,6 +183,24 @@ cat >"$stub_dir/sync" <<'EOF'
 set -euo pipefail
 [ "$#" -eq 2 ] && [ "$1" = -f ]
 printf 'sync:%s\n' "$2" >> "${STUB_EVENT_LOG:?}"
+if [ "$2" = "${STUB_MARKER_NEXT:?}" ] && [ -f "$2" ] \
+  && [ -n "${STUB_SYNC_CRASH_NEXT_PHASE:-}" ] \
+  && [ "$(tr -d '\n' <"$2")" = "v1 $STUB_SYNC_CRASH_NEXT_PHASE" ]; then
+  kill -KILL "$PPID"
+  exit 137
+fi
+EOF
+
+cat >"$stub_dir/rmdir" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+target="${*: -1}"
+printf 'rmdir:%s\n' "$target" >>"${STUB_EVENT_LOG:?}"
+"${STUB_REAL_RMDIR:?}" "$@"
+if [ "$target" = "${STUB_STAGING_ROOT:?}" ] && [ "${STUB_RMDIR_CRASH:-0}" = 1 ]; then
+  kill -KILL "$PPID"
+  exit 137
+fi
 EOF
 
 cat >"$stub_dir/unlink" <<'EOF'
@@ -169,15 +217,20 @@ chmod +x \
 	"$stub_dir/stat" \
 	"$stub_dir/install" \
 	"$stub_dir/mv" \
+	"$stub_dir/rmdir" \
 	"$stub_dir/sync" \
 	"$stub_dir/unlink"
 
 export PATH="$stub_dir:$PATH"
 export STUB_REAL_MV="$real_mv"
+export STUB_REAL_RMDIR="$real_rmdir"
 export STUB_REAL_UNLINK="$real_unlink"
 export STUB_INSTALL_LOG="$fixture_root/install.log"
+export STUB_INSTALL_COUNT_PREFIX="$fixture_root/install-count"
 export STUB_MV_COUNT="$fixture_root/mv-count"
 export STUB_EVENT_LOG="$fixture_root/events.log"
+export STUB_MARKER_NEXT="$state_dir/.seafile-state-transaction.next"
+export STUB_STAGING_ROOT="$state_dir/.seafile-state-staging"
 export STUB_FINDMNT_SOURCE="$dataset"
 export STUB_FINDMNT_FSTYPE="zfs"
 export STUB_FINDMNT_TARGET="$state_dir"
@@ -208,8 +261,10 @@ reset_state() {
 	mkdir -p "$state_dir"
 	: >"$STUB_INSTALL_LOG"
 	: >"$STUB_EVENT_LOG"
-	rm -f "$STUB_MV_COUNT"
-	unset STUB_MV_CRASH_AFTER
+	rm -f "$STUB_MV_COUNT" "$STUB_INSTALL_COUNT_PREFIX-0750" "$STUB_INSTALL_COUNT_PREFIX-0700"
+	unset STUB_INSTALL_CRASH_MODE STUB_INSTALL_CRASH_AFTER
+	unset STUB_MV_CRASH_AFTER STUB_MV_CRASH_MARKER_PHASE
+	unset STUB_SYNC_CRASH_NEXT_PHASE STUB_RMDIR_CRASH
 	unset STUB_STAT_OVERRIDE_PATH STUB_STAT_OVERRIDE_TYPE STUB_STAT_OVERRIDE_OWNER STUB_STAT_OVERRIDE_MODE
 	export STUB_FINDMNT_SOURCE="$dataset"
 	export STUB_FINDMNT_FSTYPE="zfs"
@@ -226,11 +281,12 @@ assert_install_contract() {
 	actual="$TMPDIR/actual-seafile-installs"
 	expected="$TMPDIR/expected-seafile-installs"
 	sed \
+		-e "s#$state_dir/\\.seafile-state-transaction\\.next#MARKER_NEXT#" \
 		-e "s#$state_dir/\\.seafile-state-transaction#MARKER#" \
 		-e "s#$state_dir/\\.seafile-state-staging#STAGING#" \
 		"$STUB_INSTALL_LOG" >"$actual"
 	printf '%s\n' \
-		$'0600\t0\t0\tMARKER' \
+		$'0600\t0\t0\tMARKER_NEXT' \
 		$'0700\t0\t0\tSTAGING' \
 		$'0750\t0\t0\tSTAGING/shared' \
 		$'0750\t0\t0\tSTAGING/search' \
@@ -241,6 +297,7 @@ assert_install_contract() {
 		$'0700\t0\t0\tSTAGING/database' \
 		$'0700\t0\t0\tSTAGING/backups' \
 		$'0700\t0\t0\tSTAGING/control' \
+		$'0600\t0\t0\tMARKER_NEXT' \
 		>"$expected"
 	cmp "$expected" "$actual"
 }
@@ -275,29 +332,105 @@ assert_exact_paths() {
 	cmp "$expected" "$actual"
 }
 
+assert_final_state() {
+	assert_exact_paths
+	test ! -e "$state_dir/.seafile-state-transaction"
+	test ! -e "$state_dir/.seafile-state-transaction.next"
+	test ! -e "$state_dir/.seafile-state-staging"
+}
+
+resume_initialization() {
+	unset STUB_INSTALL_CRASH_MODE STUB_INSTALL_CRASH_AFTER
+	unset STUB_MV_CRASH_AFTER STUB_MV_CRASH_MARKER_PHASE
+	unset STUB_SYNC_CRASH_NEXT_PHASE STUB_RMDIR_CRASH
+	run_validator --initialize
+	assert_final_state
+}
+
 # A pristine dataset is valid only through the first-initialization path.
 reset_state
 expect_failure run_validator
 run_validator --initialize
-assert_exact_paths
+assert_final_state
 assert_install_contract
 assert_commit_fsync_order
-test ! -e "$state_dir/.seafile-state-transaction"
-test ! -e "$state_dir/.seafile-state-staging"
 run_validator
 
-# A simulated SIGKILL during publication leaves one durable transaction to resume.
+# Every construction boundary is durable and resumes through its explicit phase.
+reset_state
+export STUB_SYNC_CRASH_NEXT_PHASE=preparing
+expect_failure run_validator --initialize
+test -f "$state_dir/.seafile-state-transaction.next"
+test ! -e "$state_dir/.seafile-state-transaction"
+resume_initialization
+
+reset_state
+export STUB_MV_CRASH_MARKER_PHASE=preparing
+expect_failure run_validator --initialize
+test -f "$state_dir/.seafile-state-transaction"
+test "$(tr -d '\n' <"$state_dir/.seafile-state-transaction")" = "v1 preparing"
+resume_initialization
+
+for preparing_crash in 0750:3 0700:2; do
+	reset_state
+	export STUB_INSTALL_CRASH_MODE="${preparing_crash%%:*}"
+	export STUB_INSTALL_CRASH_AFTER="${preparing_crash##*:}"
+	expect_failure run_validator --initialize
+	test -f "$state_dir/.seafile-state-transaction"
+	test "$(tr -d '\n' <"$state_dir/.seafile-state-transaction")" = "v1 preparing"
+	resume_initialization
+done
+
+reset_state
+export STUB_SYNC_CRASH_NEXT_PHASE=publishing
+expect_failure run_validator --initialize
+test -f "$state_dir/.seafile-state-transaction"
+test -f "$state_dir/.seafile-state-transaction.next"
+test "$(tr -d '\n' <"$state_dir/.seafile-state-transaction")" = "v1 preparing"
+test "$(tr -d '\n' <"$state_dir/.seafile-state-transaction.next")" = "v1 publishing"
+resume_initialization
+
+reset_state
+export STUB_MV_CRASH_MARKER_PHASE=publishing
+expect_failure run_validator --initialize
+test -f "$state_dir/.seafile-state-transaction"
+test ! -e "$state_dir/.seafile-state-transaction.next"
+test "$(tr -d '\n' <"$state_dir/.seafile-state-transaction")" = "v1 publishing"
+resume_initialization
+
 reset_state
 export STUB_MV_CRASH_AFTER=3
 expect_failure run_validator --initialize
 test -f "$state_dir/.seafile-state-transaction"
-test -d "$state_dir/.seafile-state-staging"
-unset STUB_MV_CRASH_AFTER
-run_validator --initialize
-assert_exact_paths
-assert_commit_fsync_order
+test "$(tr -d '\n' <"$state_dir/.seafile-state-transaction")" = "v1 publishing"
+resume_initialization
+
+reset_state
+export STUB_RMDIR_CRASH=1
+expect_failure run_validator --initialize
+test -f "$state_dir/.seafile-state-transaction"
+test ! -e "$state_dir/.seafile-state-staging"
+resume_initialization
 
 # Marked recovery refuses content, symlink, ownership, or mode tampering.
+reset_state
+export STUB_INSTALL_CRASH_MODE=0750
+export STUB_INSTALL_CRASH_AFTER=3
+expect_failure run_validator --initialize
+unset STUB_INSTALL_CRASH_MODE STUB_INSTALL_CRASH_AFTER
+touch "$state_dir/.seafile-state-staging/shared/foreign"
+expect_failure run_validator --initialize
+test -f "$state_dir/.seafile-state-staging/shared/foreign"
+
+reset_state
+export STUB_INSTALL_CRASH_MODE=0750
+export STUB_INSTALL_CRASH_AFTER=3
+expect_failure run_validator --initialize
+unset STUB_INSTALL_CRASH_MODE STUB_INSTALL_CRASH_AFTER
+mkdir "$state_dir/.seafile-state-staging/foreign"
+expect_failure run_validator --initialize
+test -d "$state_dir/.seafile-state-staging/foreign"
+
 reset_state
 export STUB_MV_CRASH_AFTER=3
 expect_failure run_validator --initialize
@@ -345,6 +478,18 @@ reset_state
 mkdir "$state_dir/shared"
 expect_failure run_validator --initialize
 test -d "$state_dir/shared"
+
+reset_state
+install -m 0600 -o 0 -g 0 /dev/null "$state_dir/.seafile-state-transaction.next"
+printf '%s\n' "v1 preparing" >"$state_dir/.seafile-state-transaction.next"
+mkdir "$state_dir/shared"
+expect_failure run_validator --initialize
+test -d "$state_dir/shared"
+
+reset_state
+install -m 0600 -o 0 -g 0 /dev/null "$state_dir/.seafile-state-transaction.next"
+printf '%s\n' "v1 foreign" >"$state_dir/.seafile-state-transaction.next"
+expect_failure run_validator --initialize
 
 # Initialization is fail-closed: every possible partially initialized tree fails.
 for missing_path in \

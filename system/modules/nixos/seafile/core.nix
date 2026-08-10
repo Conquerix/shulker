@@ -111,9 +111,13 @@ let
       || fail_state "mount target is not a directory"
 
     marker="$state_dir/.seafile-state-transaction"
+    marker_next="$state_dir/.seafile-state-transaction.next"
     staging="$state_dir/.seafile-state-staging"
-    marker_version="seafile-state-transaction-v1"
+    preparing_marker="v1 preparing"
+    publishing_marker="v1 publishing"
     initialized_paths=(shared database search onlyoffice backups control)
+    preparing_0750_paths=(shared search onlyoffice onlyoffice/logs onlyoffice/data onlyoffice/lib)
+    preparing_0700_paths=(database backups control)
 
     path_present() {
       [ -e "$1" ] || [ -L "$1" ]
@@ -177,21 +181,142 @@ let
       esac
     }
 
-    validate_transaction_marker() {
+    validate_marker_file() {
+      local path="$1"
+      local expected="$2"
+      local label="$3"
+      [ "$(stat --format %F -- "$path")" = "regular file" ] \
+        || fail_state "$label is missing, symlinked, or not a regular file"
+      [ "$(stat --format %u:%g -- "$path")" = 0:0 ] \
+        || fail_state "$label is not owned by root"
+      [ "$(stat --format %a -- "$path")" = 600 ] \
+        || fail_state "$label is not mode 0600"
+      printf '%s\n' "$expected" | cmp --silent - "$path" \
+        || fail_state "$label has unexpected content"
+    }
+
+    read_marker_phase() {
       [ "$(stat --format %F -- "$marker")" = "regular file" ] \
         || fail_state "state transaction marker is missing, symlinked, or not a regular file"
       [ "$(stat --format %u:%g -- "$marker")" = 0:0 ] \
         || fail_state "state transaction marker is not owned by root"
       [ "$(stat --format %a -- "$marker")" = 600 ] \
         || fail_state "state transaction marker is not mode 0600"
-      printf '%s\n' "$marker_version" | cmp --silent - "$marker" \
-        || fail_state "state transaction marker has unexpected content"
+      if printf '%s\n' "$preparing_marker" | cmp --silent - "$marker"; then
+        marker_phase=preparing
+      elif printf '%s\n' "$publishing_marker" | cmp --silent - "$marker"; then
+        marker_phase=publishing
+      else
+        fail_state "state transaction marker has an unknown phase"
+      fi
     }
 
-    validate_transaction_entries() {
+    write_marker_next() {
+      local content="$1"
+      path_present "$marker_next" \
+        && fail_state "state transaction next marker already exists"
+      install -m 0600 -o 0 -g 0 /dev/null "$marker_next"
+      printf '%s\n' "$content" >"$marker_next"
+      sync -f "$marker_next"
+    }
+
+    validate_initial_marker_next() {
+      local entry entry_name
+      validate_marker_file "$marker_next" "$preparing_marker" "initial state transaction next marker"
+      while IFS= read -r -d "" entry; do
+        entry_name="''${entry##*/}"
+        [ "$entry_name" = .seafile-state-transaction.next ] \
+          || fail_state "initial state transaction next marker has foreign state beside it"
+      done < <(find "$state_dir" -mindepth 1 -maxdepth 1 -print0)
+    }
+
+    validate_partial_onlyoffice() {
+      local path="$1"
+      local require_complete="$2"
+      local child child_name child_count=0
+      validate_fresh_directory "$path" 750 onlyoffice
+      while IFS= read -r -d "" child; do
+        child_name="''${child##*/}"
+        case "$child_name" in
+          logs | data | lib) ;;
+          *) fail_state "onlyoffice staging contains an unexpected path" ;;
+        esac
+        validate_fresh_directory "$child" 750 "onlyoffice/$child_name"
+        validate_empty_directory "$child" "onlyoffice/$child_name"
+        child_count="$((child_count + 1))"
+      done < <(find "$path" -mindepth 1 -maxdepth 1 -print0)
+      if [ "$require_complete" -eq 1 ]; then
+        [ "$child_count" -eq 3 ] \
+          || fail_state "onlyoffice staging is incomplete"
+      fi
+    }
+
+    validate_preparing_state() {
+      local require_complete="$1"
+      local entry entry_name relative_path staged
+      validate_marker_file "$marker" "$preparing_marker" "preparing state transaction marker"
+
+      while IFS= read -r -d "" entry; do
+        entry_name="''${entry##*/}"
+        case "$entry_name" in
+          .seafile-state-transaction | .seafile-state-transaction.next | .seafile-state-staging) ;;
+          *) fail_state "preparing state transaction has a published or foreign path" ;;
+        esac
+      done < <(find "$state_dir" -mindepth 1 -maxdepth 1 -print0)
+
+      if path_present "$staging"; then
+        validate_fresh_directory "$staging" 700 "state transaction staging"
+        while IFS= read -r -d "" entry; do
+          entry_name="''${entry##*/}"
+          case "$entry_name" in
+            shared | database | search | onlyoffice | backups | control) ;;
+            *) fail_state "preparing state transaction staging has an unexpected path" ;;
+          esac
+        done < <(find "$staging" -mindepth 1 -maxdepth 1 -print0)
+      elif [ "$require_complete" -eq 1 ]; then
+        fail_state "preparing state transaction staging is missing"
+      fi
+
+      for relative_path in "''${initialized_paths[@]}"; do
+        staged="$staging/$relative_path"
+        if path_present "$staged"; then
+          if [ "$relative_path" = onlyoffice ]; then
+            validate_partial_onlyoffice "$staged" "$require_complete"
+          else
+            validate_fresh_tree "$staged" "$relative_path"
+          fi
+        elif [ "$require_complete" -eq 1 ]; then
+          fail_state "$relative_path is missing from preparing state transaction staging"
+        fi
+      done
+    }
+
+    prepare_staging() {
+      local relative_path
+      if ! path_present "$staging"; then
+        install -d -m 0700 -o 0 -g 0 "$staging"
+      fi
+      validate_preparing_state 0
+      for relative_path in "''${preparing_0750_paths[@]}"; do
+        if ! path_present "$staging/$relative_path"; then
+          install -d -m 0750 -o 0 -g 0 "$staging/$relative_path"
+        fi
+      done
+      for relative_path in "''${preparing_0700_paths[@]}"; do
+        if ! path_present "$staging/$relative_path"; then
+          install -d -m 0700 -o 0 -g 0 "$staging/$relative_path"
+        fi
+      done
+      validate_preparing_state 1
+      sync -f "$state_dir"
+    }
+
+    validate_publishing_state() {
       local entry entry_name relative_path published staged
       local published_present staged_present
-      validate_transaction_marker
+      validate_marker_file "$marker" "$publishing_marker" "publishing state transaction marker"
+      path_present "$marker_next" \
+        && fail_state "publishing state transaction retains a next marker"
 
       if path_present "$staging"; then
         validate_fresh_directory "$staging" 700 "state transaction staging"
@@ -201,7 +326,7 @@ let
         entry_name="''${entry##*/}"
         case "$entry_name" in
           .seafile-state-transaction | .seafile-state-staging | shared | database | search | onlyoffice | backups | control) ;;
-          *) fail_state "state transaction has an unexpected top-level path" ;;
+          *) fail_state "publishing state transaction has an unexpected top-level path" ;;
         esac
       done < <(find "$state_dir" -mindepth 1 -maxdepth 1 -print0)
 
@@ -210,7 +335,7 @@ let
           entry_name="''${entry##*/}"
           case "$entry_name" in
             shared | database | search | onlyoffice | backups | control) ;;
-            *) fail_state "state transaction staging has an unexpected path" ;;
+            *) fail_state "publishing state transaction staging has an unexpected path" ;;
           esac
         done < <(find "$staging" -mindepth 1 -maxdepth 1 -print0)
       fi
@@ -234,47 +359,54 @@ let
       done
     }
 
-    first_entry="$(find "$state_dir" -mindepth 1 -maxdepth 1 -print -quit)"
-    transaction_active=0
-    if path_present "$marker"; then
+    if ! path_present "$marker" && path_present "$marker_next"; then
       [ "$initialize" -eq 1 ] \
-        || fail_state "an interrupted state transaction requires initialization mode"
-      transaction_active=1
-    elif [ -z "$first_entry" ]; then
+        || fail_state "an interrupted initial state transaction requires initialization mode"
+      validate_initial_marker_next
+      mv -- "$marker_next" "$marker"
+      sync -f "$state_dir"
+    fi
+
+    first_entry="$(find "$state_dir" -mindepth 1 -maxdepth 1 -print -quit)"
+    if ! path_present "$marker" && [ -z "$first_entry" ]; then
       [ "$initialize" -eq 1 ] \
         || fail_state "empty state is accepted only for first initialization"
-
-      install -m 0600 -o 0 -g 0 /dev/null "$marker"
-      printf '%s\n' "$marker_version" >"$marker"
-      sync -f "$marker"
+      write_marker_next "$preparing_marker"
+      mv -- "$marker_next" "$marker"
       sync -f "$state_dir"
-
-      install -d -m 0700 -o 0 -g 0 "$staging"
-      install -d -m 0750 -o 0 -g 0 \
-        "$staging/shared" \
-        "$staging/search" \
-        "$staging/onlyoffice" \
-        "$staging/onlyoffice/logs" \
-        "$staging/onlyoffice/data" \
-        "$staging/onlyoffice/lib"
-      install -d -m 0700 -o 0 -g 0 \
-        "$staging/database" \
-        "$staging/backups" \
-        "$staging/control"
-      sync -f "$state_dir"
-      transaction_active=1
-    elif path_present "$staging"; then
+    elif ! path_present "$marker" && path_present "$staging"; then
       fail_state "unmarked state transaction staging is not recoverable"
     fi
 
-    if [ "$transaction_active" -eq 1 ]; then
-      validate_transaction_entries
+    if path_present "$marker"; then
+      [ "$initialize" -eq 1 ] \
+        || fail_state "an interrupted state transaction requires initialization mode"
+      marker_phase=""
+      read_marker_phase
+
+      if [ "$marker_phase" = preparing ]; then
+        if path_present "$marker_next"; then
+          validate_marker_file "$marker_next" "$publishing_marker" "publishing phase next marker"
+          validate_preparing_state 1
+        else
+          validate_preparing_state 0
+          prepare_staging
+          write_marker_next "$publishing_marker"
+        fi
+        mv -- "$marker_next" "$marker"
+        sync -f "$state_dir"
+        marker_phase=publishing
+      fi
+
+      [ "$marker_phase" = publishing ] \
+        || fail_state "state transaction did not reach publishing phase"
+      validate_publishing_state
       for relative_path in "''${initialized_paths[@]}"; do
         if path_present "$staging/$relative_path"; then
           mv -- "$staging/$relative_path" "$state_dir/$relative_path"
         fi
       done
-      validate_transaction_entries
+      validate_publishing_state
       if path_present "$staging"; then
         rmdir -- "$staging"
       fi
