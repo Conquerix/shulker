@@ -21,6 +21,22 @@ let
   seafileComposeService = services."seafile-compose";
   seafilePullService = services."seafile-image-pull";
   seafileStateService = services."seafile-state";
+  seafileHealthService = services."seafile-health-check";
+  seafileExtendedHealthService = services."seafile-extended-health";
+  seafileMaintenancePackageNames = [
+    "seafile-health-check"
+    "seafile-extended-health"
+    "seafile-metadata-probe"
+    "seafile-notification-public-check"
+    "seafile-onlyoffice-smoke-test"
+    "seafile-enable-public-health"
+    "seafile-fsck-shallow"
+    "seafile-fsck-full"
+    "seafile-gc-dry-run"
+    "seafile-search-status"
+    "seafile-search-update"
+    "seafile-search-rebuild"
+  ];
   paperless = wardenConfig.shulker.system.modules.paperless;
   paperlessFastmailRoutesFilter = paperless.fastmailRoutesFilter;
   paperlessComposeService = services."paperless-compose";
@@ -40,6 +56,9 @@ let
   ];
   seafileBootstrapPackages = builtins.filter (
     package: builtins.elem (pkgs.lib.getName package) seafileBootstrapPackageNames
+  ) wardenConfig.environment.systemPackages;
+  seafileMaintenancePackages = builtins.filter (
+    package: builtins.elem (pkgs.lib.getName package) seafileMaintenancePackageNames
   ) wardenConfig.environment.systemPackages;
   sshdService = services.sshd;
   sshdKeygenService = services."sshd-keygen";
@@ -538,6 +557,7 @@ in
 
         ${revokeStart}${revokeBody}
       '';
+
     in
     assert pkgs.lib.all (name: builtins.elem name systemPackageNames) seafileBootstrapPackageNames;
     assert builtins.length seafileBootstrapPackages == builtins.length seafileBootstrapPackageNames;
@@ -632,6 +652,107 @@ in
 
         python ${./tests/seafile-revoke-admin.py} ${revokeScript}
 
+        touch "$out"
+      '';
+
+  seafile-maintenance-contract =
+    let
+      contract = seafile.maintenanceContractText;
+      health = pkgs.writeShellApplication {
+        name = "seafile-health-check-under-test";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.util-linux
+        ];
+        text = builtins.unsafeDiscardStringContext seafile.healthCheckScript;
+      };
+      extended = pkgs.writeShellApplication {
+        name = "seafile-extended-health-under-test";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.jq
+          pkgs.util-linux
+        ];
+        text = builtins.unsafeDiscardStringContext seafile.extendedHealthScript;
+      };
+      metadata = pkgs.writeShellApplication {
+        name = "seafile-metadata-probe-under-test";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.util-linux
+        ];
+        text = builtins.unsafeDiscardStringContext seafile.metadataProbeScript;
+      };
+      enablePublic = pkgs.writeShellApplication {
+        name = "seafile-enable-public-health-under-test";
+        runtimeInputs = [ pkgs.coreutils ];
+        text = builtins.unsafeDiscardStringContext seafile.enablePublicHealthScript;
+      };
+      maintenanceServiceNames = [
+        "seafile-extended-health"
+        "seafile-fsck-full"
+        "seafile-fsck-shallow"
+        "seafile-gc-dry-run"
+        "seafile-health-check"
+        "seafile-metadata-probe"
+        "seafile-notification-public-check"
+        "seafile-onlyoffice-smoke-test"
+        "seafile-search-rebuild"
+        "seafile-search-status"
+        "seafile-search-update"
+      ];
+      maintenanceTimerNames = [
+        "seafile-extended-health"
+        "seafile-fsck-full"
+        "seafile-fsck-shallow"
+        "seafile-gc-dry-run"
+        "seafile-health-check"
+      ];
+    in
+    assert pkgs.lib.all (name: builtins.elem name systemPackageNames) seafileMaintenancePackageNames;
+    assert builtins.length seafileMaintenancePackages == builtins.length seafileMaintenancePackageNames;
+    assert pkgs.lib.all (name: builtins.hasAttr name services) maintenanceServiceNames;
+    assert pkgs.lib.all (name: builtins.hasAttr name wardenConfig.systemd.timers) maintenanceTimerNames;
+    assert seafileHealthService.serviceConfig.Type == "oneshot";
+    assert seafileHealthService.unitConfig.RequiresMountsFor == seafile.stateDir;
+    assert builtins.elem "seafile-compose.service" seafileHealthService.after;
+    assert seafileExtendedHealthService.unitConfig.RequiresMountsFor == seafile.stateDir;
+    assert builtins.elem "seafile-compose.service" seafileExtendedHealthService.after;
+    assert wardenConfig.systemd.timers.seafile-health-check.timerConfig.OnUnitActiveSec == "15m";
+    assert wardenConfig.systemd.timers.seafile-health-check.timerConfig.Persistent;
+    assert wardenConfig.systemd.timers.seafile-extended-health.timerConfig.OnCalendar == "daily";
+    assert wardenConfig.systemd.timers.seafile-fsck-shallow.timerConfig.OnCalendar == "weekly";
+    assert wardenConfig.systemd.timers.seafile-fsck-full.timerConfig.OnCalendar == "monthly";
+    assert wardenConfig.systemd.timers.seafile-gc-dry-run.timerConfig.OnCalendar == "weekly";
+    assert pkgs.lib.hasInfix "/run/lock/seafile-maintenance.lock" contract;
+    assert pkgs.lib.hasInfix "-w 1800" contract;
+    assert pkgs.lib.hasInfix "seaf-fsck.sh --shallow" contract;
+    assert pkgs.lib.hasInfix "seaf-fsck.sh" contract;
+    assert !(pkgs.lib.hasInfix "seaf-fsck.sh --repair" contract);
+    assert pkgs.lib.hasInfix "seaf-gc.sh --dry-run" contract;
+    assert !(pkgs.lib.hasInfix "metadata consistency" (pkgs.lib.toLower contract));
+    assert !(pkgs.lib.hasInfix "/storage/flash/immich" contract);
+    assert !(pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_PASSWORD=" contract);
+    assert !(pkgs.lib.hasInfix "INIT_SS_ADMIN_PASSWORD=" contract);
+    pkgs.runCommand "seafile-maintenance-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.gnugrep
+          pkgs.util-linux
+        ];
+      }
+      ''
+        ${./tests/seafile-maintenance.sh} \
+          ${health}/bin/seafile-health-check-under-test \
+          ${extended}/bin/seafile-extended-health-under-test \
+          ${metadata}/bin/seafile-metadata-probe-under-test \
+          ${enablePublic}/bin/seafile-enable-public-health-under-test
         touch "$out"
       '';
 
