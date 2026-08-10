@@ -311,11 +311,32 @@ in
       ];
     assert
       compose.networks == {
+        seafile-egress = {
+          name = "seafile-egress";
+          internal = false;
+        };
         seafile-net = {
           name = "seafile-net";
           internal = true;
         };
       };
+    assert
+      services'.seafile.networks == [
+        "seafile-net"
+        "seafile-egress"
+      ];
+    assert
+      services'.onlyoffice.networks == [
+        "seafile-net"
+        "seafile-egress"
+      ];
+    assert pkgs.lib.all (name: services'.${name}.networks == [ "seafile-net" ]) [
+      "database"
+      "redis"
+      "seasearch"
+      "notification"
+      "metadata"
+    ];
     assert
       publications == [
         "127.0.0.1:23241:8083/tcp"

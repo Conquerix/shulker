@@ -13,6 +13,7 @@
   images,
   metadata,
   publishApplicationPorts ? true,
+  enableExternalEgress ? true,
   seafileExtraVolumes ? [ ],
   onlyOfficeExtraVolumes ? [ ],
 }:
@@ -60,6 +61,9 @@ let
     };
   };
   privateNetwork = [ networkName ];
+  egressNetworkName = "${networkName}-egress";
+  applicationNetworks =
+    privateNetwork ++ (if enableExternalEgress then [ egressNetworkName ] else [ ]);
   databaseEnvironment = {
     MARIADB_AUTO_UPGRADE = "1";
     MYSQL_LOG_CONSOLE = "true";
@@ -153,7 +157,7 @@ let
         container_name = containerNames.seafile;
         image = images.seafile;
         restart = "no";
-        networks = privateNetwork;
+        networks = applicationNetworks;
         ports =
           if publishApplicationPorts then [ "${bindAddress}:${toString ports.seafile}:80/tcp" ] else [ ];
         environment = seafileEnvironment;
@@ -281,7 +285,7 @@ let
         container_name = containerNames.onlyoffice;
         image = images.onlyoffice;
         restart = "no";
-        networks = privateNetwork;
+        networks = applicationNetworks;
         ports =
           if publishApplicationPorts then [ "${bindAddress}:${toString ports.onlyoffice}:80/tcp" ] else [ ];
         environment = {
@@ -328,10 +332,23 @@ let
         };
       };
     };
-    networks.${networkName} = {
-      name = networkName;
-      internal = true;
-    };
+    networks = {
+      ${networkName} = {
+        name = networkName;
+        internal = true;
+      };
+    }
+    // (
+      if enableExternalEgress then
+        {
+          ${egressNetworkName} = {
+            name = egressNetworkName;
+            internal = false;
+          };
+        }
+      else
+        { }
+    );
   };
   bootstrapComposeConfig.services = {
     database.environment.MYSQL_ROOT_PASSWORD = required "INIT_SEAFILE_MYSQL_ROOT_PASSWORD";

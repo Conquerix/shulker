@@ -713,6 +713,12 @@ assert_environment_separation() {
 	grep -F -- 'index_office_pdf = true' "$runtime_app/seafevents.conf" >/dev/null
 	grep -F -- '[INDEX FILES]' "$runtime_app/seafevents.conf" >/dev/null
 	grep -F -- 'enabled = false' "$runtime_app/seafevents.conf" >/dev/null
+	grep -F -x -- 'SEAFILE_MYSQL_DB_HOST=database' "$runtime_app/seafile.env" >/dev/null
+	grep -F -x -- 'host = database' "$runtime_app/seafile.conf" >/dev/null
+	if grep -R -F -- 'seafile-database' "$runtime_app" "$runtime_metadata" >/dev/null; then
+		echo 'renderer emitted a database hostname absent from the Compose network' >&2
+		exit 1
+	fi
 }
 
 # A complete render is published with exact path sets, protected modes, literal

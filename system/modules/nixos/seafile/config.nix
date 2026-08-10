@@ -367,7 +367,7 @@ let
         cp "$host_environment" "$app_environment"
         cat >>"$app_environment" <<'EOF'
     SEAFILE_SERVER_PROTOCOL=https
-    SEAFILE_MYSQL_DB_HOST=seafile-database
+    SEAFILE_MYSQL_DB_HOST=database
     SEAFILE_REDIS_HOST=seafile-redis
     SEAFILE_REDIS_PORT=6379
     TIME_ZONE=Europe/Paris
@@ -400,7 +400,7 @@ let
     port = 8082
 
     [database]
-    host = seafile-database
+    host = database
     port = 3306
     type = mysql
     EOF
