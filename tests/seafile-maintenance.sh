@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 4 ]; then
-	echo "usage: seafile-maintenance.sh HEALTH EXTENDED METADATA ENABLE-PUBLIC" >&2
+if [ "$#" -ne 7 ]; then
+	echo "usage: seafile-maintenance.sh HEALTH EXTENDED METADATA ENABLE-PUBLIC CONTRACT ONLYOFFICE-DRIVER ONLYOFFICE" >&2
 	exit 64
 fi
 
@@ -10,8 +10,19 @@ health="$1"
 extended="$2"
 metadata="$3"
 enable_public="$4"
+contract_source="$5"
+onlyoffice_driver="$6"
+onlyoffice="$7"
 root="$(mktemp -d "$TMPDIR/seafile-maintenance-fixture.XXXXXX")"
-trap 'rm -rf -- "$root"' EXIT HUP INT TERM
+holder_pid=
+cleanup_fixture() {
+	if [ -n "$holder_pid" ]; then
+		kill "$holder_pid" 2>/dev/null || true
+		wait "$holder_pid" 2>/dev/null || true
+	fi
+	rm -rf -- "$root"
+}
+trap cleanup_fixture EXIT HUP INT TERM
 bin="$root/bin"
 state="$root/state"
 runtime_host="$root/run-host"
@@ -57,8 +68,9 @@ cat >"$state/backups/seafile-29990101T000000.000000000Z/manifest.json" <<'EOF'
 EOF
 chmod 0600 "$state/backups/seafile-29990101T000000.000000000Z/manifest.json"
 
+validated_at="$(date +%s)"
 cat >"$state/control/last-validated-backup" <<EOF
-{"set":"seafile-29990101T000000.000000000Z","validated_at_epoch":$(date +%s),"writers_quiesced":true}
+{"set":"seafile-29990101T000000.000000000Z","validated_at_epoch":$validated_at,"writers_quiesced":true}
 EOF
 chmod 0600 "$state/control/last-validated-backup"
 
@@ -181,8 +193,20 @@ cat >"$bin/journalctl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'journalctl %s\n' "$*" >>"${STUB_CALLS:?}"
-[ "${STUB_FAIL:-}" != borg-journal ] || exit 1
-printf '%s\n' 'Backup completed'
+case "${STUB_BORG_RECORD:-current}" in
+	current) record_epoch="${STUB_VALIDATED_AT:?}" ;;
+	stale) record_epoch="$((STUB_VALIDATED_AT - 1))" ;;
+	no-row) exit 0 ;;
+	*) exit 64 ;;
+esac
+printf '{"MESSAGE_ID":"39f53479d3a045ac8e11786248231fbf","UNIT":"borgmatic.service","__REALTIME_TIMESTAMP":"%s000000"}\n' \
+	"$record_epoch"
+EOF
+
+cat >"$bin/metadata-probe" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
 EOF
 
 cat >"$bin/id" <<'EOF'
@@ -192,12 +216,146 @@ set -euo pipefail
 printf '%s\n' 0
 EOF
 
+site_packages="$root/site-packages"
+mkdir -p "$site_packages"
+cat >"$site_packages/sitecustomize.py" <<'PY'
+import http.server
+import json
+import sys
+import types
+import urllib.error
+import urllib.request
+
+
+class Response:
+    def __init__(self, payload=b""):
+        self.payload = payload
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def read(self, amount=-1):
+        return self.payload if amount is None or amount < 0 else self.payload[:amount]
+
+
+detail_calls = 0
+
+
+def urlopen(request, *_args, **_kwargs):
+    global detail_calls
+    url = request.full_url if hasattr(request, "full_url") else str(request)
+    method = request.get_method() if hasattr(request, "get_method") else "GET"
+    if method == "DELETE":
+        raise urllib.error.URLError("cleanup rejected")
+    if url.endswith("/api2/auth-token/"):
+        return Response(json.dumps({"token": "fixture-token"}).encode())
+    if "/api2/repos/?" in url:
+        return Response(json.dumps([{
+            "name": ".seafile-health",
+            "id": "fixture-repo",
+            "owner": "fixture-admin@example.invalid",
+        }]).encode())
+    if url.endswith("/api2/repos/fixture-repo/upload-link/"):
+        return Response(json.dumps("http://fixture/upload").encode())
+    if url == "http://fixture/upload":
+        return Response()
+    if "/api2/repos/fixture-repo/file/detail/?" in url:
+        detail_calls += 1
+        object_id = "before" if detail_calls == 1 else "after"
+        return Response(json.dumps({"id": object_id}).encode())
+    if url == "http://fixture/converted":
+        return Response(b"PK fixture document")
+    if url.endswith("/onlyoffice/editor-callback/"):
+        return Response(b'{"error": 0}')
+    if "/api2/repos/fixture-repo/file/?" in url:
+        return Response(b"PK reopened document")
+    raise urllib.error.URLError("unexpected fixture request")
+
+
+urllib.request.urlopen = urlopen
+
+
+class FakeServer:
+    server_port = 32123
+
+    def __init__(self, *_args, **_kwargs):
+        pass
+
+    def serve_forever(self):
+        pass
+
+    def shutdown(self):
+        pass
+
+    def server_close(self):
+        pass
+
+
+http.server.ThreadingHTTPServer = FakeServer
+
+
+def module(name):
+    value = types.ModuleType(name)
+    value.__path__ = []
+    sys.modules[name] = value
+    return value
+
+
+django = module("django")
+django.setup = lambda: None
+django_test = module("django.test")
+
+
+class RequestFactory:
+    def get(self, *_args, **_kwargs):
+        return types.SimpleNamespace()
+
+
+django_test.RequestFactory = RequestFactory
+seahub = module("seahub")
+seahub_base = module("seahub.base")
+accounts = module("seahub.base.accounts")
+
+
+class UserManager:
+    def get(self, **_kwargs):
+        return types.SimpleNamespace()
+
+
+accounts.User = types.SimpleNamespace(objects=UserManager())
+onlyoffice_package = module("seahub.onlyoffice")
+converter = module("seahub.onlyoffice.converter")
+converter.get_converter_uri = lambda *_args, **_kwargs: "http://fixture/converted"
+onlyoffice_utils = module("seahub.onlyoffice.utils")
+onlyoffice_utils.get_onlyoffice_dict = lambda *_args, **_kwargs: {
+    "doc_key": "fixture-doc-key",
+    "doc_url": "http://fixture/document",
+}
+seahub.base = seahub_base
+seahub.onlyoffice = onlyoffice_package
+seahub_base.accounts = accounts
+onlyoffice_package.converter = converter
+onlyoffice_package.utils = onlyoffice_utils
+PY
+
+cat >"$bin/docker-onlyoffice" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[ "${1:-}" = exec ] || exit 64
+PYTHONPATH="${STUB_SITE_PACKAGES:?}" python3 -
+EOF
+
 chmod +x "$bin"/*
 
 if stat --version >/dev/null 2>&1; then
 	expected_owner="$(stat -c '%u:%g' "$state/shared/seafile/conf/.env")"
+	expected_control_owner="$(stat -c '%u:%g' "$state/control/last-validated-backup")"
 else
 	expected_owner="$(stat -f '%u:%g' "$state/shared/seafile/conf/.env")"
+	expected_control_owner="$(stat -f '%u:%g' "$state/control/last-validated-backup")"
 fi
 
 run_health() {
@@ -209,7 +367,7 @@ run_health() {
 		SEAFILE_SYSTEMCTL_COMMAND="$bin/systemctl" \
 		SEAFILE_DOCKER_COMMAND="$bin/docker" \
 		SEAFILE_CURL_COMMAND="$bin/curl" \
-		SEAFILE_FLOCK_COMMAND="$bin/flock" \
+		SEAFILE_FLOCK_COMMAND="${SEAFILE_FLOCK_COMMAND_OVERRIDE:-$bin/flock}" \
 		SEAFILE_VALIDATE_STATE_COMMAND="$bin/seafile-validate-state" \
 		SEAFILE_STATE_DIR="$state" \
 		SEAFILE_HOST_DIR="$runtime_host" \
@@ -265,30 +423,90 @@ fi
 STUB_INHERITED_LOCK_HELD=1 SEAFILE_MAINTENANCE_LOCK_HELD=1 run_health >/dev/null
 exec 9>&-
 
-: >"$calls"
-if env \
-	STUB_CALLS="$calls" \
-	STUB_FAIL=backup \
-	STUB_INHERITED_LOCK_HELD=1 \
-	SEAFILE_SYSTEMCTL_COMMAND="$bin/systemctl" \
-	SEAFILE_DOCKER_COMMAND="$bin/docker" \
-	SEAFILE_CURL_COMMAND="$bin/curl" \
-	SEAFILE_FLOCK_COMMAND="$bin/flock" \
-	SEAFILE_ID_COMMAND="$bin/id" \
-	SEAFILE_JOURNALCTL_COMMAND="$bin/journalctl" \
-	SEAFILE_VALIDATE_STATE_COMMAND="$bin/seafile-validate-state" \
-	SEAFILE_HEALTH_COMMAND="$health" \
-	SEAFILE_STATE_DIR="$state" \
-	SEAFILE_HOST_DIR="$runtime_host" \
-	SEAFILE_APP_DIR="$runtime_app" \
-	SEAFILE_METADATA_DIR="$runtime_metadata" \
-	SEAFILE_EXPECTED_OWNER="$expected_owner" \
-	SEAFILE_MAINTENANCE_LOCK="$lock" \
-	"$extended" >"$root/extended-output" 2>&1; then
-	echo 'extended health accepted a failed backup freshness probe' >&2
+real_flock="$(command -v flock)"
+holder_ready="$root/holder-ready"
+holder_release="$root/holder-release"
+(
+	exec 7>"$lock"
+	"$real_flock" -n 7
+	: >"$holder_ready"
+	while [ ! -e "$holder_release" ]; do
+		sleep 0.01
+	done
+) &
+holder_pid="$!"
+for _ in $(seq 1 500); do
+	[ ! -e "$holder_ready" ] || break
+	sleep 0.01
+done
+[ -e "$holder_ready" ]
+exec 9>"$lock"
+if SEAFILE_FLOCK_COMMAND_OVERRIDE="$real_flock" SEAFILE_MAINTENANCE_LOCK_HELD=1 \
+	run_health >"$root/foreign-lock-output" 2>&1; then
+	echo 'health accepted an unlocked inherited descriptor while another process held the lock' >&2
 	exit 1
 fi
-grep -F -- 'Seafile backup freshness probe failed' "$root/extended-output" >/dev/null
+grep -F -- 'Seafile inherited maintenance lock descriptor is not held' \
+	"$root/foreign-lock-output" >/dev/null
+exec 9>&-
+: >"$holder_release"
+wait "$holder_pid"
+holder_pid=
+
+exec 9>"$lock"
+"$real_flock" -n 9
+SEAFILE_FLOCK_COMMAND_OVERRIDE="$real_flock" SEAFILE_MAINTENANCE_LOCK_HELD=1 run_health >/dev/null
+"$real_flock" -u 9
+exec 9>&-
+
+run_extended() {
+	env \
+		STUB_CALLS="$calls" \
+		STUB_FAIL="${STUB_FAIL:-}" \
+		STUB_BORG_RECORD="${STUB_BORG_RECORD:-current}" \
+		STUB_VALIDATED_AT="$validated_at" \
+		STUB_INHERITED_LOCK_HELD=1 \
+		SEAFILE_SYSTEMCTL_COMMAND="$bin/systemctl" \
+		SEAFILE_DOCKER_COMMAND="$bin/docker" \
+		SEAFILE_CURL_COMMAND="$bin/curl" \
+		SEAFILE_FLOCK_COMMAND="$bin/flock" \
+		SEAFILE_ID_COMMAND="$bin/id" \
+		SEAFILE_JOURNALCTL_COMMAND="$bin/journalctl" \
+		SEAFILE_VALIDATE_STATE_COMMAND="$bin/seafile-validate-state" \
+		SEAFILE_HEALTH_COMMAND="$health" \
+		SEAFILE_METADATA_PROBE_COMMAND="$bin/metadata-probe" \
+		SEAFILE_STATE_DIR="$state" \
+		SEAFILE_HOST_DIR="$runtime_host" \
+		SEAFILE_APP_DIR="$runtime_app" \
+		SEAFILE_METADATA_DIR="$runtime_metadata" \
+		SEAFILE_EXPECTED_OWNER="$expected_owner" \
+		SEAFILE_EXPECTED_CONTROL_OWNER="$expected_control_owner" \
+		SEAFILE_MAINTENANCE_LOCK="$lock" \
+		"$extended"
+}
+
+expect_backup_failure() {
+	local scenario="$1" output
+	: >"$calls"
+	if output="$(run_extended 2>&1)"; then
+		printf 'extended health accepted %s backup evidence\n' "$scenario" >&2
+		exit 1
+	fi
+	grep -F -- 'Seafile backup freshness probe failed' <<<"$output" >/dev/null
+}
+
+STUB_FAIL=backup expect_backup_failure 'failed service result'
+STUB_BORG_RECORD=stale expect_backup_failure 'stale completion record'
+STUB_BORG_RECORD=no-row expect_backup_failure 'empty completion record'
+
+: >"$calls"
+[ "$(STUB_BORG_RECORD=current run_extended)" = 'public ingress acceptance pending' ]
+
+websocket_nonce="$(sed -n "s/.*Sec-WebSocket-Key: \([^']*\)'.*/\1/p" "$contract_source")"
+[ "$websocket_nonce" = 'dGhlIHNhbXBsZSBub25jZQ==' ]
+decoded_nonce="$root/websocket-nonce"
+printf '%s' "$websocket_nonce" | base64 --decode >"$decoded_nonce"
+[ "$(wc -c <"$decoded_nonce" | tr -d ' ')" -eq 16 ]
 
 : >"$calls"
 if env \
@@ -315,5 +533,49 @@ if env SEAFILE_STATE_DIR="$state" "$enable_public" >/dev/null 2>&1; then
 	exit 1
 fi
 [ ! -e "$state/control/public-ingress-accepted" ]
+
+driver_status=0
+env \
+	INIT_SEAFILE_ADMIN_EMAIL=fixture-admin@example.invalid \
+	INIT_SEAFILE_ADMIN_PASSWORD=fixture-admin-password \
+	PYTHONPATH="$site_packages" \
+	python3 "$onlyoffice_driver" >"$root/onlyoffice-driver-output" 2>&1 || driver_status="$?"
+if [ -s "$root/onlyoffice-driver-output" ]; then
+	echo 'OnlyOffice driver emitted output after cleanup failure' >&2
+	exit 1
+fi
+if [ "$driver_status" -eq 0 ]; then
+	echo 'OnlyOffice driver accepted probe-object cleanup failure' >&2
+	exit 1
+fi
+
+: >"$state/control/public-ingress-accepted"
+chmod 0600 "$state/control/public-ingress-accepted"
+onlyoffice_status=0
+env \
+	STUB_CALLS="$calls" \
+	STUB_SITE_PACKAGES="$site_packages" \
+	SEAFILE_DOCKER_COMMAND="$bin/docker-onlyoffice" \
+	SEAFILE_FLOCK_COMMAND="$bin/flock" \
+	SEAFILE_ID_COMMAND="$bin/id" \
+	SEAFILE_ONLYOFFICE_PROBE_PROGRAM="$onlyoffice_driver" \
+	SEAFILE_STATE_DIR="$state" \
+	SEAFILE_HOST_DIR="$runtime_host" \
+	SEAFILE_MAINTENANCE_LOCK="$lock" \
+	SEAFILE_SYSTEMCTL_COMMAND="$bin/systemctl" \
+	"$onlyoffice" >"$root/onlyoffice-output" 2>&1 || onlyoffice_status="$?"
+if [ "$onlyoffice_status" -eq 0 ]; then
+	echo 'OnlyOffice helper accepted probe-object cleanup failure' >&2
+	exit 1
+fi
+if ! grep -F -- 'Seafile OnlyOffice functional probe failed' "$root/onlyoffice-output" >/dev/null; then
+	echo 'OnlyOffice helper did not report the cleanup failure' >&2
+	exit 1
+fi
+if grep -F -- 'Seafile OnlyOffice callback and reopen probe passed' \
+	"$root/onlyoffice-output" >/dev/null; then
+	echo 'OnlyOffice helper printed success after cleanup failure' >&2
+	exit 1
+fi
 
 echo 'Seafile maintenance state-machine fixtures passed'

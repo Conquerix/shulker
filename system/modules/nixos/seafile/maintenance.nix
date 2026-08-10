@@ -76,9 +76,11 @@ let
         exec 8>&-
         echo "Seafile inherited maintenance lock descriptor is not held" >&2
         exit 77
-      fi
-      exec 8>&-
-    }
+          fi
+          exec 8>&-
+          "$flock_command" -n 9 \
+            || { echo "Seafile inherited maintenance lock descriptor is not held" >&2; exit 77; }
+        }
 
     load_runtime_environment() {
       [ -f "$environment_file" ] && [ ! -L "$environment_file" ] \
@@ -412,7 +414,7 @@ let
         --header 'Connection: Upgrade' \
         --header 'Upgrade: websocket' \
         --header 'Sec-WebSocket-Version: 13' \
-        --header 'Sec-WebSocket-Key: c2VhZmlsZS1oZWFsdGg=' \
+            --header 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
         ${lib.escapeShellArg "${cfg.publicUrl}/notification/"}
     } 2>/dev/null)" || fail_maintenance "public Notification WebSocket"
     [ "$websocket_status" = 101 ] || fail_maintenance "public Notification WebSocket"
@@ -582,25 +584,28 @@ let
                 raise RuntimeError("OnlyOffice callback did not create a revision")
             time.sleep(2)
     except Exception:
-        raise SystemExit(1)
+        raise SystemExit(1) from None
     finally:
         if token and repo_id:
             try:
                 api("/api/v2.1/repos/" + repo_id + "/file/", "DELETE", query={"p": file_path})
             except Exception:
-                pass
+                raise SystemExit(1) from None
   '';
   onlyOfficeProbeProgram = pkgs.writeText "seafile-onlyoffice-smoke-test.py" onlyOfficeProbePython;
   onlyOfficeSmokeTestScript = ''
-    ${heavyPrelude}
-    ${requireActiveStack}
+          ${heavyPrelude}
+          ${requireActiveStack}
     marker="$state_dir/control/public-ingress-accepted"
     [ -f "$marker" ] && [ ! -L "$marker" ] \
       || { echo "public ingress acceptance pending"; exit 0; }
-    load_runtime_environment
-    if ! "$docker_command" exec --interactive \
-      --env INIT_SEAFILE_ADMIN_EMAIL --env INIT_SEAFILE_ADMIN_PASSWORD \
-      seafile ${pythonCommand} <${onlyOfficeProbeProgram} >/dev/null 2>&1
+          load_runtime_environment
+          probe_program="''${SEAFILE_ONLYOFFICE_PROBE_PROGRAM:-${onlyOfficeProbeProgram}}"
+          [ -f "$probe_program" ] && [ ! -L "$probe_program" ] \
+            || fail_maintenance "OnlyOffice functional"
+          if ! "$docker_command" exec --interactive \
+            --env INIT_SEAFILE_ADMIN_EMAIL --env INIT_SEAFILE_ADMIN_PASSWORD \
+            seafile ${pythonCommand} <"$probe_program" >/dev/null 2>&1
     then
       fail_maintenance "OnlyOffice functional"
     fi
@@ -646,11 +651,12 @@ let
     SEAFILE_MAINTENANCE_LOCK_HELD=1 "$health_command" >/dev/null \
       || fail_maintenance "local health"
 
-    marker="$state_dir/control/last-validated-backup"
-    [ -f "$marker" ] && [ ! -L "$marker" ] \
-      || fail_maintenance "backup freshness"
-    [ "$(stat --format '%u:%g:%a' -- "$marker")" = 0:0:600 ] \
-      || fail_maintenance "backup freshness"
+          marker="$state_dir/control/last-validated-backup"
+          [ -f "$marker" ] && [ ! -L "$marker" ] \
+            || fail_maintenance "backup freshness"
+          expected_control_owner="''${SEAFILE_EXPECTED_CONTROL_OWNER:-0:0}"
+          [ "$(stat --format '%u:%g:%a' -- "$marker")" = "$expected_control_owner:600" ] \
+            || fail_maintenance "backup freshness"
     set_name="$(jq --raw-output '.set // empty' "$marker")" \
       || fail_maintenance "backup freshness"
     validated_at="$(jq --raw-output '.validated_at_epoch // empty' "$marker")" \
@@ -668,14 +674,27 @@ let
       || fail_maintenance "backup freshness"
     now="$(date --utc +%s)"
     age="$((now - validated_at))"
-    [ "$age" -ge 0 ] && [ "$age" -le 129600 ] \
-      || fail_maintenance "backup freshness"
-    [ "$("$systemctl_command" show --property Result --value borgmatic.service)" = success ] \
-      || fail_maintenance "backup freshness"
-    "$journalctl_command" --unit borgmatic.service --since '@'"$validated_at" \
-      --no-pager --quiet >/dev/null 2>&1 || fail_maintenance "backup freshness"
+          [ "$age" -ge 0 ] && [ "$age" -le 129600 ] \
+            || fail_maintenance "backup freshness"
+          [ "$("$systemctl_command" show --property Result --value borgmatic.service)" = success ] \
+            || fail_maintenance "backup freshness"
+          completion_records="$(mktemp "$host_dir/.seafile-borg-completion.XXXXXX")"
+          trap 'rm -f -- "$completion_records"' EXIT HUP INT TERM
+          timeout 30 "$journalctl_command" --unit borgmatic.service --since '@'"$validated_at" \
+            --output=json --no-pager --quiet >"$completion_records" 2>/dev/null \
+            || fail_maintenance "backup freshness"
+          minimum_completion_usec="$((validated_at * 1000000))"
+          jq --slurp --exit-status --argjson minimum "$minimum_completion_usec" '
+            any(.[];
+              .MESSAGE_ID == "39f53479d3a045ac8e11786248231fbf"
+              and .UNIT == "borgmatic.service"
+              and ((.__REALTIME_TIMESTAMP | tonumber) >= $minimum))
+          ' "$completion_records" >/dev/null \
+            || fail_maintenance "backup freshness"
+          rm -f -- "$completion_records"
+          trap - EXIT HUP INT TERM
 
-    metadata_log="$(mktemp "$host_dir/.seafile-metadata-log.XXXXXX")"
+          metadata_log="$(mktemp "$host_dir/.seafile-metadata-log.XXXXXX")"
     trap 'rm -f -- "$metadata_log"' EXIT HUP INT TERM
     "$docker_command" logs --since 25h seafile-metadata >"$metadata_log" 2>&1 \
       || fail_maintenance "Metadata startup"
@@ -896,6 +915,18 @@ in
       internal = true;
       description = "Seafile public-health marker source exposed for fixtures.";
     };
+    onlyOfficeProbePython = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+      description = "Seafile OnlyOffice functional driver exposed for fixtures.";
+    };
+    onlyOfficeSmokeTestScript = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+      description = "Seafile OnlyOffice smoke-test source exposed for fixtures.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -906,6 +937,8 @@ in
         healthCheckScript
         maintenanceContractText
         metadataProbeScript
+        onlyOfficeProbePython
+        onlyOfficeSmokeTestScript
         ;
     };
 
