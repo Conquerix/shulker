@@ -29,7 +29,18 @@ let
   paperlessPullService = services."paperless-image-pull";
   paperlessSchemaService = services."paperless-schema-check";
   paperlessStateService = services."paperless-state";
-  paperlessSystemPackageNames = map pkgs.lib.getName wardenConfig.environment.systemPackages;
+  systemPackageNames = map pkgs.lib.getName wardenConfig.environment.systemPackages;
+  seafileBootstrapPackageNames = [
+    "seafile-list-users"
+    "seafile-license-status"
+    "seafile-promote-oauth-admin"
+    "seafile-revoke-oauth-admin"
+    "seafile-reset-native-admin"
+    "seafile-bootstrap-status"
+  ];
+  seafileBootstrapPackages = builtins.filter (
+    package: builtins.elem (pkgs.lib.getName package) seafileBootstrapPackageNames
+  ) wardenConfig.environment.systemPackages;
   sshdService = services.sshd;
   sshdKeygenService = services."sshd-keygen";
   storageBoxKnownHosts = wardenConfig.programs.ssh.knownHosts;
@@ -498,6 +509,120 @@ in
       touch "$out"
     '';
 
+  seafile-identity-boundary-contract =
+    pkgs.runCommand "seafile-identity-boundary-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.jq
+        ];
+      }
+      ''
+        ${./tests/seafile-identity-boundary.sh} \
+          ${./.}/scripts/validate-seafile-identities.sh
+        touch "$out"
+      '';
+
+  seafile-bootstrap-contract =
+    let
+      settings = pkgs.writeText "seahub_settings.py" seafile.seahubSettingsText;
+      contract = seafile.bootstrapContractText;
+    in
+    assert pkgs.lib.all (name: builtins.elem name systemPackageNames) seafileBootstrapPackageNames;
+    assert builtins.length seafileBootstrapPackages == builtins.length seafileBootstrapPackageNames;
+    assert pkgs.lib.hasInfix "/run/lock/seafile-maintenance.lock" contract;
+    assert pkgs.lib.hasInfix "com.docker.compose.project" contract;
+    assert pkgs.lib.hasInfix "SEAFILE_ADMIN_USER_ID" contract;
+    assert pkgs.lib.hasInfix "SocialAuthUser" contract;
+    assert pkgs.lib.hasInfix "provider=\"pocket-id\"" contract;
+    assert pkgs.lib.hasInfix "license_user_limit = 3" contract;
+    assert pkgs.lib.hasInfix "active_user_count > license_user_limit" contract;
+    assert pkgs.lib.hasInfix "docker restart seafile" contract;
+    assert pkgs.lib.hasInfix "reset-admin.sh" contract;
+    assert pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_EMAIL" contract;
+    assert pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_PASSWORD" contract;
+    assert !(pkgs.lib.hasInfix "set_password(" contract);
+    assert !(pkgs.lib.hasInfix "create_user(" contract);
+    assert !(pkgs.lib.hasInfix "DISABLE_ADFS_USER_PWD_LOGIN" seafile.seahubSettingsText);
+    assert !(pkgs.lib.hasInfix "pangolin" (pkgs.lib.toLower (contract + seafile.seahubSettingsText)));
+    pkgs.runCommand "seafile-bootstrap-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.python3
+        ]
+        ++ pkgs.lib.optionals (system == "x86_64-linux") seafileBootstrapPackages;
+      }
+      ''
+        export SEAHUB_SECRET_KEY=fixture-secret-key
+        export JWT_PRIVATE_KEY=fixture-private-key
+        export SEAFILE_MYSQL_DB_PASSWORD=fixture-database-password
+        export SEAFILE_OAUTH_CLIENT_ID=fixture-client-id
+        export SEAFILE_OAUTH_CLIENT_SECRET=fixture-client-secret
+        export ONLYOFFICE_JWT_SECRET=fixture-office-secret
+        python - ${settings} <<'PY'
+        import runpy
+        import sys
+
+        settings = runpy.run_path(sys.argv[1])
+        expected = {
+            "TIME_ZONE": "Europe/Paris",
+            "ENABLE_OAUTH": True,
+            "OAUTH_CREATE_UNKNOWN_USER": True,
+            "OAUTH_ACTIVATE_USER_AFTER_CREATION": True,
+            "OAUTH_ENABLE_INSECURE_TRANSPORT": False,
+            "OAUTH_PROVIDER": "pocket-id",
+            "OAUTH_REDIRECT_URL": "https://files.shulker.link/oauth/callback/",
+            "OAUTH_AUTHORIZATION_URL": "https://sso.shulker.link/authorize",
+            "OAUTH_TOKEN_URL": "https://sso.shulker.link/api/oidc/token",
+            "OAUTH_USER_INFO_URL": "https://sso.shulker.link/api/oidc/userinfo",
+            "OAUTH_SCOPE": ["openid", "profile", "email"],
+            "OAUTH_ATTRIBUTE_MAP": {
+                "sub": (True, "uid"),
+                "name": (False, "name"),
+                "email": (False, "contact_email"),
+            },
+            "CLIENT_SSO_VIA_LOCAL_BROWSER": True,
+            "ENABLE_SSO_USER_CHANGE_PASSWORD": False,
+            "ENABLE_SETTINGS_VIA_WEB": False,
+            "ENABLE_METADATA_MANAGEMENT": True,
+            "METADATA_SERVER_URL": "http://seafile-metadata:8084",
+            "SHARE_LINK_FORCE_USE_PASSWORD": True,
+            "SHARE_LINK_PASSWORD_MIN_LENGTH": 12,
+            "SHARE_LINK_PASSWORD_STRENGTH_LEVEL": 3,
+            "SHARE_LINK_EXPIRE_DAYS_DEFAULT": 7,
+            "SHARE_LINK_EXPIRE_DAYS_MAX": 30,
+            "UPLOAD_LINK_EXPIRE_DAYS_DEFAULT": 7,
+            "UPLOAD_LINK_EXPIRE_DAYS_MAX": 30,
+            "SHARE_LINK_LOGIN_REQUIRED": False,
+            "ENABLE_ONLYOFFICE": True,
+            "ONLYOFFICE_APIJS_URL": "https://office.shulker.link/web-apps/apps/api/documents/api.js",
+            "ONLYOFFICE_EDIT_FILE_EXTENSION": ("docx", "xlsx", "pptx", "csv"),
+            "ENABLE_WIKI": False,
+        }
+        for key, value in expected.items():
+            assert settings.get(key) == value, (key, settings.get(key))
+        assert not any(
+            key.startswith("OAUTH_") and any(term in key for term in ("ADMIN", "GROUP", "ROLE"))
+            for key in settings
+        )
+        assert settings["DATABASES"] == {
+            "default": {
+                "ENGINE": "django.db.backends.mysql",
+                "NAME": "seahub_db",
+                "USER": "seafile",
+                "PASSWORD": "fixture-database-password",
+                "HOST": "database",
+                "PORT": "3306",
+                "OPTIONS": {"charset": "utf8mb4"},
+            }
+        }
+        assert settings["ONLYOFFICE_JWT_SECRET"] == "fixture-office-secret"
+        PY
+
+        touch "$out"
+      '';
+
   paperless-core-contract =
     assert paperless.enable;
     assert paperless.version == "3.0.5";
@@ -573,12 +698,12 @@ in
     '';
 
   paperless-bootstrap-contract =
-    assert builtins.elem "paperless-bootstrap-groups" paperlessSystemPackageNames;
-    assert builtins.elem "paperless-promote-oidc-admin" paperlessSystemPackageNames;
-    assert builtins.elem "paperless-revoke-admin" paperlessSystemPackageNames;
-    assert builtins.elem "paperless-bootstrap-fastmail" paperlessSystemPackageNames;
-    assert builtins.elem "paperless-list-users" paperlessSystemPackageNames;
-    assert builtins.elem "paperless-enable-user" paperlessSystemPackageNames;
+    assert builtins.elem "paperless-bootstrap-groups" systemPackageNames;
+    assert builtins.elem "paperless-promote-oidc-admin" systemPackageNames;
+    assert builtins.elem "paperless-revoke-admin" systemPackageNames;
+    assert builtins.elem "paperless-bootstrap-fastmail" systemPackageNames;
+    assert builtins.elem "paperless-list-users" systemPackageNames;
+    assert builtins.elem "paperless-enable-user" systemPackageNames;
     assert pkgs.lib.hasInfix "paperless_users" paperless.bootstrapContractText;
     assert pkgs.lib.hasInfix "paperless_family" paperless.bootstrapContractText;
     assert pkgs.lib.hasInfix "paperless_admins" paperless.bootstrapContractText;

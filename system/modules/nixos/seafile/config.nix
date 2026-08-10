@@ -40,6 +40,63 @@ let
     SEAFILE_OAUTH_CLIENT_SECRET = rule 32 safePattern;
     ONLYOFFICE_JWT_SECRET = rule 32 safePattern;
   };
+  seahubSettingsText = ''
+    import os
+
+    SECRET_KEY = os.environ["SEAHUB_SECRET_KEY"]
+    JWT_PRIVATE_KEY = os.environ["JWT_PRIVATE_KEY"]
+    TIME_ZONE = "Europe/Paris"
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": "seahub_db",
+            "USER": "seafile",
+            "PASSWORD": os.environ["SEAFILE_MYSQL_DB_PASSWORD"],
+            "HOST": "database",
+            "PORT": "3306",
+            "OPTIONS": {"charset": "utf8mb4"},
+        }
+    }
+    ENABLE_OAUTH = True
+    OAUTH_CREATE_UNKNOWN_USER = True
+    OAUTH_ACTIVATE_USER_AFTER_CREATION = True
+    OAUTH_ENABLE_INSECURE_TRANSPORT = False
+    OAUTH_PROVIDER = "pocket-id"
+    OAUTH_CLIENT_ID = os.environ["SEAFILE_OAUTH_CLIENT_ID"]
+    OAUTH_CLIENT_SECRET = os.environ["SEAFILE_OAUTH_CLIENT_SECRET"]
+    OAUTH_REDIRECT_URL = "${cfg.oauthCallbackUrl}"
+    OAUTH_AUTHORIZATION_URL = "${cfg.oidcIssuer}/authorize"
+    OAUTH_TOKEN_URL = "${cfg.oidcIssuer}/api/oidc/token"
+    OAUTH_USER_INFO_URL = "${cfg.oidcIssuer}/api/oidc/userinfo"
+    OAUTH_SCOPE = ["openid", "profile", "email"]
+    OAUTH_ATTRIBUTE_MAP = {
+        "sub": (True, "uid"),
+        "name": (False, "name"),
+        "email": (False, "contact_email"),
+    }
+    CLIENT_SSO_VIA_LOCAL_BROWSER = True
+    ENABLE_SSO_USER_CHANGE_PASSWORD = False
+    ENABLE_SETTINGS_VIA_WEB = False
+    ENABLE_METADATA_MANAGEMENT = True
+    METADATA_SERVER_URL = "http://seafile-metadata:8084"
+    SHARE_LINK_FORCE_USE_PASSWORD = ${if cfg.shareLinkForceUsePassword then "True" else "False"}
+    SHARE_LINK_PASSWORD_MIN_LENGTH = ${toString cfg.shareLinkPasswordMinLength}
+    SHARE_LINK_PASSWORD_STRENGTH_LEVEL = ${toString cfg.shareLinkPasswordStrengthLevel}
+    SHARE_LINK_EXPIRE_DAYS_DEFAULT = ${toString cfg.shareLinkExpireDaysDefault}
+    SHARE_LINK_EXPIRE_DAYS_MAX = ${toString cfg.shareLinkExpireDaysMax}
+    UPLOAD_LINK_EXPIRE_DAYS_DEFAULT = ${toString cfg.uploadLinkExpireDaysDefault}
+    UPLOAD_LINK_EXPIRE_DAYS_MAX = ${toString cfg.uploadLinkExpireDaysMax}
+    SHARE_LINK_LOGIN_REQUIRED = ${if cfg.shareLinkLoginRequired then "True" else "False"}
+    ENABLE_ONLYOFFICE = True
+    ONLYOFFICE_APIJS_URL = "${cfg.onlyOfficeApiUrl}"
+    ONLYOFFICE_JWT_ENABLED = True
+    ONLYOFFICE_JWT_SECRET = os.environ["ONLYOFFICE_JWT_SECRET"]
+    ONLYOFFICE_EDIT_FILE_EXTENSION = (${
+      lib.concatMapStringsSep ", " (extension: ''"${extension}"'') cfg.editableExtensions
+    })
+    ENABLE_WIKI = False
+    SERVICE_URL = "${cfg.publicUrl}"
+  '';
   parseEnvironmentScript = ''
     set -euo pipefail
 
@@ -318,24 +375,8 @@ let
         printf '%s=%s\n' SEAFILE_SERVER_HOSTNAME ${lib.escapeShellArg (lib.removePrefix "https://" cfg.publicUrl)} >>"$app_environment"
 
         cat >"$seahub_settings" <<'EOF'
-    import os
-
-    SECRET_KEY = os.environ["SEAHUB_SECRET_KEY"]
-    JWT_PRIVATE_KEY = os.environ["JWT_PRIVATE_KEY"]
-    OAUTH_CLIENT_ID = os.environ["SEAFILE_OAUTH_CLIENT_ID"]
-    OAUTH_CLIENT_SECRET = os.environ["SEAFILE_OAUTH_CLIENT_SECRET"]
-    ONLYOFFICE_JWT_SECRET = os.environ["ONLYOFFICE_JWT_SECRET"]
-    ENABLE_OAUTH = True
-    OAUTH_ENABLE_INSECURE_TRANSPORT = False
-    ENABLE_ONLYOFFICE = True
-    ONLYOFFICE_JWT_ENABLED = True
+    ${seahubSettingsText}
     EOF
-        printf '%s\n' \
-          'OAUTH_PROVIDER_DOMAIN = ${cfg.oidcIssuer}' \
-          'OAUTH_REDIRECT_URL = ${cfg.oauthCallbackUrl}' \
-          'ONLYOFFICE_APIJS_URL = ${cfg.onlyOfficeApiUrl}' \
-          'SERVICE_URL = ${cfg.publicUrl}' \
-          >>"$seahub_settings"
 
         basic_token="$(
           printf '%s:%s' "''${values[INIT_SS_ADMIN_USER]}" "''${values[INIT_SS_ADMIN_PASSWORD]}" \
@@ -669,6 +710,12 @@ in
       internal = true;
       description = "Non-secret runtime configuration contract for evaluation checks.";
     };
+    seahubSettingsText = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+      description = "Rendered non-secret Seahub policy source for evaluation contracts.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -684,6 +731,7 @@ in
         renderRuntimeConfigScript
         requiredEnvironmentKeys
         runtimeConfigContractText
+        seahubSettingsText
         ;
       parseEnvironmentPackage = parseEnvironment;
       renderRuntimeConfigPackage = renderRuntimeConfig;
