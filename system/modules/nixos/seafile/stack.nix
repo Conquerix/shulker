@@ -62,6 +62,7 @@ let
     lock_timeout="''${SEAFILE_LOCK_TIMEOUT:-1800}"
     wait_timeout="''${SEAFILE_WAIT_TIMEOUT:-1800}"
     stop_timeout="''${SEAFILE_STOP_TIMEOUT:-120}"
+    log_capture_max_bytes="''${SEAFILE_LOG_CAPTURE_MAX_BYTES:-16777215}"
     docker_command="''${SEAFILE_DOCKER_COMMAND:-docker}"
     systemctl_command="''${SEAFILE_SYSTEMCTL_COMMAND:-systemctl}"
     journalctl_command="''${SEAFILE_JOURNALCTL_COMMAND:-journalctl}"
@@ -77,6 +78,15 @@ let
       seafile-onlyoffice
       seafile-redis
       seafile-seasearch
+    )
+    expected_services=(
+      seafile
+      database
+      metadata
+      notification
+      onlyoffice
+      redis
+      seasearch
     )
 
     fail_stack() {
@@ -231,10 +241,18 @@ let
         || fail_stack "admin.txt remains after startup"
     }
 
-    scan_sensitive_output() {
-      local patterns line value candidate log_tree entry_count oversized_count
-      patterns="$(mktemp)"
-      trap 'rm -f -- "$patterns"' RETURN
+    scan_sensitive_output() (
+      local patterns docker_output journal_output line value candidate
+      local log_tree entry_count oversized_count captured_size
+      case "$log_capture_max_bytes" in
+        "" | *[!0-9]*) fail_stack "log capture bound is invalid" ;;
+      esac
+      [ "$log_capture_max_bytes" -gt 0 ] || fail_stack "log capture bound is invalid"
+      patterns="$(mktemp "$host_dir/.seafile-scan-patterns.XXXXXX")"
+      docker_output="$(mktemp "$host_dir/.seafile-docker-logs.XXXXXX")"
+      journal_output="$(mktemp "$host_dir/.seafile-journal.XXXXXX")"
+      chmod 0600 "$patterns" "$docker_output" "$journal_output"
+      trap 'rm -f -- "$patterns" "$docker_output" "$journal_output"' EXIT
       while IFS= read -r line || [ -n "$line" ]; do
         value="''${line#*=}"
         [ -n "$value" ] && printf '%s\n' "$value" >>"$patterns"
@@ -244,11 +262,21 @@ let
         "$(read_environment_value INIT_SS_ADMIN_PASSWORD "$host_dir/bootstrap.environment")" \
         | base64 | tr -d '\n' >>"$patterns"
       printf '\n' >>"$patterns"
-      if "$docker_command" logs seafile 2>&1 | grep -F -q -f "$patterns"; then
+      "$docker_command" logs seafile >"$docker_output" 2>&1 \
+        || fail_stack "Docker log output could not be captured"
+      captured_size="$(wc -c <"$docker_output")"
+      [ "$captured_size" -le "$log_capture_max_bytes" ] \
+        || fail_stack "Docker log output exceeded its capture bound"
+      if grep -F -q -f "$patterns" -- "$docker_output"; then
         fail_stack "sensitive material was detected in Seafile container logs"
       fi
-      if "$journalctl_command" --unit seafile-compose.service --no-pager 2>&1 \
-        | grep -F -q -f "$patterns"; then
+      "$journalctl_command" --unit seafile-compose.service --no-pager \
+        >"$journal_output" 2>&1 \
+        || fail_stack "Compose unit journal output could not be captured"
+      captured_size="$(wc -c <"$journal_output")"
+      [ "$captured_size" -le "$log_capture_max_bytes" ] \
+        || fail_stack "Compose unit journal output exceeded its capture bound"
+      if grep -F -q -f "$patterns" -- "$journal_output"; then
         fail_stack "sensitive material was detected in the Compose unit journal"
       fi
       for log_tree in "$state_dir/shared/logs" "$state_dir/shared/seafile/logs"; do
@@ -265,23 +293,28 @@ let
           fi
         done < <(find "$log_tree" -type f -print0)
       done
-      rm -f -- "$patterns"
-      trap - RETURN
-    }
+    )
 
     run_start() {
-      local fresh=0 owned_before
+      local fresh=0 index status
+      local running_services_before=()
       refuse_unknown_containers
-      owned_before="$(project_names)"
+      for index in "''${!expected_names[@]}"; do
+        if container_running "''${expected_names[$index]}"; then
+          running_services_before+=("''${expected_services[$index]}")
+        fi
+      done
       recover_owned_on_failure() {
-        local status=$? name owned=()
+        status=$?
         trap - ERR
-        stop_known_gracefully "''${expected_names[@]}" >/dev/null 2>&1 || true
-        while IFS= read -r name; do
-          [ -n "$name" ] && owned+=("$name")
-        done <<<"$owned_before"
-        if [ "''${#owned[@]}" -gt 0 ]; then
-          compose_established up --detach "''${owned[@]}" >/dev/null 2>&1 || true
+        if ! stop_known_gracefully "''${expected_names[@]}"; then
+          echo "Seafile stack orchestration failed: failure recovery could not stop the attempted stack" >&2
+          exit 70
+        fi
+        if [ "''${#running_services_before[@]}" -gt 0 ] \
+          && ! compose_established up --detach "''${running_services_before[@]}"; then
+          echo "Seafile stack orchestration failed: failure recovery could not restore the entry stack" >&2
+          exit 70
         fi
         exit "$status"
       }
@@ -291,10 +324,10 @@ let
         fresh=1
         compose_bootstrap up --detach database redis seafile
         wait_for_bootstrap
-        stop_known_gracefully seafile
+        stop_known_gracefully seafile seafile-mariadb seafile-redis
         reconcile_runtime
         compose_bootstrap up --detach --wait --wait-timeout "$wait_timeout" seasearch
-        stop_known_gracefully seafile-seasearch seafile-mariadb
+        stop_known_gracefully seafile-seasearch
         compose_established up --detach --force-recreate database seasearch
       else
         stop_known_gracefully "''${expected_names[@]}"
@@ -327,9 +360,9 @@ let
         [ "$healthy" -eq 0 ] || return 0
       fi
       if "$systemctl_command" is-active --quiet seafile-compose.service; then
-        "$systemctl_command" reload seafile-compose.service
+        "$systemctl_command" --no-block reload seafile-compose.service
       else
-        "$systemctl_command" start seafile-compose.service
+        "$systemctl_command" --no-block start seafile-compose.service
       fi
     }
 
@@ -344,8 +377,11 @@ let
         esac
         ;;
       recover)
+        install -d -m 0755 "$(dirname "$lock_file")"
         exec 9>"$lock_file"
         flock -n 9 || exit 0
+        flock -u 9
+        exec 9>&-
         run_recover
         ;;
       *)

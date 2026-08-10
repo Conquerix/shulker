@@ -899,6 +899,7 @@ stack_metadata="$stack_root/run-metadata"
 stack_lock="$stack_root/maintenance.lock"
 stack_bin="$stack_root/bin"
 stack_log="$stack_root/events.log"
+stack_running="$stack_root/running-containers"
 
 reset_stack_fixture() {
 	rm -rf "$stack_root"
@@ -914,23 +915,43 @@ reset_stack_fixture() {
 	cat >"$stack_bin/seafile-reconcile-runtime-config" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-printf 'reconcile:%s:%s\n' "${SEAFILE_MAINTENANCE_LOCK_FD:-}" "${SEAFILE_ORCHESTRATION_STOPPED:-}" >>"${STUB_STACK_LOG:?}"
-mkdir -p "$STUB_STACK_STATE/shared/seafile/conf"
-for name in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
-	rm -f "$STUB_STACK_STATE/shared/seafile/conf/$name"
-	target="$name"
-	[ "$name" != .env ] || target=seafile.env
-	ln -s "/run/seafile/$target" "$STUB_STACK_STATE/shared/seafile/conf/$name"
+
+# The production inherited-FD proof uses Linux /proc. This contract runs on
+# Darwin, so adapt only that proof to an independent synthetic lock while the
+# real reconciler still enforces its owned-container and state gates.
+arguments=()
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --lock-file)
+      arguments+=(--lock-file "${STUB_RECONCILE_LOCK:?}")
+      shift 2
+      ;;
+    *)
+      arguments+=("$1")
+      shift
+      ;;
+  esac
 done
+exec 9>&-
+exec env -u SEAFILE_MAINTENANCE_LOCK_FD -u SEAFILE_ORCHESTRATION_STOPPED \
+  "${STUB_REAL_RECONCILER:?}" "${arguments[@]}"
 EOF
 	cat >"$stack_bin/journalctl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "${STUB_JOURNAL_CONTENT:-}"
+if [ "${STUB_JOURNAL_PAD_BYTES:-0}" -gt 0 ]; then
+  head -c "$STUB_JOURNAL_PAD_BYTES" /dev/zero | tr '\000' x
+fi
 EOF
 	cat >"$stack_bin/systemctl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+if ! flock -n "${STUB_STACK_LOCK:?}" -c true; then
+  printf 'systemctl-lock:held\n' >>"${STUB_STACK_LOG:?}"
+  exit 70
+fi
+printf 'systemctl-lock:released\n' >>"${STUB_STACK_LOG:?}"
 printf 'systemctl:%s\n' "$*" >>"${STUB_STACK_LOG:?}"
 case " $* " in
   *" is-active "*) [ "${STUB_SYSTEMD_ACTIVE:-0}" = 1 ] ;;
@@ -939,34 +960,125 @@ EOF
 	cat >"$stack_bin/docker" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+
+contains_line() {
+  [ -f "$1" ] && grep -F -x -- "$2" "$1" >/dev/null
+}
+
+add_line() {
+  touch "$1"
+  contains_line "$1" "$2" || printf '%s\n' "$2" >>"$1"
+}
+
+remove_line() {
+  local temporary
+  temporary="$1.next"
+  if [ -f "$1" ]; then
+    grep -F -v -x -- "$2" "$1" >"$temporary" || true
+  else
+    : >"$temporary"
+  fi
+  mv -f "$temporary" "$1"
+}
+
+container_for_service() {
+  case "$1" in
+    database) printf '%s\n' seafile-mariadb ;;
+    metadata) printf '%s\n' seafile-metadata ;;
+    notification) printf '%s\n' seafile-notification ;;
+    onlyoffice) printf '%s\n' seafile-onlyoffice ;;
+    redis) printf '%s\n' seafile-redis ;;
+    seafile) printf '%s\n' seafile ;;
+    seasearch) printf '%s\n' seafile-seasearch ;;
+    *) printf 'unexpected Compose service: %s\n' "$1" >&2; exit 64 ;;
+  esac
+}
+
 printf 'docker:%s\n' "$*" >>"${STUB_STACK_LOG:?}"
 if [ "$1" = compose ]; then
+  seen_up=0
+  skip_next=0
+  services=()
+  for argument in "$@"; do
+    if [ "$seen_up" -eq 0 ]; then
+      [ "$argument" = up ] && seen_up=1
+      continue
+    fi
+    if [ "$skip_next" -eq 1 ]; then
+      skip_next=0
+      continue
+    fi
+    case "$argument" in
+      --wait-timeout) skip_next=1 ;;
+      --detach|--wait|--force-recreate) ;;
+      --*) ;;
+      *) services+=("$argument") ;;
+    esac
+  done
+  [ "$seen_up" -eq 1 ] || exit 0
   if [[ " $* " == *" up "* ]] && [ "${STUB_FAIL_STAGE:-}" = "${*: -1}" ]; then
     exit 1
   fi
-  if [[ " $* " == *" up --detach --wait --wait-timeout "* ]] \
+  if [ "${#services[@]}" -eq 0 ] \
+    && [[ " $* " == *" --wait "* ]] \
     && [ "${STUB_FAIL_FINAL_ONCE:-0}" = 1 ] \
     && [ ! -e "${STUB_FAIL_ONCE_MARKER:?}" ]; then
     touch "$STUB_FAIL_ONCE_MARKER"
     exit 1
   fi
-  if [[ " $* " == *" up "* ]] && [[ " $* " == *" seafile "* ]]; then
-    mkdir -p "${STUB_STACK_STATE:?}/shared/seafile/seafile-data"
-    printf '13.0.25\n' >"$STUB_STACK_STATE/shared/seafile/seafile-data/current_version"
+  if [ "${STUB_FAIL_RESTORE:-0}" = 1 ] \
+    && [ "${services[*]:-}" = "seafile database" ]; then
+    exit 1
   fi
-  if [[ " $* " == *" up --detach --wait --wait-timeout "* ]] && [ "${*: -1}" != seasearch ]; then
-    printf '%s\n' seafile seafile-mariadb seafile-metadata seafile-notification \
-      seafile-onlyoffice seafile-redis seafile-seasearch >"${STUB_CONTAINER_FILE:?}"
+  if [ "${#services[@]}" -eq 0 ]; then
+    services=(database metadata notification onlyoffice redis seafile seasearch)
   fi
+  for service in "${services[@]}"; do
+    container="$(container_for_service "$service")"
+    add_line "${STUB_CONTAINER_FILE:?}" "$container"
+    add_line "${STUB_RUNNING_FILE:?}" "$container"
+    if [ "$service" = seafile ]; then
+      mkdir -p "${STUB_STACK_STATE:?}/shared/seafile/seafile-data"
+      printf '13.0.25\n' >"$STUB_STACK_STATE/shared/seafile/seafile-data/current_version"
+    fi
+  done
   exit 0
 fi
 case "$1" in
+  kill)
+    remove_line "${STUB_RUNNING_FILE:?}" "${*: -1}"
+    ;;
+  logs)
+    printf '%s\n' "${STUB_DOCKER_LOG_CONTENT:-}"
+    if [ "${STUB_DOCKER_LOG_PAD_BYTES:-0}" -gt 0 ]; then
+      head -c "$STUB_DOCKER_LOG_PAD_BYTES" /dev/zero | tr '\000' x
+    fi
+    ;;
   ps)
-    if [[ " $* " == *"com.docker.compose.project=seafile"* ]]; then
-      if [ -f "${STUB_CONTAINER_FILE:?}" ]; then
-        cat "$STUB_CONTAINER_FILE"
+    if [[ " $* " == *"name=^/"* ]]; then
+      for argument in "$@"; do
+        case "$argument" in
+          name='^/'*'$')
+            name="${argument#name=^/}"
+            name="${name%\$}"
+            contains_line "${STUB_RUNNING_FILE:?}" "$name" && printf '%s-id\n' "$name"
+            ;;
+        esac
+      done
+    elif [[ " $* " == *"com.docker.compose.project=seafile"* ]]; then
+      if [[ " $* " == *" --all "* ]]; then
+        if [ -f "${STUB_CONTAINER_FILE:?}" ]; then
+          cat "$STUB_CONTAINER_FILE"
+        elif [ -n "${STUB_PROJECT_CONTAINERS:-}" ]; then
+          printf '%s\n' $STUB_PROJECT_CONTAINERS
+        fi
       else
-        printf '%s\n' "${STUB_PROJECT_CONTAINERS:-}"
+        running_snapshot=""
+        if [ -f "${STUB_RUNNING_FILE:?}" ]; then
+          cat "$STUB_RUNNING_FILE"
+          running_snapshot="$(tr '\n' ',' <"$STUB_RUNNING_FILE")"
+        fi
+        printf 'docker-project-running:%s\n' "$running_snapshot" >>"${STUB_STACK_LOG:?}"
       fi
     fi
     ;;
@@ -987,11 +1099,17 @@ EOF
 	export STUB_STACK_STATE="$stack_state"
 	export STUB_STACK_APP="$stack_app"
 	export STUB_CONTAINER_FILE="$stack_root/containers"
+	export STUB_RUNNING_FILE="$stack_running"
 	export STUB_FAIL_ONCE_MARKER="$stack_root/failed-once"
+	export STUB_REAL_RECONCILER="$reconciler"
+	export STUB_RECONCILE_LOCK="$stack_root/reconciler.lock"
+	export STUB_STACK_LOCK="$stack_lock"
 	export STUB_PROJECT_CONTAINERS=""
 	export STUB_INSPECT_ENV_KEYS="INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD"
 	export STUB_SYSTEMD_ACTIVE=0
-	unset STUB_FAIL_STAGE STUB_FAIL_FINAL_ONCE STUB_JOURNAL_CONTENT
+	unset STUB_CAPTURE_MAX_BYTES STUB_DOCKER_LOG_CONTENT STUB_DOCKER_LOG_PAD_BYTES \
+		STUB_FAIL_RESTORE STUB_FAIL_STAGE STUB_FAIL_FINAL_ONCE STUB_JOURNAL_CONTENT \
+		STUB_JOURNAL_PAD_BYTES
 }
 
 run_stack_helper() {
@@ -1009,6 +1127,7 @@ run_stack_helper() {
 		SEAFILE_SYSTEMCTL_COMMAND="$stack_bin/systemctl" \
 		SEAFILE_JOURNALCTL_COMMAND="$stack_bin/journalctl" \
 		SEAFILE_RECONCILE_COMMAND="$stack_bin/seafile-reconcile-runtime-config" \
+		SEAFILE_LOG_CAPTURE_MAX_BYTES="${STUB_CAPTURE_MAX_BYTES:-16777215}" \
 		SEAFILE_EXPECTED_OWNER="$runtime_owner" \
 		"$compose_starter" "$@"
 }
@@ -1019,7 +1138,13 @@ reset_stack_fixture
 run_stack_helper start
 grep -F -- '--env-file '"$stack_host/bootstrap.environment" "$stack_log" >/dev/null
 grep -F -- 'database redis seafile' "$stack_log" >/dev/null
-grep -F -- 'reconcile:9:1' "$stack_log" >/dev/null
+grep -F -- 'docker:kill --signal TERM seafile' "$stack_log" >/dev/null
+grep -F -- 'docker:kill --signal TERM seafile-mariadb' "$stack_log" >/dev/null
+grep -F -- 'docker:kill --signal TERM seafile-redis' "$stack_log" >/dev/null
+grep -F -x -- 'docker-project-running:' "$stack_log" >/dev/null
+for managed in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
+	test -L "$stack_state/shared/seafile/conf/$managed"
+done
 grep -F -- '--force-recreate database seasearch' "$stack_log" >/dev/null
 grep -F -- '--env-file '"$stack_host/environment" "$stack_log" >/dev/null
 
@@ -1030,14 +1155,34 @@ reset_stack_fixture
 printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
 printf '%s\n' seafile seafile-mariadb seafile-metadata seafile-notification \
 	seafile-onlyoffice seafile-redis seafile-seasearch >"$STUB_CONTAINER_FILE"
+printf '%s\n' seafile seafile-mariadb >"$STUB_RUNNING_FILE"
 export STUB_FAIL_FINAL_ONCE=1
 expect_failure run_stack_helper start
-grep -F -- 'up --detach seafile seafile-mariadb seafile-metadata seafile-notification seafile-onlyoffice seafile-redis seafile-seasearch' \
-	"$stack_log" >/dev/null
+grep -F -- 'up --detach seafile database' "$stack_log" >/dev/null
+if grep -F -- 'up --detach seafile seafile-mariadb' "$stack_log"; then
+	echo "failure recovery passed container names to Compose" >&2
+	exit 1
+fi
+printf '%s\n' seafile seafile-mariadb | LC_ALL=C sort >"$stack_root/expected-running"
+LC_ALL=C sort "$STUB_RUNNING_FILE" >"$stack_root/actual-running"
+cmp "$stack_root/expected-running" "$stack_root/actual-running"
 if grep -F 'docker:start' "$stack_log"; then
 	echo "failure recovery started a container directly" >&2
 	exit 1
 fi
+
+# A restore failure is explicit rather than being swallowed by the ERR trap.
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+printf '%s\n' seafile seafile-mariadb >"$STUB_CONTAINER_FILE"
+cp "$STUB_CONTAINER_FILE" "$STUB_RUNNING_FILE"
+export STUB_FAIL_FINAL_ONCE=1 STUB_FAIL_RESTORE=1
+rollback_output="$stack_root/rollback-output"
+if run_stack_helper start >"$rollback_output" 2>&1; then
+	echo "startup accepted a failed ownership restore" >&2
+	exit 1
+fi
+grep -F 'failure recovery could not restore the entry stack' "$rollback_output" >/dev/null
 
 # An unrecognized project-labelled residue is refused and never deleted.
 reset_stack_fixture
@@ -1057,7 +1202,7 @@ if grep -F -- '--env-file '"$stack_host/bootstrap.environment" "$stack_log" >/de
 	echo "established startup exposed bootstrap interpolation" >&2
 	exit 1
 fi
-grep -F -- 'reconcile:9:1' "$stack_log" >/dev/null
+grep -F -x -- 'docker-project-running:' "$stack_log" >/dev/null
 
 # Only the exact protected JSON residue produced by pinned start.py is removed.
 reset_stack_fixture
@@ -1077,6 +1222,47 @@ printf '%s\n' '{"email":"foreign","password":"foreign"}' \
 chmod 0600 "$stack_state/shared/seafile/conf/admin.txt"
 expect_failure run_stack_helper start
 test -f "$stack_state/shared/seafile/conf/admin.txt"
+
+# Docker and journal output is captured to protected bounded files before a
+# quiet scan, so an early match cannot be hidden by producer SIGPIPE. Neither
+# the secret match nor an over-bound payload is printed.
+stack_secret="$(sed -n 's/^JWT_PRIVATE_KEY=//p' "$runtime_host/bootstrap.environment")"
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+export STUB_DOCKER_LOG_CONTENT="$stack_secret" STUB_DOCKER_LOG_PAD_BYTES=1048576
+docker_scan_output="$stack_root/docker-scan-output"
+if run_stack_helper start >"$docker_scan_output" 2>&1; then
+	echo "startup missed sensitive Docker log output" >&2
+	exit 1
+fi
+if grep -F -- "$stack_secret" "$docker_scan_output" >/dev/null; then
+	echo "Docker log scan exposed the sensitive match" >&2
+	exit 1
+fi
+
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+export STUB_JOURNAL_CONTENT="$stack_secret" STUB_JOURNAL_PAD_BYTES=1048576
+journal_scan_output="$stack_root/journal-scan-output"
+if run_stack_helper start >"$journal_scan_output" 2>&1; then
+	echo "startup missed sensitive journal output" >&2
+	exit 1
+fi
+if grep -F -- "$stack_secret" "$journal_scan_output" >/dev/null; then
+	echo "journal scan exposed the sensitive match" >&2
+	exit 1
+fi
+
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+export STUB_CAPTURE_MAX_BYTES=64 STUB_DOCKER_LOG_CONTENT=public \
+	STUB_DOCKER_LOG_PAD_BYTES=65
+bounded_scan_output="$stack_root/bounded-scan-output"
+if run_stack_helper start >"$bounded_scan_output" 2>&1; then
+	echo "startup accepted over-bound Docker log output" >&2
+	exit 1
+fi
+grep -F 'Docker log output exceeded its capture bound' "$bounded_scan_output" >/dev/null
 
 # Start and stop lock contention is non-mutating.
 for action in start stop; do
@@ -1099,7 +1285,12 @@ reset_stack_fixture
 export STUB_SYSTEMD_ACTIVE=1
 export STUB_PROJECT_CONTAINERS="seafile seafile-mariadb seafile-redis"
 run_stack_helper recover
-grep -F 'systemctl:reload seafile-compose.service' "$stack_log" >/dev/null
+grep -F -x 'systemctl-lock:released' "$stack_log" >/dev/null
+grep -F 'systemctl:--no-block reload seafile-compose.service' "$stack_log" >/dev/null
+if grep -F 'systemctl-lock:held' "$stack_log"; then
+	echo "recovery called systemctl while retaining the maintenance lock" >&2
+	exit 1
+fi
 if grep -F 'docker:start' "$stack_log"; then
 	echo "container recovery bypassed systemd" >&2
 	exit 1
@@ -1108,7 +1299,12 @@ fi
 reset_stack_fixture
 export STUB_SYSTEMD_ACTIVE=0
 run_stack_helper recover
-grep -F 'systemctl:start seafile-compose.service' "$stack_log" >/dev/null
+grep -F -x 'systemctl-lock:released' "$stack_log" >/dev/null
+grep -F 'systemctl:--no-block start seafile-compose.service' "$stack_log" >/dev/null
+if grep -F 'systemctl-lock:held' "$stack_log"; then
+	echo "daemon recovery called systemctl while retaining the maintenance lock" >&2
+	exit 1
+fi
 if grep -F 'docker:start' "$stack_log"; then
 	echo "daemon recovery bypassed systemd" >&2
 	exit 1
