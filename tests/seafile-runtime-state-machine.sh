@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-	echo "usage: $0 VALIDATOR RENDERER RECONCILER" >&2
+if [ "$#" -ne 4 ]; then
+	echo "usage: $0 VALIDATOR RENDERER RECONCILER COMPOSE_STARTER" >&2
 	exit 64
 fi
 
 validator="$1"
 renderer="$2"
 reconciler="$3"
+compose_starter="$4"
 database_managed_owner="999:999"
 
 fixture_root="$TMPDIR/seafile-state-fixture"
@@ -887,3 +888,230 @@ if grep -F -- "$secret_value" "$scan_output" >/dev/null; then
 fi
 
 echo "Seafile runtime configuration contract passed"
+
+# The stack fixture exercises the real orchestration helper with synthetic
+# Docker and systemd boundaries. It never starts or removes a real container.
+stack_root="$TMPDIR/seafile-stack-fixture"
+stack_state="$stack_root/state"
+stack_host="$stack_root/run-host"
+stack_app="$stack_root/run-app"
+stack_metadata="$stack_root/run-metadata"
+stack_lock="$stack_root/maintenance.lock"
+stack_bin="$stack_root/bin"
+stack_log="$stack_root/events.log"
+
+reset_stack_fixture() {
+	rm -rf "$stack_root"
+	mkdir -p \
+		"$stack_state/shared/seafile/seafile-data" \
+		"$stack_state/shared/seafile/conf" \
+		"$stack_host" "$stack_app" "$stack_metadata" "$stack_bin"
+	cp "$runtime_host/bootstrap.environment" "$stack_host/bootstrap.environment"
+	cp "$runtime_host/environment" "$stack_host/environment"
+	cp -R "$runtime_app/." "$stack_app/"
+	cp -R "$runtime_metadata/." "$stack_metadata/"
+	: >"$stack_log"
+	cat >"$stack_bin/seafile-reconcile-runtime-config" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'reconcile:%s:%s\n' "${SEAFILE_MAINTENANCE_LOCK_FD:-}" "${SEAFILE_ORCHESTRATION_STOPPED:-}" >>"${STUB_STACK_LOG:?}"
+mkdir -p "$STUB_STACK_STATE/shared/seafile/conf"
+for name in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
+	rm -f "$STUB_STACK_STATE/shared/seafile/conf/$name"
+	target="$name"
+	[ "$name" != .env ] || target=seafile.env
+	ln -s "/run/seafile/$target" "$STUB_STACK_STATE/shared/seafile/conf/$name"
+done
+EOF
+	cat >"$stack_bin/journalctl" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "${STUB_JOURNAL_CONTENT:-}"
+EOF
+	cat >"$stack_bin/systemctl" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'systemctl:%s\n' "$*" >>"${STUB_STACK_LOG:?}"
+case " $* " in
+  *" is-active "*) [ "${STUB_SYSTEMD_ACTIVE:-0}" = 1 ] ;;
+esac
+EOF
+	cat >"$stack_bin/docker" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'docker:%s\n' "$*" >>"${STUB_STACK_LOG:?}"
+if [ "$1" = compose ]; then
+  if [[ " $* " == *" up "* ]] && [ "${STUB_FAIL_STAGE:-}" = "${*: -1}" ]; then
+    exit 1
+  fi
+  if [[ " $* " == *" up --detach --wait --wait-timeout "* ]] \
+    && [ "${STUB_FAIL_FINAL_ONCE:-0}" = 1 ] \
+    && [ ! -e "${STUB_FAIL_ONCE_MARKER:?}" ]; then
+    touch "$STUB_FAIL_ONCE_MARKER"
+    exit 1
+  fi
+  if [[ " $* " == *" up "* ]] && [[ " $* " == *" seafile "* ]]; then
+    mkdir -p "${STUB_STACK_STATE:?}/shared/seafile/seafile-data"
+    printf '13.0.25\n' >"$STUB_STACK_STATE/shared/seafile/seafile-data/current_version"
+  fi
+  if [[ " $* " == *" up --detach --wait --wait-timeout "* ]] && [ "${*: -1}" != seasearch ]; then
+    printf '%s\n' seafile seafile-mariadb seafile-metadata seafile-notification \
+      seafile-onlyoffice seafile-redis seafile-seasearch >"${STUB_CONTAINER_FILE:?}"
+  fi
+  exit 0
+fi
+case "$1" in
+  ps)
+    if [[ " $* " == *"com.docker.compose.project=seafile"* ]]; then
+      if [ -f "${STUB_CONTAINER_FILE:?}" ]; then
+        cat "$STUB_CONTAINER_FILE"
+      else
+        printf '%s\n' "${STUB_PROJECT_CONTAINERS:-}"
+      fi
+    fi
+    ;;
+  inspect)
+    if [[ " $* " == *"Config.Env"* ]]; then
+      printf '%s\n' "${STUB_INSPECT_ENV_KEYS:-INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD}"
+    elif [[ " $* " == *"State.Health.Status"* ]]; then
+      printf '%s\n' healthy
+    else
+      printf '%s\n' true
+    fi
+    ;;
+esac
+EOF
+	chmod +x "$stack_bin/docker" "$stack_bin/journalctl" \
+		"$stack_bin/seafile-reconcile-runtime-config" "$stack_bin/systemctl"
+	export STUB_STACK_LOG="$stack_log"
+	export STUB_STACK_STATE="$stack_state"
+	export STUB_STACK_APP="$stack_app"
+	export STUB_CONTAINER_FILE="$stack_root/containers"
+	export STUB_FAIL_ONCE_MARKER="$stack_root/failed-once"
+	export STUB_PROJECT_CONTAINERS=""
+	export STUB_INSPECT_ENV_KEYS="INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD"
+	export STUB_SYSTEMD_ACTIVE=0
+	unset STUB_FAIL_STAGE STUB_FAIL_FINAL_ONCE STUB_JOURNAL_CONTENT
+}
+
+run_stack_helper() {
+	env \
+		PATH="$stack_bin:$PATH" \
+		SEAFILE_STATE_DIR="$stack_state" \
+		SEAFILE_HOST_DIR="$stack_host" \
+		SEAFILE_APP_DIR="$stack_app" \
+		SEAFILE_METADATA_DIR="$stack_metadata" \
+		SEAFILE_MAINTENANCE_LOCK="$stack_lock" \
+		SEAFILE_LOCK_TIMEOUT=0 \
+		SEAFILE_WAIT_TIMEOUT=1 \
+		SEAFILE_STOP_TIMEOUT=1 \
+		SEAFILE_DOCKER_COMMAND="$stack_bin/docker" \
+		SEAFILE_SYSTEMCTL_COMMAND="$stack_bin/systemctl" \
+		SEAFILE_JOURNALCTL_COMMAND="$stack_bin/journalctl" \
+		SEAFILE_RECONCILE_COMMAND="$stack_bin/seafile-reconcile-runtime-config" \
+		SEAFILE_EXPECTED_OWNER="$runtime_owner" \
+		"$compose_starter" "$@"
+}
+
+# Fresh bootstrap is staged, reconciled under the inherited lock, stripped of
+# removable init variables, and followed by the exact seven-service start.
+reset_stack_fixture
+run_stack_helper start
+grep -F -- '--env-file '"$stack_host/bootstrap.environment" "$stack_log" >/dev/null
+grep -F -- 'database redis seafile' "$stack_log" >/dev/null
+grep -F -- 'reconcile:9:1' "$stack_log" >/dev/null
+grep -F -- '--force-recreate database seasearch' "$stack_log" >/dev/null
+grep -F -- '--env-file '"$stack_host/environment" "$stack_log" >/dev/null
+
+# Mid-stage failure stops work started by this invocation. When the unit owned
+# an established stack on entry, only those exact known containers are brought
+# back through Compose; Docker start is never used.
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+printf '%s\n' seafile seafile-mariadb seafile-metadata seafile-notification \
+	seafile-onlyoffice seafile-redis seafile-seasearch >"$STUB_CONTAINER_FILE"
+export STUB_FAIL_FINAL_ONCE=1
+expect_failure run_stack_helper start
+grep -F -- 'up --detach seafile seafile-mariadb seafile-metadata seafile-notification seafile-onlyoffice seafile-redis seafile-seasearch' \
+	"$stack_log" >/dev/null
+if grep -F 'docker:start' "$stack_log"; then
+	echo "failure recovery started a container directly" >&2
+	exit 1
+fi
+
+# An unrecognized project-labelled residue is refused and never deleted.
+reset_stack_fixture
+export STUB_PROJECT_CONTAINERS=seafile-foreign
+expect_failure run_stack_helper start
+grep -F 'docker:ps --all --filter label=com.docker.compose.project=seafile' "$stack_log" >/dev/null
+if grep -E 'docker:(rm|kill).*seafile-foreign' "$stack_log"; then
+	echo "unknown project residue was modified" >&2
+	exit 1
+fi
+
+# Established state never uses the bootstrap interpolation file.
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+run_stack_helper start
+if grep -F -- '--env-file '"$stack_host/bootstrap.environment" "$stack_log" >/dev/null; then
+	echo "established startup exposed bootstrap interpolation" >&2
+	exit 1
+fi
+grep -F -- 'reconcile:9:1' "$stack_log" >/dev/null
+
+# Only the exact protected JSON residue produced by pinned start.py is removed.
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+admin_email="$(sed -n 's/^INIT_SEAFILE_ADMIN_EMAIL=//p' "$stack_host/environment")"
+admin_password="$(sed -n 's/^INIT_SEAFILE_ADMIN_PASSWORD=//p' "$stack_host/environment")"
+printf '{"email": "%s", "password": "%s"}' "$admin_email" "$admin_password" \
+	>"$stack_state/shared/seafile/conf/admin.txt"
+chmod 0600 "$stack_state/shared/seafile/conf/admin.txt"
+run_stack_helper start
+test ! -e "$stack_state/shared/seafile/conf/admin.txt"
+
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+printf '%s\n' '{"email":"foreign","password":"foreign"}' \
+	>"$stack_state/shared/seafile/conf/admin.txt"
+chmod 0600 "$stack_state/shared/seafile/conf/admin.txt"
+expect_failure run_stack_helper start
+test -f "$stack_state/shared/seafile/conf/admin.txt"
+
+# Start and stop lock contention is non-mutating.
+for action in start stop; do
+	reset_stack_fixture
+	# shellcheck disable=SC2016
+	flock "$stack_lock" bash -c 'touch "$1"; sleep 2' _ "$stack_root/held" &
+	stack_lock_holder=$!
+	for _ in $(seq 20); do
+		test -e "$stack_root/held" && break
+		sleep 0.05
+	done
+	expect_failure run_stack_helper "$action"
+	test ! -s "$stack_log"
+	wait "$stack_lock_holder"
+done
+
+# Recovery of a crashed container and a restarted daemon is delegated only to
+# the guarded systemd start/reload path; Docker is never started directly.
+reset_stack_fixture
+export STUB_SYSTEMD_ACTIVE=1
+export STUB_PROJECT_CONTAINERS="seafile seafile-mariadb seafile-redis"
+run_stack_helper recover
+grep -F 'systemctl:reload seafile-compose.service' "$stack_log" >/dev/null
+if grep -F 'docker:start' "$stack_log"; then
+	echo "container recovery bypassed systemd" >&2
+	exit 1
+fi
+
+reset_stack_fixture
+export STUB_SYSTEMD_ACTIVE=0
+run_stack_helper recover
+grep -F 'systemctl:start seafile-compose.service' "$stack_log" >/dev/null
+if grep -F 'docker:start' "$stack_log"; then
+	echo "daemon recovery bypassed systemd" >&2
+	exit 1
+fi
+
+echo "Seafile stack lifecycle contract passed"

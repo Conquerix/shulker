@@ -18,6 +18,8 @@ let
   };
   seafile = wardenConfig.shulker.system.modules.seafile;
   seafileConfigService = services."seafile-config";
+  seafileComposeService = services."seafile-compose";
+  seafilePullService = services."seafile-image-pull";
   seafileStateService = services."seafile-state";
   paperless = wardenConfig.shulker.system.modules.paperless;
   paperlessFastmailRoutesFilter = paperless.fastmailRoutesFilter;
@@ -194,6 +196,27 @@ in
         ];
         text = seafile.reconcileRuntimeConfigScript;
       };
+      composeStartPackage = pkgs.writeShellApplication {
+        name = "seafile-compose-start";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.util-linux
+        ];
+        text = builtins.unsafeDiscardStringContext (
+          builtins.replaceStrings
+            [
+              (toString seafile.composeFile)
+              (toString seafile.bootstrapComposeFile)
+            ]
+            [
+              "/unused/seafile-compose.yml"
+              "/unused/seafile-bootstrap-compose.yml"
+            ]
+            seafile.composeStartScript
+        );
+      };
     in
     pkgs.runCommand "seafile-runtime-state-machine-contract"
       {
@@ -212,9 +235,209 @@ in
         ${./tests/seafile-runtime-state-machine.sh} \
           ${validator} \
           ${rendererPackage}/bin/seafile-render-runtime-config \
-          ${reconcilerPackage}/bin/seafile-reconcile-runtime-config
+          ${reconcilerPackage}/bin/seafile-reconcile-runtime-config \
+          ${composeStartPackage}/bin/seafile-compose-start
         touch "$out"
       '';
+
+  seafile-stack-contract =
+    let
+      compose = seafile.composeConfig;
+      services' = compose.services;
+      environmentKeys = service: builtins.attrNames (service.environment or { });
+      publications = pkgs.lib.concatMap (service: service.ports or [ ]) (builtins.attrValues services');
+      secretFixtureValues = [
+        "fixture-root-secret"
+        "fixture-database-secret"
+        "fixture-redis-secret"
+        "fixture-jwt-secret"
+      ];
+      composeJson = builtins.toJSON compose;
+      redisStartScriptUnderTest = pkgs.writeText "seafile-start-redis-under-test" (
+        seafile.redisStartScriptText
+      );
+    in
+    assert compose.name == "seafile";
+    assert
+      builtins.attrNames services' == [
+        "database"
+        "metadata"
+        "notification"
+        "onlyoffice"
+        "redis"
+        "seafile"
+        "seasearch"
+      ];
+    assert
+      map (name: services'.${name}.container_name) (builtins.attrNames services') == [
+        "seafile-mariadb"
+        "seafile-metadata"
+        "seafile-notification"
+        "seafile-onlyoffice"
+        "seafile-redis"
+        "seafile"
+        "seafile-seasearch"
+      ];
+    assert
+      compose.networks == {
+        seafile-net = {
+          name = "seafile-net";
+          internal = true;
+        };
+      };
+    assert
+      publications == [
+        "127.0.0.1:23241:8083/tcp"
+        "127.0.0.1:23240:80/tcp"
+        "127.0.0.1:23239:80/tcp"
+      ];
+    assert pkgs.lib.all (service: service.restart == "no") (builtins.attrValues services');
+    assert pkgs.lib.all (service: !(service.privileged or false)) (builtins.attrValues services');
+    assert services'.redis.tmpfs == [ "/run/redis" ];
+    assert services'.redis.entrypoint == [ "/usr/local/sbin/seafile-start-redis" ];
+    assert services'.redis.command == [ "/run/redis/redis.conf" ];
+    assert
+      services'.seafile.volumes == [
+        "/storage/flash/seafile/shared:/shared"
+        "/run/seafile-app:/run/seafile:ro"
+      ];
+    assert
+      services'.database.volumes == [
+        "/storage/flash/seafile/database:/var/lib/mysql"
+      ];
+    assert
+      services'.seasearch.volumes == [
+        "/storage/flash/seafile/search:/opt/seasearch/data"
+      ];
+    assert
+      services'.notification.volumes == [
+        "/storage/flash/seafile/shared/seafile/logs:/shared/seafile/logs"
+      ];
+    assert
+      services'.metadata.volumes == [
+        "/storage/flash/seafile/shared:/shared"
+        "/run/seafile-metadata:/run/seafile:ro"
+      ];
+    assert
+      map (volume: volume.source) (
+        builtins.filter (volume: builtins.isAttrs volume) services'.onlyoffice.volumes
+      ) == [
+        "/storage/flash/seafile/onlyoffice/logs"
+        "/storage/flash/seafile/onlyoffice/data"
+        "/storage/flash/seafile/onlyoffice/lib"
+        (toString seafile.onlyOfficeConfig)
+      ];
+    assert pkgs.lib.all (volume: volume.bind.create_host_path == false) (
+      builtins.filter (volume: builtins.isAttrs volume) services'.onlyoffice.volumes
+    );
+    assert environmentKeys services'.redis == [ "REDIS_PASSWORD" ];
+    assert
+      environmentKeys services'.onlyoffice == [
+        "EXAMPLE_ENABLED"
+        "JWT_ENABLED"
+        "JWT_SECRET"
+      ];
+    assert
+      environmentKeys services'.notification == [
+        "JWT_PRIVATE_KEY"
+        "NOTIFICATION_SERVER_LOG_LEVEL"
+        "SEAFILE_LOG_TO_STDOUT"
+        "SEAFILE_MYSQL_DB_CCNET_DB_NAME"
+        "SEAFILE_MYSQL_DB_HOST"
+        "SEAFILE_MYSQL_DB_PASSWORD"
+        "SEAFILE_MYSQL_DB_PORT"
+        "SEAFILE_MYSQL_DB_SEAFILE_DB_NAME"
+        "SEAFILE_MYSQL_DB_USER"
+      ];
+    assert
+      environmentKeys services'.metadata == [
+        "CACHE_PROVIDER"
+        "JWT_PRIVATE_KEY"
+        "MD_CHECK_UPDATE_INTERVAL"
+        "MD_FILE_COUNT_LIMIT"
+        "MD_MAX_CACHE_SIZE"
+        "MD_STORAGE_TYPE"
+        "REDIS_HOST"
+        "REDIS_PASSWORD"
+        "REDIS_PORT"
+        "SEAFILE_LOG_TO_STDOUT"
+        "SEAFILE_MYSQL_DB_HOST"
+        "SEAFILE_MYSQL_DB_PASSWORD"
+        "SEAFILE_MYSQL_DB_PORT"
+        "SEAFILE_MYSQL_DB_SEAFILE_DB_NAME"
+        "SEAFILE_MYSQL_DB_USER"
+        "SEAF_SERVER_STORAGE_TYPE"
+      ];
+    assert !(builtins.hasAttr "MYSQL_ROOT_PASSWORD" services'.database.environment);
+    assert !(builtins.hasAttr "SS_FIRST_ADMIN_USER" services'.seasearch.environment);
+    assert !(builtins.hasAttr "SS_FIRST_ADMIN_PASSWORD" services'.seasearch.environment);
+    assert
+      seafile.bootstrapComposeConfig.services.database.environment.MYSQL_ROOT_PASSWORD
+      == "\${INIT_SEAFILE_MYSQL_ROOT_PASSWORD:?INIT_SEAFILE_MYSQL_ROOT_PASSWORD is required}";
+    assert
+      seafile.bootstrapComposeConfig.services.seasearch.environment.SS_FIRST_ADMIN_USER
+      == "\${INIT_SS_ADMIN_USER:?INIT_SS_ADMIN_USER is required}";
+    assert
+      services'.onlyoffice.environment.EXAMPLE_ENABLED == "false"
+      && services'.onlyoffice.environment.JWT_ENABLED == "true";
+    assert
+      services'.seafile.depends_on.database.condition == "service_healthy"
+      && services'.seafile.depends_on.redis.condition == "service_healthy";
+    assert
+      services'.notification.depends_on.seafile.condition == "service_healthy"
+      && services'.metadata.depends_on.seafile.condition == "service_healthy";
+    assert pkgs.lib.all (value: !(pkgs.lib.hasInfix value composeJson)) secretFixtureValues;
+    assert pkgs.lib.all (forbidden: !(pkgs.lib.hasInfix forbidden composeJson)) [
+      "/storage/flash/immich"
+      "caddy"
+      "seadoc"
+      "webdav"
+      "elasticsearch"
+      "network_mode"
+      "privileged"
+    ];
+    assert pkgs.lib.all (
+      name:
+      services'.${name}.image == {
+        database = seafile.databaseImage;
+        metadata = seafile.metadataImage;
+        notification = seafile.notificationImage;
+        onlyoffice = seafile.onlyOfficeImage;
+        redis = seafile.redisImage;
+        seafile = seafile.seafileImage;
+        seasearch = seafile.seasearchImage;
+      }
+      .${name}
+    ) (builtins.attrNames services');
+    assert seafilePullService.serviceConfig.Type == "oneshot";
+    assert seafilePullService.serviceConfig.RemainAfterExit;
+    assert seafilePullService.serviceConfig.TimeoutStartSec == 10800;
+    assert builtins.elem "COMPOSE_PARALLEL_LIMIT=1" seafilePullService.serviceConfig.Environment;
+    assert
+      seafilePullService.unitConfig.ConditionFileNotEmpty
+      == seafileComposeService.unitConfig.ConditionFileNotEmpty;
+    assert builtins.elem "seafile-image-pull.service" seafileComposeService.requires;
+    assert builtins.elem "seafile-config.service" seafileComposeService.requires;
+    assert builtins.elem "seafile-image-pull.service" seafileComposeService.after;
+    assert builtins.elem "seafile-config.service" seafileComposeService.after;
+    assert builtins.elem "docker.service" seafileComposeService.unitConfig.BindsTo;
+    assert seafileComposeService.serviceConfig.TimeoutStartSec > 1800;
+    assert builtins.hasAttr "seafile-compose-recovery" services;
+    assert builtins.hasAttr "seafile-compose-recovery" wardenConfig.systemd.timers;
+    assert !(builtins.elem seafile.port wardenConfig.networking.firewall.allowedTCPPorts);
+    assert !(builtins.elem seafile.onlyOfficePort wardenConfig.networking.firewall.allowedTCPPorts);
+    assert !(builtins.elem seafile.notificationPort wardenConfig.networking.firewall.allowedTCPPorts);
+    pkgs.runCommand "seafile-stack-contract" { } ''
+      test "$(head -n 1 ${redisStartScriptUnderTest})" = '#!/bin/sh'
+      ! grep -F '/nix/store' ${redisStartScriptUnderTest}
+      grep -F 'chown 999:1000' ${redisStartScriptUnderTest} >/dev/null
+      grep -F 'chmod 0700 /run/redis' ${redisStartScriptUnderTest} >/dev/null
+      grep -F 'chmod 0600 "$config"' ${redisStartScriptUnderTest} >/dev/null
+      grep -F 'su-exec 999:1000 test -r "$config"' ${redisStartScriptUnderTest} >/dev/null
+      grep -F 'unset REDIS_PASSWORD' ${redisStartScriptUnderTest} >/dev/null
+      grep -F 'exec su-exec 999:1000 redis-server /run/redis/redis.conf' ${redisStartScriptUnderTest} >/dev/null
+      touch "$out"
+    '';
 
   checked-rebuild-secret-schema-contract =
     pkgs.runCommand "checked-rebuild-secret-schema-contract"
