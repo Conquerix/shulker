@@ -51,12 +51,24 @@ let
       inherit from relation to;
     };
 
+  dependency =
+    enabled: from: to: relation:
+    optional enabled {
+      inherit from relation to;
+    };
+
   nixosHost =
     hostName:
     let
       config = nixosConfigurations.${hostName}.config;
       modules = config.shulker.system.modules;
       profiles = config.shulker.system.profiles;
+      seafileComposeServices =
+        if modules.seafile.enable then modules.seafile.composeConfig.services else { };
+      seafileComponent =
+        composeKey: key: name: endpoint:
+        service key name "storage" (builtins.hasAttr composeKey seafileComposeServices) endpoint;
+      seafileComponentEnabled = composeKey: builtins.hasAttr composeKey seafileComposeServices;
       hostKind =
         if profiles.server.enable then
           "server"
@@ -112,6 +124,15 @@ let
         (service "webdav" "WebDAV (SFTPGo)" "backup" modules.webdav.enable
           "http://${modules.webdav.bindAddress}:${toString modules.webdav.port}"
         )
+        (seafileComponent "seafile" "seafile" "Seafile Pro" modules.seafile.publicUrl)
+        (seafileComponent "database" "seafile-mariadb" "Seafile MariaDB" null)
+        (seafileComponent "redis" "seafile-redis" "Seafile Redis" null)
+        (seafileComponent "seasearch" "seafile-seasearch" "SeaSearch" null)
+        (seafileComponent "notification" "seafile-notification" "Seafile Notification" null)
+        (seafileComponent "metadata" "seafile-metadata" "Seafile Metadata" null)
+        (seafileComponent "onlyoffice" "seafile-onlyoffice" "OnlyOffice"
+          modules.seafile.onlyOfficePublicUrl
+        )
       ];
       connections = concatLists [
         (connection modules.newt.enable "newt" modules.newt.endpoint "outbound tunnel")
@@ -122,6 +143,45 @@ let
         (connection modules.immich.enable "immich" modules.immich.oidcIssuer "OIDC authentication")
         (connection modules.opencloud.enable "opencloud" modules.opencloud.oidcIssuer "OIDC authentication")
         (connection modules.paperless.enable "paperless" modules.paperless.oidcIssuer "OIDC authentication")
+        (connection modules.seafile.enable "seafile" modules.seafile.oidcIssuer "OIDC authentication")
+      ];
+      dependencies = concatLists [
+        (dependency (
+          seafileComponentEnabled "seafile" && seafileComponentEnabled "database"
+        ) "seafile" "seafile-mariadb" "application metadata")
+        (dependency (
+          seafileComponentEnabled "seafile" && seafileComponentEnabled "redis"
+        ) "seafile" "seafile-redis" "cache and coordination")
+        (dependency (
+          seafileComponentEnabled "seafile" && seafileComponentEnabled "seasearch"
+        ) "seafile" "seafile-seasearch" "full-text search")
+        (dependency (
+          seafileComponentEnabled "seafile" && seafileComponentEnabled "notification"
+        ) "seafile" "seafile-notification" "real-time notifications")
+        (dependency (
+          seafileComponentEnabled "seafile" && seafileComponentEnabled "metadata"
+        ) "seafile" "seafile-metadata" "extended metadata")
+        (dependency (
+          seafileComponentEnabled "seafile" && seafileComponentEnabled "onlyoffice"
+        ) "seafile" "seafile-onlyoffice" "browser Office editing")
+        (dependency (
+          seafileComponentEnabled "seafile" && modules.backup.enable
+        ) "seafile" "backup" "writer-quiesced backup")
+        (dependency (
+          seafileComponentEnabled "notification" && seafileComponentEnabled "database"
+        ) "seafile-notification" "seafile-mariadb" "notification database")
+        (dependency (
+          seafileComponentEnabled "notification" && seafileComponentEnabled "seafile"
+        ) "seafile-notification" "seafile" "application events")
+        (dependency (
+          seafileComponentEnabled "metadata" && seafileComponentEnabled "database"
+        ) "seafile-metadata" "seafile-mariadb" "file metadata")
+        (dependency (
+          seafileComponentEnabled "metadata" && seafileComponentEnabled "redis"
+        ) "seafile-metadata" "seafile-redis" "cache and event queue")
+        (dependency (
+          seafileComponentEnabled "metadata" && seafileComponentEnabled "seafile"
+        ) "seafile-metadata" "seafile" "shared object and configuration state")
       ];
     };
 
@@ -138,10 +198,11 @@ let
       modules = collectEnabled [ ] (config.shulker.system.modules or { });
       services = [ ];
       connections = [ ];
+      dependencies = [ ];
     };
 in
 {
-  schema = 1;
+  schema = 2;
   inherit external revision;
   hosts = (map nixosHost hostNames) ++ (map darwinHost darwinHostNames);
 }

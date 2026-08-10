@@ -31,6 +31,8 @@ let
 
   hostNodeId = host: "host_${safeId host.name}";
   endpointNodeId = endpoint: "endpoint_${safeId endpoint}";
+  localHostNodeId = host: "local_host_${safeId host.name}";
+  localServiceNodeId = host: service: "local_service_${safeId host.name}_${safeId service.key}";
 
   pangolin =
     data.external.pangolin or {
@@ -60,6 +62,54 @@ let
       serviceName = if service == null then connection.from else service.name;
     in
     ''${hostNodeId host} -. "${escapeLabel serviceName}: ${escapeLabel connection.relation}" .-> ${endpointNodeId connection.to}'';
+
+  localComponentKeys =
+    host:
+    unique (
+      builtins.concatLists (
+        map (dependency: [
+          dependency.from
+          dependency.to
+        ]) (host.dependencies or [ ])
+      )
+    );
+
+  localService =
+    host: key:
+    let
+      found = findFirst (service: service.key == key) null host.services;
+    in
+    if found == null then
+      throw "Infrastructure dependency ${host.name}:${key} does not resolve to a local service."
+    else
+      found;
+
+  renderLocalService =
+    host: key:
+    let
+      service = localService host key;
+    in
+    ''${localServiceNodeId host service}["${escapeLabel service.name}"]:::component'';
+
+  renderLocalDependency =
+    host: dependency:
+    let
+      from = localService host dependency.from;
+      to = localService host dependency.to;
+    in
+    "${localServiceNodeId host from} -->|${escapeLabel dependency.relation}| ${localServiceNodeId host to}";
+
+  renderLocalHost =
+    host:
+    if host.dependencies or [ ] == [ ] then
+      ""
+    else
+      ''
+        subgraph ${localHostNodeId host}["${escapeLabel host.name} local components"]
+          ${concatMapStringsSep "\n          " (renderLocalService host) (localComponentKeys host)}
+        end
+        ${concatMapStringsSep "\n        " (renderLocalDependency host) (host.dependencies or [ ])}
+      '';
 
   siteNodeId = site: "pangolin_site_${safeId (site.id or site.name)}";
   renderSite =
@@ -158,6 +208,18 @@ let
     [Public services](Public-Services) for the tabular Pangolin inventory.
 
     Pangolin: ${collectionStatus}
+
+    ## Local component dependencies
+
+    Local arrows are evaluated dependencies between components on the same
+    managed host. They do not imply public exposure.
+
+    ```mermaid
+    flowchart LR
+      classDef component fill:#e3f2fd,color:#0d47a1,stroke:#64b5f6
+
+    ${concatMapStringsSep "\n" renderLocalHost data.hosts}
+    ```
 
     ## Management dependencies
 

@@ -89,6 +89,48 @@ let
     ) hosts
   );
 
+  localService =
+    host: key:
+    let
+      found = findFirst (service: service.key == key) null host.services;
+    in
+    if found == null then
+      throw "Infrastructure dependency ${host.name}:${key} does not resolve to a local service."
+    else
+      found;
+
+  localComponentKeys =
+    host:
+    unique (
+      concatLists (
+        map (dependency: [
+          dependency.from
+          dependency.to
+        ]) (host.dependencies or [ ])
+      )
+    );
+
+  localDependencyRows = concatLists (
+    map (
+      host:
+      map (
+        key:
+        let
+          component = localService host key;
+          dependencies = filter (dependency: dependency.from == key) (host.dependencies or [ ]);
+          dependencyText = orNone (
+            map (dependency: "${(localService host dependency.to).name} (${dependency.relation})") dependencies
+          );
+        in
+        [
+          (hostLink host)
+          component.name
+          dependencyText
+        ]
+      ) (localComponentKeys host)
+    ) hosts
+  );
+
   pangolin =
     data.external.pangolin or {
       collectedAt = null;
@@ -274,6 +316,18 @@ let
     ## Host coverage
 
     ${markdownTable [ "Host" "Services" ] serviceCoverageRows}
+
+    ## Local component dependencies
+
+    Components below have evaluated dependencies on services running on the
+    same host. Private component endpoints are intentionally omitted.
+
+    ${
+      if localDependencyRows == [ ] then
+        "_None._\n"
+      else
+        markdownTable [ "Host" "Component" "Depends on" ] localDependencyRows
+    }
 
     ## Cross-host dependencies
 

@@ -129,6 +129,11 @@ let
       "${modules.paperless.stateDir} (${modules.paperless.dataset})"
       "Version ${modules.paperless.version}; quota ${bytesAsGiB modules.paperless.datasetQuotaBytes}; OCR ${modules.paperless.ocrLanguage}; French search stemming; Office conversion with Tika and Gotenberg; Pocket ID for normal login; exactly one password-capable native break-glass administrator; Pangolin-authenticated /admin; administrator-only public /share bearer links; ${toString modules.paperless.trashDelayDays}-day trash; snapshot backup ${enabledDisabled modules.paperless.backUpData}; scanner listener disabled"
     )
+    (service "Seafile Pro ${modules.seafile.version}" modules.seafile.enable
+      "${modules.seafile.publicUrl} via ${modules.seafile.bindAddress}:${toString modules.seafile.port}; OnlyOffice ${modules.seafile.onlyOfficePublicUrl} via ${modules.seafile.bindAddress}:${toString modules.seafile.onlyOfficePort}; Notification ${modules.seafile.notificationPublicUrl} via ${modules.seafile.bindAddress}:${toString modules.seafile.notificationPort}"
+      "${modules.seafile.stateDir} (${modules.seafile.dataset})"
+      "1.5 TiB quota; Pocket ID OIDC; ${toString modules.seafile.licenseUserLimit} named users maximum (two OAuth plus one native break-glass administrator); password-protected public download/upload links with ${toString modules.seafile.shareLinkExpireDaysDefault}-day default and ${toString modules.seafile.shareLinkExpireDaysMax}-day maximum expiry; Immich exclusively owns photo/video originals; writer-quiesced Borgmatic snapshot coverage ${enabledDisabled modules.seafile.backUpData}"
+    )
     (service "Newt" modules.newt.enable modules.newt.endpoint modules.newt.stateDir
       "Outbound Pangolin tunnel"
     )
@@ -264,7 +269,16 @@ let
     }
   ];
   enabledPaperlessComposeContainers = optionals modules.paperless.enable paperlessComposeContainers;
-  enabledComposeContainers = enabledImmichComposeContainers ++ enabledPaperlessComposeContainers;
+  seafileComposeContainers = mapAttrsToList (_: composeService: {
+    name = composeService.container_name;
+    image = composeService.image;
+    ports = composeService.ports or [ ];
+  }) modules.seafile.composeConfig.services;
+  enabledSeafileComposeContainers = optionals modules.seafile.enable seafileComposeContainers;
+  enabledComposeContainers =
+    enabledImmichComposeContainers
+    ++ enabledPaperlessComposeContainers
+    ++ enabledSeafileComposeContainers;
   containerRows =
     mapAttrsToList (name: container: [
       name
@@ -321,6 +335,27 @@ let
   immichSnapshotPath = "${modules.immich.stateDir}/.zfs/snapshot/${modules.immich.backupSnapshotName}";
   opencloudSnapshotPath = "${modules.opencloud.stateDir}/.zfs/snapshot/${modules.opencloud.backupSnapshotName}";
   paperlessSnapshotPath = "${modules.paperless.stateDir}/.zfs/snapshot/${modules.paperless.backupSnapshotName}";
+  seafileSnapshotPath = "${modules.seafile.stateDir}/.zfs/snapshot/${modules.seafile.backupSnapshotName}";
+  seafileBackupSources = [
+    "${seafileSnapshotPath}/shared"
+    "${seafileSnapshotPath}/backups"
+  ];
+  seafilePublishedPorts =
+    if modules.seafile.enable then
+      sort builtins.lessThan (
+        concatLists (
+          mapAttrsToList (
+            _: composeService: composeService.ports or [ ]
+          ) modules.seafile.composeConfig.services
+        )
+      )
+    else
+      [ ];
+  expectedSeafilePublishedPorts = sort builtins.lessThan [
+    "${modules.seafile.bindAddress}:${toString modules.seafile.port}:80/tcp"
+    "${modules.seafile.bindAddress}:${toString modules.seafile.onlyOfficePort}:80/tcp"
+    "${modules.seafile.bindAddress}:${toString modules.seafile.notificationPort}:8083/tcp"
+  ];
   sqliteDatabases = config.services.borgmatic.settings.sqlite_databases or [ ];
   sqliteRows = map (database: [
     database.name
@@ -404,7 +439,31 @@ let
         "127.0.0.1"
         "[::1]"
       ])
-    ) "Paperless is not bound to host loopback.";
+    ) "Paperless is not bound to host loopback."
+    ++ optional (
+      modules.seafile.enable
+      && !(lib.elem modules.seafile.bindAddress [
+        "127.0.0.1"
+        "[::1]"
+      ])
+    ) "Seafile is not bound to host loopback."
+    ++
+      optional (modules.seafile.enable && seafilePublishedPorts != expectedSeafilePublishedPorts)
+        "Seafile does not publish exactly its evaluated loopback application, OnlyOffice, and Notification ports."
+    ++ optional (
+      modules.seafile.enable && !(lib.elem "seafileEnv" secretNames)
+    ) "The logical Seafile environment secret is missing from the evaluated 1Password inventory."
+    ++ optional (
+      modules.seafile.enable
+      && modules.seafile.backUpData
+      && !(lib.all (source: lib.elem source backupSources) seafileBackupSources)
+    ) "Seafile's two exact snapshot sources are not both present in the Borgmatic source list."
+    ++ optional (
+      modules.seafile.enable && !modules.seafile.backUpData
+    ) "Seafile state is not included in Borgmatic backups."
+    ++ optional modules.seafile.enable "Seafile identity/bootstrap status is live state; run seafile-bootstrap-status and seafile-license-status before admitting users."
+    ++ optional modules.seafile.enable "Seafile Pro is limited to three named users; the intended two OAuth users plus native break-glass administrator consume the allowance."
+    ++ optional modules.seafile.enable "Evaluation cannot prove live Pangolin prefix rewriting, forwarding-header replacement, WebSocket upgrades, or public OnlyOffice callbacks; keep public health disabled until those routes pass acceptance.";
 
   revisionLine = if revision == null then "" else "\nFlake revision: `${revision}`.\n";
 
@@ -701,6 +760,47 @@ let
           The scanner listener remains intentionally disabled. Follow the repository
           README for bootstrap, Fastmail routing, path-rule ordering, and isolated
           restore rehearsal.
+        ''
+      else
+        ""
+    }
+
+    ${
+      if modules.seafile.enable then
+        ''
+          Inspect Seafile Pro and run its bounded operator checks:
+
+          ```sh
+          sudo systemctl status seafile-compose.service --no-pager
+          sudo journalctl -u seafile-compose.service --since today
+          sudo seafile-health-check
+          sudo seafile-extended-health
+          sudo seafile-bootstrap-status
+          sudo seafile-license-status
+          sudo seafile-fsck-shallow
+          sudo seafile-fsck-full
+          sudo seafile-gc-dry-run
+          sudo seafile-search-status
+          sudo seafile-search-update
+          sudo seafile-search-rebuild
+          sudo seafile-metadata-probe
+          sudo seafile-onlyoffice-smoke-test
+          sudo seafile-backup-status
+          sudo seafile-pre-upgrade-check
+          sudo borgmatic create --verbosity 1
+          sudo borgmatic check --force
+          sudo seafile-restore-prepare --target /srv/seafile-restore/data --runtime-dir /srv/seafile-restore/runtime
+          sudo seafile-restore-verify --runtime-dir /srv/seafile-restore/runtime
+          sudo seafile-restore-teardown --runtime-dir /srv/seafile-restore/runtime
+          ```
+
+          Seafile's reserved snapshot path is `${seafileSnapshotPath}`. Its exact
+          off-host Borg sources are `${builtins.elemAt seafileBackupSources 0}`
+          and `${builtins.elemAt seafileBackupSources 1}`. Restore helpers do not
+          restore data automatically and preserve the restored target after
+          teardown. Follow the repository README for dataset setup, routing,
+          bootstrap, backup ordering, archive extraction, restore rehearsal,
+          acceptance, and the OpenCloud rollback gate.
         ''
       else
         ""

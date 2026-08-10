@@ -65,6 +65,7 @@ let
   storageBoxKnownHosts = wardenConfig.programs.ssh.knownHosts;
   wardenServerDocs = self.packages.${system}."server-docs-warden";
   infrastructureData = self.packages.${system}.infrastructure-data;
+  infrastructureDiagram = self.packages.${system}.infrastructure-diagram;
   wikiDocs = self.packages.${system}.wiki-docs;
 in
 {
@@ -893,6 +894,265 @@ in
     pkgs.runCommand "seafile-backup-contract" { } ''
       touch "$out"
     '';
+
+  seafile-docs-contract =
+    pkgs.runCommand "seafile-docs-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.gawk
+          pkgs.gnugrep
+          pkgs.jq
+        ];
+      }
+      ''
+        combined="$TMPDIR/seafile-generated-docs"
+        readme=${./README.md}
+        seafile_readme="$TMPDIR/seafile-readme"
+        seafile_readme_text="$TMPDIR/seafile-readme-text"
+        seafile_service_row="$TMPDIR/seafile-service-row"
+        seafile_operations="$TMPDIR/seafile-operations"
+        mkdir -p "$combined/warden" "$combined/infrastructure" "$combined/diagram" "$combined/wiki"
+        cp -R ${wardenServerDocs}/. "$combined/warden"
+        cp -R ${infrastructureData}/. "$combined/infrastructure"
+        cp -R ${infrastructureDiagram}/. "$combined/diagram"
+        cp -R ${wikiDocs}/. "$combined/wiki"
+        cp "$readme" "$combined/README.md"
+
+        warden_report="$combined/warden/warden.md"
+        inventory="$combined/infrastructure/infrastructure.json"
+        diagram="$combined/diagram/Infrastructure.md"
+        wiki_services="$combined/wiki/Services.md"
+        test -f "$warden_report"
+        test -f "$inventory"
+        test -f "$diagram"
+        test -f "$wiki_services"
+        test -f "$combined/wiki/Fleet.md"
+        test -f "$combined/wiki/Public-Services.md"
+
+        awk '
+          $0 == "## Seafile family files" { in_section = 1 }
+          $0 == "## OpenCloud family storage" { in_section = 0 }
+          in_section { print }
+        ' "$readme" > "$seafile_readme"
+        test -s "$seafile_readme"
+        tr '\n' ' ' < "$seafile_readme" > "$seafile_readme_text"
+
+        grep -F -- '| Seafile Pro 13.0.25 |' "$warden_report" > "$seafile_service_row"
+        test "$(wc -l < "$seafile_service_row")" -eq 1
+
+        awk '
+          $0 == "Inspect Seafile Pro and run its bounded operator checks:" { in_section = 1 }
+          $0 == "Roll back the active system profile:" { in_section = 0 }
+          in_section { print }
+        ' "$warden_report" > "$seafile_operations"
+        test -s "$seafile_operations"
+
+        for container in \
+          seafile \
+          seafile-mariadb \
+          seafile-redis \
+          seafile-seasearch \
+          seafile-notification \
+          seafile-metadata \
+          seafile-onlyoffice
+        do
+          test "$(grep -F -c -- "| $container |" "$warden_report")" -eq 1
+        done
+
+        test "$(grep -E -o '@sha256:[0-9a-f]{64}' "$seafile_readme" | wc -l)" -eq 7
+
+        for expected in \
+          'Seafile Pro 13.0.25' \
+          'https://files.shulker.link' \
+          'https://office.shulker.link' \
+          '127.0.0.1:23239' \
+          '127.0.0.1:23240' \
+          '127.0.0.1:23241' \
+          'flash_pool/flash/storage/seafile' \
+          '1.5 TiB' \
+          '3 named users maximum' \
+          'Pocket ID OIDC' \
+          'SeaSearch' \
+          'Notification' \
+          'Metadata' \
+          'OnlyOffice' \
+          'Borgmatic' \
+          '/storage/flash/seafile/.zfs/snapshot/borgmatic/shared' \
+          '/storage/flash/seafile/.zfs/snapshot/borgmatic/backups'
+        do
+          grep -R -F -- "$expected" "$combined" >/dev/null
+        done
+
+        for secret_name in \
+          INIT_SEAFILE_MYSQL_ROOT_PASSWORD \
+          SEAFILE_MYSQL_DB_PASSWORD \
+          REDIS_PASSWORD \
+          JWT_PRIVATE_KEY \
+          SEAHUB_SECRET_KEY \
+          INIT_SEAFILE_ADMIN_EMAIL \
+          INIT_SEAFILE_ADMIN_PASSWORD \
+          INIT_SS_ADMIN_USER \
+          INIT_SS_ADMIN_PASSWORD \
+          SEAFILE_OAUTH_CLIENT_ID \
+          SEAFILE_OAUTH_CLIENT_SECRET \
+          ONLYOFFICE_JWT_SECRET
+        do
+          grep -F -- "$secret_name" "$seafile_readme" >/dev/null
+        done
+
+        for command in \
+          seafile-health-check \
+          seafile-extended-health \
+          seafile-fsck-shallow \
+          seafile-fsck-full \
+          seafile-gc-dry-run \
+          seafile-search-status \
+          seafile-search-update \
+          seafile-search-rebuild \
+          seafile-metadata-probe \
+          seafile-onlyoffice-smoke-test \
+          seafile-backup-status \
+          seafile-pre-upgrade-check \
+          seafile-restore-prepare \
+          seafile-restore-verify \
+          seafile-restore-teardown \
+          'borgmatic create' \
+          'borgmatic check'
+        do
+          grep -F -- "$command" "$seafile_readme" >/dev/null
+          grep -F -- "$command" "$seafile_operations" >/dev/null
+        done
+
+        for policy in \
+          'Repository implementation and commits do not deploy Seafile' \
+          'OpenCloud remains enabled as the rollback path' \
+          'Immich is the sole authoritative store' \
+          'no documented server-side switch that enforces this preference' \
+          'They do not extract archive data automatically' \
+          'OpenCloud removal and dataset deletion are separate, destructive, approval-gated work'
+        do
+          grep -F -- "$policy" "$seafile_readme_text" >/dev/null
+        done
+
+        jq -e '
+          . as $root
+          | ($root.schema == 2)
+          and all(
+            $root.hosts[];
+            . as $host
+            | (([$host.services[].key] | length) == ([$host.services[].key] | unique | length))
+            and all(
+              $host.dependencies[]?;
+              .from as $from
+              | .to as $to
+              | (([$host.services[].key] | index($from)) != null)
+              and (([$host.services[].key] | index($to)) != null)
+            )
+          )
+          and (
+            ($root.hosts[] | select(.name == "warden")) as $warden
+            | (([
+                $warden.services[]
+                | select(.key | startswith("seafile"))
+                | .key
+              ] | sort) == [
+                "seafile",
+                "seafile-mariadb",
+                "seafile-metadata",
+                "seafile-notification",
+                "seafile-onlyoffice",
+                "seafile-redis",
+                "seafile-seasearch"
+              ])
+            and all(
+              $warden.services[] | select(.key | startswith("seafile"));
+              if .key == "seafile" then
+                .endpoint == "https://files.shulker.link"
+              elif .key == "seafile-onlyoffice" then
+                .endpoint == "https://office.shulker.link"
+              else
+                .endpoint == null
+              end
+            )
+            and (([
+                $warden.dependencies[]
+                | "\(.from)|\(.to)|\(.relation)"
+              ] | sort) == ([
+                "seafile|backup|writer-quiesced backup",
+                "seafile|seafile-mariadb|application metadata",
+                "seafile|seafile-metadata|extended metadata",
+                "seafile|seafile-notification|real-time notifications",
+                "seafile|seafile-onlyoffice|browser Office editing",
+                "seafile|seafile-redis|cache and coordination",
+                "seafile|seafile-seasearch|full-text search",
+                "seafile-metadata|seafile-mariadb|file metadata",
+                "seafile-metadata|seafile-redis|cache and event queue",
+                "seafile-metadata|seafile|shared object and configuration state",
+                "seafile-notification|seafile-mariadb|notification database",
+                "seafile-notification|seafile|application events"
+              ] | sort))
+            and any(
+              $warden.connections[];
+              .from == "seafile"
+              and .to == "https://sso.shulker.link"
+              and .relation == "OIDC authentication"
+            )
+          )
+        ' "$inventory" >/dev/null
+
+        grep -F -- '## Local component dependencies' "$diagram" >/dev/null
+        grep -F -- 'warden local components' "$diagram" >/dev/null
+        grep -F -- '## Management dependencies' "$diagram" >/dev/null
+        grep -F -- '## Public access' "$diagram" >/dev/null
+        grep -F -- '## Local component dependencies' "$wiki_services" >/dev/null
+
+        unexpected_loopback="$({
+          grep -E -o '127\.0\.0\.1:[0-9]+' "$seafile_readme" || true
+        } | grep -E -v '^127\.0\.0\.1:(23239|23240|23241)$' || true)"
+        if test -n "$unexpected_loopback"; then
+          echo "Seafile runbook contains an undeclared private target" >&2
+          exit 1
+        fi
+
+        if grep -R -E \
+          '(INIT_SEAFILE_MYSQL_ROOT_PASSWORD|SEAFILE_MYSQL_DB_PASSWORD|REDIS_PASSWORD|JWT_PRIVATE_KEY|SEAHUB_SECRET_KEY|INIT_SEAFILE_ADMIN_EMAIL|INIT_SEAFILE_ADMIN_PASSWORD|INIT_SS_ADMIN_USER|INIT_SS_ADMIN_PASSWORD|SEAFILE_OAUTH_CLIENT_ID|SEAFILE_OAUTH_CLIENT_SECRET|ONLYOFFICE_JWT_SECRET)[[:space:]]*=' \
+          "$combined" >/dev/null
+        then
+          echo "Generated Seafile documentation contains a secret value assignment" >&2
+          exit 1
+        fi
+
+        if grep -R -E \
+          'op://|/run/seafile|[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}|share[_ -]?token[[:space:]]*[:=]|document[_ -]?filename[[:space:]]*[:=]|"(targets?|accessPolicies|identities|credentials)"[[:space:]]*:' \
+          "$combined" >/dev/null
+        then
+          echo "Generated Seafile documentation contains private runtime or account material" >&2
+          exit 1
+        fi
+
+        for unsupported in \
+          'Nix proves live Pangolin' \
+          'Nix proves Pangolin routing' \
+          'Metadata has a manual consistency command' \
+          'server enforces camera upload disabled' \
+          'server disables camera upload' \
+          'forcesave captures every edit' \
+          'forcesave preserves every edit' \
+          "every forced save appears in OnlyOffice's own history"
+        do
+          if grep -R -F -- "$unsupported" "$combined" >/dev/null; then
+            echo "Seafile documentation contains an unsupported claim: $unsupported" >&2
+            exit 1
+          fi
+        done
+
+        if grep -R -F -- 'seafile-release-monitor' "$combined" >/dev/null; then
+          echo "Seafile release-monitor documentation landed before its workflow" >&2
+          exit 1
+        fi
+
+        touch "$out"
+      '';
 
   paperless-core-contract =
     assert paperless.enable;
