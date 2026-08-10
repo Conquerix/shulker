@@ -12,7 +12,12 @@ let
   borgmaticService = services.borgmatic;
   pullService = services."immich-image-pull";
   composeService = services."immich-compose";
+  checkedRebuild = import ./nix/checked-rebuild.nix {
+    inherit pkgs;
+    opnix = inputs.opnix.packages.${system}.default;
+  };
   seafile = wardenConfig.shulker.system.modules.seafile;
+  seafileConfigService = services."seafile-config";
   seafileStateService = services."seafile-state";
   paperless = wardenConfig.shulker.system.modules.paperless;
   paperlessFastmailRoutesFilter = paperless.fastmailRoutesFilter;
@@ -162,6 +167,33 @@ in
         name = "seafile-validate-state-contract-wrapper";
         text = seafile.validateStateScript;
       };
+      parserPackage = pkgs.writeShellApplication {
+        name = "seafile-parse-environment";
+        runtimeInputs = [ pkgs.coreutils ];
+        text = seafile.parseEnvironmentScript;
+      };
+      rendererPackage = pkgs.writeShellApplication {
+        name = "seafile-render-runtime-config";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.util-linux
+          parserPackage
+        ];
+        text = seafile.renderRuntimeConfigScript;
+      };
+      reconcilerPackage = pkgs.writeShellApplication {
+        name = "seafile-reconcile-runtime-config";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.util-linux
+          parserPackage
+        ];
+        text = seafile.reconcileRuntimeConfigScript;
+      };
     in
     pkgs.runCommand "seafile-runtime-state-machine-contract"
       {
@@ -169,14 +201,79 @@ in
           pkgs.bash
           pkgs.coreutils
           pkgs.findutils
+          pkgs.gawk
+          pkgs.gnugrep
           pkgs.gnused
+          pkgs.util-linux
           validatorPackage
         ];
       }
       ''
-        ${./tests/seafile-runtime-state-machine.sh} ${validator}
+        ${./tests/seafile-runtime-state-machine.sh} \
+          ${validator} \
+          ${rendererPackage}/bin/seafile-render-runtime-config \
+          ${reconcilerPackage}/bin/seafile-reconcile-runtime-config
         touch "$out"
       '';
+
+  checked-rebuild-secret-schema-contract =
+    pkgs.runCommand "checked-rebuild-secret-schema-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.gnugrep
+          pkgs.gnused
+          pkgs.jq
+        ];
+      }
+      ''
+        ${./tests/shulker-rebuild-secret-preflight.sh} ${checkedRebuild}/bin/shulker-rebuild
+        touch "$out"
+      '';
+
+  seafile-secret-contract =
+    assert
+      seafile.requiredEnvironmentKeys == [
+        "INIT_SEAFILE_MYSQL_ROOT_PASSWORD"
+        "SEAFILE_MYSQL_DB_PASSWORD"
+        "REDIS_PASSWORD"
+        "JWT_PRIVATE_KEY"
+        "SEAHUB_SECRET_KEY"
+        "INIT_SEAFILE_ADMIN_EMAIL"
+        "INIT_SEAFILE_ADMIN_PASSWORD"
+        "INIT_SS_ADMIN_USER"
+        "INIT_SS_ADMIN_PASSWORD"
+        "SEAFILE_OAUTH_CLIENT_ID"
+        "SEAFILE_OAUTH_CLIENT_SECRET"
+        "ONLYOFFICE_JWT_SECRET"
+      ];
+    assert
+      builtins.attrNames wardenConfig.shulker.system.secretPreflight.schemas.seafileEnv.exactKeys
+      == builtins.sort builtins.lessThan seafile.requiredEnvironmentKeys;
+    assert
+      wardenConfig.shulker.system.secretPreflight.schemas.seafileEnv.exactKeys.SEAFILE_MYSQL_DB_PASSWORD.pattern
+      == "^[A-Za-z0-9._~!@+,/:=-]+$";
+    assert
+      wardenConfig.shulker.system.secretPreflight.schemas.seafileEnv.exactKeys.SEAHUB_SECRET_KEY.minLength
+      == 50;
+    assert seafileConfigService.serviceConfig.Type == "oneshot";
+    assert seafileConfigService.serviceConfig.RemainAfterExit;
+    assert seafileConfigService.serviceConfig.RuntimeDirectoryPreserve == "yes";
+    assert
+      seafileConfigService.unitConfig.ConditionFileNotEmpty
+      == wardenConfig.services.onepassword-secrets.secrets.seafileEnv.path;
+    assert builtins.elem "opnix-secrets.service" seafileConfigService.requires;
+    assert builtins.elem "seafile-state.service" seafileConfigService.requires;
+    assert builtins.elem "opnix-secrets.service" seafileConfigService.after;
+    assert builtins.elem "seafile-state.service" seafileConfigService.after;
+    assert pkgs.lib.hasInfix "/run/seafile-host" seafile.runtimeConfigContractText;
+    assert pkgs.lib.hasInfix "/run/seafile-app" seafile.runtimeConfigContractText;
+    assert pkgs.lib.hasInfix "/run/seafile-metadata" seafile.runtimeConfigContractText;
+    assert pkgs.lib.hasInfix "RuntimeDirectoryPreserve" seafile.runtimeConfigContractText;
+    pkgs.runCommand "seafile-secret-contract" { } ''
+      touch "$out"
+    '';
 
   paperless-core-contract =
     assert paperless.enable;

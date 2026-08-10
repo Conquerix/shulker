@@ -30,6 +30,39 @@ let
 in
 with lib;
 {
+  options.shulker.system.secretPreflight.schemas = mkOption {
+    type = types.attrsOf (
+      types.submodule {
+        options = {
+          format = mkOption {
+            type = types.enum [ "dotenv" ];
+            description = "Structured secret format validated before deployment.";
+          };
+          exactKeys = mkOption {
+            type = types.attrsOf (
+              types.submodule {
+                options = {
+                  minLength = mkOption {
+                    type = types.ints.positive;
+                    description = "Minimum accepted value length.";
+                  };
+                  pattern = mkOption {
+                    type = types.str;
+                    description = "Extended regular expression accepted for the value.";
+                  };
+                };
+              }
+            );
+            description = "Complete key set and per-key validation rules.";
+          };
+        };
+      }
+    );
+    default = { };
+    internal = true;
+    description = "Prospective structured-secret schemas keyed by logical OpNix secret name.";
+  };
+
   config = {
 
     users.mutableUsers = false;

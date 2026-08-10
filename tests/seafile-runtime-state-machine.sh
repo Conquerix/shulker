@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-	echo "usage: $0 VALIDATOR" >&2
+if [ "$#" -ne 3 ]; then
+	echo "usage: $0 VALIDATOR RENDERER RECONCILER" >&2
 	exit 64
 fi
 
 validator="$1"
+renderer="$2"
+reconciler="$3"
 database_managed_owner="999:999"
 
 fixture_root="$TMPDIR/seafile-state-fixture"
@@ -18,6 +20,7 @@ quota="1649267441664"
 mkdir -p "$state_dir" "$stub_dir"
 real_mv="$(command -v mv)"
 real_rmdir="$(command -v rmdir)"
+real_stat="$(command -v stat)"
 real_unlink="$(command -v unlink)"
 
 cat >"$stub_dir/findmnt" <<'EOF'
@@ -577,3 +580,258 @@ export STUB_STAT_OVERRIDE_MODE="751"
 expect_failure run_validator
 
 echo "Seafile runtime state-machine contract passed"
+
+# Runtime configuration uses a separate fixture so the durable Task 1 crash and
+# mount cases above remain intact.
+runtime_root="$TMPDIR/seafile-runtime-config-fixture"
+runtime_state="$runtime_root/state"
+runtime_host="$runtime_root/run-host"
+runtime_app="$runtime_root/run-app"
+runtime_metadata="$runtime_root/run-metadata"
+runtime_lock="$runtime_root/maintenance.lock"
+runtime_source="$runtime_root/source.env"
+runtime_stub_dir="$runtime_root/bin"
+
+rm -rf "$runtime_root"
+mkdir -p "$runtime_state" "$runtime_stub_dir"
+runtime_owner="$($real_stat -c %u:%g "$runtime_state")"
+
+cat >"$runtime_stub_dir/docker" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "${STUB_LIVE_CONTAINERS:-0}" = 1 ]; then
+	printf '%s\n' synthetic-seafile-container
+fi
+EOF
+chmod +x "$runtime_stub_dir/docker"
+
+write_runtime_environment() {
+	local suffix="$1"
+	if [ -e "$runtime_source" ]; then
+		chmod 0600 "$runtime_source"
+	fi
+	cat >"$runtime_source" <<EOF
+INIT_SEAFILE_MYSQL_ROOT_PASSWORD=RootPassword0123456789abcdef0123${suffix}
+SEAFILE_MYSQL_DB_PASSWORD=DatabasePassword0123456789abcdef0${suffix}
+REDIS_PASSWORD=Allowed._~!@%+,/:=-Allowed._~!@%+,/:=-${suffix}
+JWT_PRIVATE_KEY=JwtPrivateKey0123456789abcdef0123456${suffix}
+SEAHUB_SECRET_KEY=SeahubSecretKey0123456789abcdef0123456789abcdef0123456${suffix}
+INIT_SEAFILE_ADMIN_EMAIL=admin${suffix}@example.invalid
+INIT_SEAFILE_ADMIN_PASSWORD=AdminPassword0123456789abcdef01234${suffix}
+INIT_SS_ADMIN_USER=seasearch-admin${suffix}
+INIT_SS_ADMIN_PASSWORD=SeaSearchPassword0123456789abcdef0${suffix}
+SEAFILE_OAUTH_CLIENT_ID=seafile-client${suffix}
+SEAFILE_OAUTH_CLIENT_SECRET=OAuthSecret0123456789abcdef0123456${suffix}
+ONLYOFFICE_JWT_SECRET=OnlyOfficeSecret0123456789abcdef012${suffix}
+EOF
+	chmod 0400 "$runtime_source"
+}
+
+run_renderer() {
+	env \
+		SEAFILE_DOCKER_COMMAND="$runtime_stub_dir/docker" \
+		SEAFILE_EXPECTED_OWNER="$runtime_owner" \
+		"$renderer" \
+		--source "$runtime_source" \
+		--host-dir "$runtime_host" \
+		--app-dir "$runtime_app" \
+		--metadata-dir "$runtime_metadata" \
+		--state-dir "$runtime_state" \
+		--lock-file "$runtime_lock" \
+		--lock-timeout 0
+}
+
+run_reconciler() {
+	env \
+		SEAFILE_DOCKER_COMMAND="$runtime_stub_dir/docker" \
+		SEAFILE_EXPECTED_OWNER="$runtime_owner" \
+		"$reconciler" \
+		--source "$runtime_source" \
+		--app-dir "$runtime_app" \
+		--state-dir "$runtime_state" \
+		--container-config-dir "$runtime_app" \
+		--lock-file "$runtime_lock" \
+		--lock-timeout 0 \
+		--wait-timeout 0
+}
+
+assert_runtime_modes() {
+	test "$($real_stat -c %a "$runtime_host")" = 700
+	test "$($real_stat -c %a "$runtime_app")" = 700
+	test "$($real_stat -c %a "$runtime_metadata")" = 555
+	test "$($real_stat -c %a "$runtime_host/bootstrap.environment")" = 400
+	test "$($real_stat -c %a "$runtime_host/environment")" = 400
+	test "$($real_stat -c %a "$runtime_app/seafile.env")" = 400
+	test "$($real_stat -c %a "$runtime_app/seahub_settings.py")" = 400
+	test "$($real_stat -c %a "$runtime_app/seafevents.conf")" = 400
+	test "$($real_stat -c %a "$runtime_metadata/seafile.conf")" = 444
+}
+
+assert_runtime_path_sets() {
+	actual="$runtime_root/actual-host-paths"
+	expected="$runtime_root/expected-host-paths"
+	find "$runtime_host" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort >"$actual"
+	printf '%s\n' bootstrap.environment environment >"$expected"
+	cmp "$expected" "$actual"
+
+	actual="$runtime_root/actual-app-paths"
+	expected="$runtime_root/expected-app-paths"
+	find "$runtime_app" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort >"$actual"
+	printf '%s\n' seafdav.conf seafevents.conf seafile.conf seafile.env seahub_settings.py >"$expected"
+	cmp "$expected" "$actual"
+
+	actual="$runtime_root/actual-metadata-paths"
+	expected="$runtime_root/expected-metadata-paths"
+	find "$runtime_metadata" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort >"$actual"
+	printf '%s\n' seafile.conf >"$expected"
+	cmp "$expected" "$actual"
+}
+
+assert_environment_separation() {
+	local bootstrap="$runtime_host/bootstrap.environment"
+	local established="$runtime_host/environment"
+	test "$(wc -l <"$bootstrap")" -eq 12
+	test "$(cut -d= -f1 "$bootstrap" | LC_ALL=C sort -u | wc -l)" -eq 12
+	test "$(wc -l <"$established")" -eq 9
+	for bootstrap_only in \
+		INIT_SEAFILE_MYSQL_ROOT_PASSWORD \
+		INIT_SS_ADMIN_USER \
+		INIT_SS_ADMIN_PASSWORD; do
+		grep -F -- "$bootstrap_only=" "$bootstrap" >/dev/null
+		if grep -F -- "$bootstrap_only=" "$established" "$runtime_app/seafile.env" >/dev/null; then
+			echo "bootstrap-only key entered established runtime configuration" >&2
+			exit 1
+		fi
+	done
+	grep -F -- 'REDIS_PASSWORD=Allowed._~!@%+,/:=-Allowed._~!@%+,/:=-A' "$established" >/dev/null
+	grep -F -- 'os.environ["SEAFILE_OAUTH_CLIENT_SECRET"]' "$runtime_app/seahub_settings.py" >/dev/null
+	grep -F -- '[SEASEARCH]' "$runtime_app/seafevents.conf" >/dev/null
+	grep -F -- 'enabled = true' "$runtime_app/seafevents.conf" >/dev/null
+	grep -F -- 'url = http://seafile-seasearch:4080' "$runtime_app/seafevents.conf" >/dev/null
+	grep -F -- 'interval = 600' "$runtime_app/seafevents.conf" >/dev/null
+	grep -F -- 'index_office_pdf = true' "$runtime_app/seafevents.conf" >/dev/null
+	grep -F -- '[INDEX FILES]' "$runtime_app/seafevents.conf" >/dev/null
+	grep -F -- 'enabled = false' "$runtime_app/seafevents.conf" >/dev/null
+}
+
+# A complete render is published with exact path sets, protected modes, literal
+# values, and a strict bootstrap/established split.
+echo "runtime fixture: initial render"
+write_runtime_environment A
+run_renderer
+assert_runtime_modes
+assert_runtime_path_sets
+assert_environment_separation
+first_environment="$runtime_root/first-environment"
+cp "$runtime_host/environment" "$first_environment"
+
+# A replacement render changes the complete protected view and does not retain
+# a prior inode or expand punctuation through the shell.
+echo "runtime fixture: replacement render"
+write_runtime_environment B
+run_renderer
+if cmp "$first_environment" "$runtime_host/environment" >/dev/null; then
+	echo "runtime renderer did not replace the established environment" >&2
+	exit 1
+fi
+grep -F -- 'REDIS_PASSWORD=Allowed._~!@%+,/:=-Allowed._~!@%+,/:=-B' \
+	"$runtime_host/environment" >/dev/null
+assert_runtime_path_sets
+
+# Unknown output is fail-closed and remains untouched for diagnosis.
+echo "runtime fixture: unexpected output"
+touch "$runtime_app/foreign-output"
+expect_failure run_renderer
+test -e "$runtime_app/foreign-output"
+rm "$runtime_app/foreign-output"
+
+# A live owned container prevents any rewrite of the already published tree.
+echo "runtime fixture: live container"
+before_live="$runtime_root/before-live"
+cp "$runtime_host/environment" "$before_live"
+write_runtime_environment C
+export STUB_LIVE_CONTAINERS=1
+expect_failure run_renderer
+unset STUB_LIVE_CONTAINERS
+cmp "$before_live" "$runtime_host/environment"
+
+# Lock ambiguity times out before either runtime or persistent state changes.
+echo "runtime fixture: lock contention"
+lock_held="$runtime_root/lock-held"
+# shellcheck disable=SC2016 # $1 expands in the nested Bash process.
+flock "$runtime_lock" bash -c 'touch "$1"; sleep 2' _ "$lock_held" &
+lock_holder=$!
+for _ in $(seq 20); do
+	test -e "$lock_held" && break
+	sleep 0.05
+done
+test -e "$lock_held"
+state_before_lock="$runtime_root/state-before-lock"
+find "$runtime_state" -mindepth 1 -print | LC_ALL=C sort >"$state_before_lock"
+expect_failure run_renderer
+state_after_lock="$runtime_root/state-after-lock"
+find "$runtime_state" -mindepth 1 -print | LC_ALL=C sort >"$state_after_lock"
+cmp "$state_before_lock" "$state_after_lock"
+wait "$lock_holder"
+
+# Fresh upstream bootstrap output is replaced only at the exact five managed
+# paths, and an initialized tree validates idempotently.
+echo "runtime fixture: reconciliation"
+write_runtime_environment B
+run_renderer
+config_dir="$runtime_state/shared/seafile/conf"
+mkdir -p "$runtime_state/shared/seafile/seafile-data" "$config_dir"
+printf '%s\n' '13.0.25' >"$runtime_state/shared/seafile/seafile-data/current_version"
+for managed in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
+	printf '%s\n' upstream >"$config_dir/$managed"
+	chmod 0600 "$config_dir/$managed"
+done
+run_reconciler
+for managed in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
+	test -L "$config_dir/$managed"
+done
+test "$(readlink "$config_dir/.env")" = "$runtime_app/seafile.env"
+run_reconciler
+
+# A foreign symlink, unsafe mode, or unexpected owner is never adopted.
+echo "runtime fixture: unsafe reconciliation inputs"
+rm "$config_dir/seafile.conf"
+ln -s "$runtime_root/foreign" "$config_dir/seafile.conf"
+expect_failure run_reconciler
+test "$(readlink "$config_dir/seafile.conf")" = "$runtime_root/foreign"
+
+rm "$config_dir/seafile.conf"
+printf '%s\n' upstream >"$config_dir/seafile.conf"
+chmod 0666 "$config_dir/seafile.conf"
+expect_failure run_reconciler
+test ! -L "$config_dir/seafile.conf"
+
+chmod 0600 "$config_dir/seafile.conf"
+SEAFILE_EXPECTED_OWNER=99999:99999 expect_failure "$reconciler" \
+	--source "$runtime_source" \
+	--app-dir "$runtime_app" \
+	--state-dir "$runtime_state" \
+	--container-config-dir "$runtime_app" \
+	--lock-file "$runtime_lock" \
+	--lock-timeout 0 \
+	--wait-timeout 0
+test ! -L "$config_dir/seafile.conf"
+
+# Persistent secret residue is detected without printing the matching value.
+echo "runtime fixture: persistent secret scan"
+run_reconciler
+secret_residue="$runtime_state/shared/foreign.conf"
+grep '^JWT_PRIVATE_KEY=' "$runtime_source" | cut -d= -f2- >"$secret_residue"
+chmod 0600 "$secret_residue"
+scan_output="$runtime_root/scan-output"
+if run_reconciler >"$scan_output" 2>&1; then
+	echo "reconciler accepted persistent secret residue" >&2
+	exit 1
+fi
+secret_value="$(cat "$secret_residue")"
+if grep -F -- "$secret_value" "$scan_output" >/dev/null; then
+	echo "reconciler exposed a secret match" >&2
+	exit 1
+fi
+
+echo "Seafile runtime configuration contract passed"

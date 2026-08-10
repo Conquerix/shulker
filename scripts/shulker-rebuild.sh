@@ -124,36 +124,39 @@ opnix_log="$temporary_dir/opnix.log"
 echo "Evaluating prospective 1Password secrets for $host_name..."
 # shellcheck disable=SC2016 # This is a Nix expression, not shell interpolation.
 "$nix_command" eval --json \
-	"${flake_source}#nixosConfigurations.${host_name}.config.services.onepassword-secrets" \
+	"${flake_source}#nixosConfigurations.${host_name}.config" \
 	--apply '
     cfg: {
-      enabled = cfg.enable;
-      tokenFile = toString cfg.tokenFile;
-      configFiles = builtins.map toString cfg.configFiles;
-      secrets = builtins.map (name: {
-        path = name;
-        reference = cfg.secrets.${name}.reference;
-        owner = "";
-        group = "";
-        mode = "0600";
-        services = [];
-      }) (builtins.attrNames cfg.secrets);
+      opnix = {
+        enabled = cfg.services.onepassword-secrets.enable;
+        tokenFile = toString cfg.services.onepassword-secrets.tokenFile;
+        configFiles = builtins.map toString cfg.services.onepassword-secrets.configFiles;
+        secrets = builtins.map (name: {
+          path = name;
+          reference = cfg.services.onepassword-secrets.secrets.${name}.reference;
+          owner = "";
+          group = "";
+          mode = "0600";
+          services = [];
+        }) (builtins.attrNames cfg.services.onepassword-secrets.secrets);
+      };
+      schemas = cfg.shulker.system.secretPreflight.schemas;
     }
   ' >"$metadata_file"
 
-if [[ "$(jq -r '.enabled' "$metadata_file")" != "true" ]]; then
+if [[ "$(jq -r '.opnix.enabled' "$metadata_file")" != "true" ]]; then
 	echo "OpNix is disabled for $host_name; no secret preflight is needed."
 	cleanup
 	trap - EXIT
 	exec "$rebuild_command" "${rebuild_args[@]}"
 fi
 
-jq '{secrets, systemdIntegration: {enable: false}}' "$metadata_file" >"$config_file"
+jq '{secrets: .opnix.secrets, systemdIntegration: {enable: false}}' "$metadata_file" >"$config_file"
 
-mapfile -t additional_config_files < <(jq -r '.configFiles[]' "$metadata_file")
+mapfile -t additional_config_files < <(jq -r '.opnix.configFiles[]' "$metadata_file")
 if ((${#additional_config_files[@]} > 0)); then
 	jq -s '
-    .[0] as $metadata
+    .[0].opnix as $metadata
     | {
         secrets: (
           $metadata.secrets
@@ -183,7 +186,7 @@ if [[ $secret_count -eq 0 ]]; then
 	exec "$rebuild_command" "${rebuild_args[@]}"
 fi
 
-token_file="$(jq -r '.tokenFile' "$metadata_file")"
+token_file="$(jq -r '.opnix.tokenFile' "$metadata_file")"
 if [[ ! -r $token_file ]]; then
 	echo "shulker-rebuild: the OpNix token file is not readable: $token_file" >&2
 	echo "Run this command with sufficient privileges or provision the token first." >&2
@@ -225,6 +228,85 @@ case "$opnix_status" in
 	exit 1
 	;;
 esac
+
+fail_schema() {
+	local logical_secret="$1"
+	local key_name="${2:-}"
+	if [[ -n $key_name ]]; then
+		echo "shulker-rebuild: structured secret validation failed for $logical_secret key $key_name" >&2
+	else
+		echo "shulker-rebuild: structured secret validation failed for $logical_secret" >&2
+	fi
+	exit 1
+}
+
+validate_dotenv_secret() {
+	local logical_secret="$1"
+	local resolved_file="$output_dir/$logical_secret"
+	local line key value min_length pattern pattern_status
+	local file_mode file_owner file_links
+	declare -A seen=()
+
+	[[ $logical_secret =~ ^[A-Za-z0-9_-]+$ ]] || fail_schema "$logical_secret"
+	jq -e --arg logical "$logical_secret" \
+		'.opnix.secrets | any(.path == $logical)' "$metadata_file" >/dev/null ||
+		fail_schema "$logical_secret"
+	[[ -f $resolved_file && ! -L $resolved_file ]] || fail_schema "$logical_secret"
+	file_mode="$(stat -c '%a' -- "$resolved_file")"
+	file_owner="$(stat -c '%u' -- "$resolved_file")"
+	file_links="$(stat -c '%h' -- "$resolved_file")"
+	[[ $file_mode == 400 || $file_mode == 600 ]] || fail_schema "$logical_secret"
+	[[ $file_owner == "$(id -u)" && $file_links == 1 ]] || fail_schema "$logical_secret"
+
+	jq -e --arg logical "$logical_secret" '
+      .schemas[$logical]
+      | .format == "dotenv"
+        and (.exactKeys | type == "object")
+        and (.exactKeys | length > 0)
+        and all(
+          .exactKeys[];
+          (.minLength | type == "number")
+          and (.minLength >= 1)
+          and (.minLength | tostring | test("^[1-9][0-9]*$"))
+          and (.pattern | type == "string")
+          and (.pattern | length > 0)
+        )
+    ' "$metadata_file" >/dev/null || fail_schema "$logical_secret"
+
+	while IFS= read -r line || [[ -n $line ]]; do
+		[[ -n $line && $line == *=* ]] || fail_schema "$logical_secret"
+		key="${line%%=*}"
+		value="${line#*=}"
+		[[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || fail_schema "$logical_secret" "$key"
+		jq -e --arg logical "$logical_secret" --arg key "$key" \
+			'.schemas[$logical].exactKeys | has($key)' "$metadata_file" >/dev/null ||
+			fail_schema "$logical_secret" "$key"
+		[[ ! -v "seen[$key]" ]] || fail_schema "$logical_secret" "$key"
+		seen["$key"]=1
+		[[ -n $value ]] || fail_schema "$logical_secret" "$key"
+
+		min_length="$(jq -r --arg logical "$logical_secret" --arg key "$key" \
+			'.schemas[$logical].exactKeys[$key].minLength' "$metadata_file")"
+		pattern="$(jq -r --arg logical "$logical_secret" --arg key "$key" \
+			'.schemas[$logical].exactKeys[$key].pattern' "$metadata_file")"
+		((${#value} >= min_length)) || fail_schema "$logical_secret" "$key"
+		set +e
+		[[ "" =~ $pattern ]]
+		pattern_status=$?
+		set -e
+		[[ $pattern_status -ne 2 ]] || fail_schema "$logical_secret" "$key"
+		[[ $value =~ $pattern ]] || fail_schema "$logical_secret" "$key"
+	done <"$resolved_file"
+
+	while IFS= read -r key; do
+		[[ -v "seen[$key]" ]] || fail_schema "$logical_secret" "$key"
+	done < <(jq -r --arg logical "$logical_secret" \
+		'.schemas[$logical].exactKeys | keys[]' "$metadata_file")
+}
+
+while IFS= read -r logical_secret; do
+	validate_dotenv_secret "$logical_secret"
+done < <(jq -r '.schemas | keys[]' "$metadata_file")
 
 cleanup
 trap - EXIT
