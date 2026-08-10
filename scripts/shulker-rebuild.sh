@@ -257,6 +257,8 @@ validate_dotenv_secret() {
 	file_links="$(stat -c '%h' -- "$resolved_file")"
 	[[ $file_mode == 400 || $file_mode == 600 ]] || fail_schema "$logical_secret"
 	[[ $file_owner == "$(id -u)" && $file_links == 1 ]] || fail_schema "$logical_secret"
+	cmp --silent -- "$resolved_file" <(tr -d '\000' <"$resolved_file") ||
+		fail_schema "$logical_secret"
 
 	jq -e --arg logical "$logical_secret" '
       .schemas[$logical]

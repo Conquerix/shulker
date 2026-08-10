@@ -718,6 +718,24 @@ assert_environment_separation() {
 # values, and a strict bootstrap/established split.
 echo "runtime fixture: initial render"
 write_runtime_environment A
+valid_runtime_source="$runtime_root/valid-source.env"
+cp "$runtime_source" "$valid_runtime_source"
+
+nul_key_source="$runtime_root/nul-key-source.env"
+grep -v '^REDIS_PASSWORD=' "$valid_runtime_source" >"$nul_key_source"
+printf 'REDIS\000_PASSWORD=Allowed._~!@%%+,/:=-Allowed._~!@%%+,/:=-A\n' >>"$nul_key_source"
+chmod 0400 "$nul_key_source"
+runtime_source="$nul_key_source"
+expect_failure run_renderer
+
+nul_value_source="$runtime_root/nul-value-source.env"
+grep -v '^JWT_PRIVATE_KEY=' "$valid_runtime_source" >"$nul_value_source"
+printf 'JWT_PRIVATE_KEY=JwtPrivateKey012345\0006789abcdef0123456A\n' >>"$nul_value_source"
+chmod 0400 "$nul_value_source"
+runtime_source="$nul_value_source"
+expect_failure run_renderer
+
+runtime_source="$valid_runtime_source"
 run_renderer
 assert_runtime_modes
 assert_runtime_path_sets
@@ -744,6 +762,23 @@ touch "$runtime_app/foreign-output"
 expect_failure run_renderer
 test -e "$runtime_app/foreign-output"
 rm "$runtime_app/foreign-output"
+
+# Expected basenames are valid only when an existing destination is the exact
+# protected regular-file state from an earlier render.
+rm "$runtime_app/seafile.conf"
+mkdir "$runtime_app/seafile.conf"
+expect_failure run_renderer
+test -d "$runtime_app/seafile.conf"
+rmdir "$runtime_app/seafile.conf"
+run_renderer
+
+rm "$runtime_host/environment"
+ln -s "$first_environment" "$runtime_host/environment"
+expect_failure run_renderer
+test -L "$runtime_host/environment"
+test "$(readlink "$runtime_host/environment")" = "$first_environment"
+rm "$runtime_host/environment"
+run_renderer
 
 # A live owned container prevents any rewrite of the already published tree.
 echo "runtime fixture: live container"
@@ -820,6 +855,23 @@ test ! -L "$config_dir/seafile.conf"
 # Persistent secret residue is detected without printing the matching value.
 echo "runtime fixture: persistent secret scan"
 run_reconciler
+mkdir -p "$runtime_state/shared/logs"
+oversized_pattern="$runtime_root/oversized-pattern"
+grep '^JWT_PRIVATE_KEY=' "$runtime_source" | cut -d= -f2- >"$oversized_pattern"
+oversized_log="$runtime_state/shared/logs/oversized.log"
+cp "$oversized_pattern" "$oversized_log"
+truncate -s 16777216 "$oversized_log"
+oversized_output="$runtime_root/oversized-output"
+if run_reconciler >"$oversized_output" 2>&1; then
+	echo "reconciler silently skipped an oversized persistent log" >&2
+	exit 1
+fi
+if grep -F -f "$oversized_pattern" "$oversized_output" >/dev/null; then
+	echo "reconciler exposed content from an oversized persistent log" >&2
+	exit 1
+fi
+rm "$oversized_log"
+
 secret_residue="$runtime_state/shared/foreign.conf"
 grep '^JWT_PRIVATE_KEY=' "$runtime_source" | cut -d= -f2- >"$secret_residue"
 chmod 0600 "$secret_residue"

@@ -217,6 +217,18 @@ sed 's/^REDIS_PASSWORD=/BAD-KEY=/' "$valid" >"$invalid_key"
 chmod 0400 "$invalid_key"
 run_case invalid-key failure BAD-KEY
 
+nul_key="$fixture_root/nul-key.env"
+grep -v '^REDIS_PASSWORD=' "$valid" >"$nul_key"
+printf 'REDIS\000_PASSWORD=Allowed._~!@%%+,/:=-Allowed._~!@%%+,/:=-\n' >>"$nul_key"
+chmod 0400 "$nul_key"
+run_case nul-key failure
+
+nul_value="$fixture_root/nul-value.env"
+grep -v '^JWT_PRIVATE_KEY=' "$valid" >"$nul_value"
+printf 'JWT_PRIVATE_KEY=JwtPrivateKey012345\0006789abcdef012345678\n' >>"$nul_value"
+chmod 0400 "$nul_value"
+run_case nul-value failure
+
 invalid_email="$fixture_root/invalid-email.env"
 sed 's/^INIT_SEAFILE_ADMIN_EMAIL=.*/INIT_SEAFILE_ADMIN_EMAIL=not-an-email/' "$valid" >"$invalid_email"
 chmod 0400 "$invalid_email"

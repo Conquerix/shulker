@@ -74,6 +74,7 @@ let
     source_mode="$(stat -c '%a' -- "$source_file")"
     [ "$source_mode" = 400 ] || [ "$source_mode" = 600 ] || fail_parse
     [ "$(stat -c '%h' -- "$source_file")" = 1 ] || fail_parse
+    cmp --silent -- "$source_file" <(tr -d '\000' <"$source_file") || fail_parse
 
     while IFS= read -r line || [ -n "$line" ]; do
       [ -n "$line" ] && [[ "$line" == *=* ]] || fail_parse
@@ -229,6 +230,30 @@ let
           seafile.env seahub_settings.py seafevents.conf seafile.conf seafdav.conf
         reject_unexpected_paths "$metadata_dir" seafile.conf
 
+        validate_existing_destination() {
+          local path="$1"
+          local expected_mode="$2"
+          if [ -e "$path" ] || [ -L "$path" ]; then
+            [ -f "$path" ] && [ ! -L "$path" ] \
+              || fail_render "managed runtime destination is not a regular file"
+            [ "$(stat -c '%u:%g' -- "$path")" = "$expected_owner" ] \
+              || fail_render "managed runtime destination owner is unsafe"
+            [ "$(stat -c '%a' -- "$path")" = "$expected_mode" ] \
+              || fail_render "managed runtime destination mode is unsafe"
+            [ "$(stat -c '%h' -- "$path")" = 1 ] \
+              || fail_render "managed runtime destination link count is unsafe"
+          fi
+        }
+
+        validate_existing_destination "$host_dir/bootstrap.environment" 400
+        validate_existing_destination "$host_dir/environment" 400
+        validate_existing_destination "$app_dir/seafile.env" 400
+        validate_existing_destination "$app_dir/seahub_settings.py" 400
+        validate_existing_destination "$app_dir/seafevents.conf" 400
+        validate_existing_destination "$app_dir/seafile.conf" 444
+        validate_existing_destination "$app_dir/seafdav.conf" 444
+        validate_existing_destination "$metadata_dir/seafile.conf" 444
+
         normalized="$(mktemp "$host_dir/.validated.XXXXXX")"
         host_bootstrap="$(mktemp "$host_dir/.bootstrap.environment.XXXXXX")"
         host_environment="$(mktemp "$host_dir/.environment.XXXXXX")"
@@ -366,14 +391,14 @@ let
         cp "$seafile_conf" "$metadata_conf"
         chmod 0444 "$metadata_conf"
 
-        mv -f -- "$host_bootstrap" "$host_dir/bootstrap.environment"
-        mv -f -- "$host_environment" "$host_dir/environment"
-        mv -f -- "$app_environment" "$app_dir/seafile.env"
-        mv -f -- "$seahub_settings" "$app_dir/seahub_settings.py"
-        mv -f -- "$seafevents" "$app_dir/seafevents.conf"
-        mv -f -- "$seafile_conf" "$app_dir/seafile.conf"
-        mv -f -- "$seafdav_conf" "$app_dir/seafdav.conf"
-        mv -f -- "$metadata_conf" "$metadata_dir/seafile.conf"
+        mv -fT -- "$host_bootstrap" "$host_dir/bootstrap.environment"
+        mv -fT -- "$host_environment" "$host_dir/environment"
+        mv -fT -- "$app_environment" "$app_dir/seafile.env"
+        mv -fT -- "$seahub_settings" "$app_dir/seahub_settings.py"
+        mv -fT -- "$seafevents" "$app_dir/seafevents.conf"
+        mv -fT -- "$seafile_conf" "$app_dir/seafile.conf"
+        mv -fT -- "$seafdav_conf" "$app_dir/seafdav.conf"
+        mv -fT -- "$metadata_conf" "$metadata_dir/seafile.conf"
         chmod 0555 "$metadata_dir"
         metadata_open=0
 
@@ -551,12 +576,25 @@ let
         -o -type f -print0
     )
     for log_tree in "$state_dir/shared/logs" "$state_dir/shared/seafile/logs"; do
-      if [ -d "$log_tree" ] && [ ! -L "$log_tree" ]; then
-        log_count="$(find "$log_tree" -type f -size -16M -print | wc -l)"
-        [ "$log_count" -le 10000 ] || fail_reconcile "persistent log scan exceeds its safety bound"
+      if [ -e "$log_tree" ] || [ -L "$log_tree" ]; then
+        [ -d "$log_tree" ] && [ ! -L "$log_tree" ] \
+          || fail_reconcile "persistent log tree is unsafe"
+        log_entry_count="$(find "$log_tree" -mindepth 1 -printf . | wc -c)"
+        [ "$log_entry_count" -le 10000 ] \
+          || fail_reconcile "persistent log tree exceeds its entry bound"
+        unsafe_entry_count="$(find "$log_tree" -mindepth 1 ! -type d ! -type f -printf . | wc -c)"
+        [ "$unsafe_entry_count" -eq 0 ] \
+          || fail_reconcile "persistent log tree contains an unsafe entry"
+        oversized_count="$(find "$log_tree" -type f -size +16777215c -printf . | wc -c)"
+        [ "$oversized_count" -eq 0 ] \
+          || fail_reconcile "persistent log tree contains an oversized file"
+      fi
+    done
+    for log_tree in "$state_dir/shared/logs" "$state_dir/shared/seafile/logs"; do
+      if [ -d "$log_tree" ]; then
         while IFS= read -r -d "" candidate; do
           scan_file "$candidate"
-        done < <(find "$log_tree" -type f -size -16M -print0)
+        done < <(find "$log_tree" -type f -print0)
       fi
     done
 
