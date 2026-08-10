@@ -658,6 +658,9 @@ in
   seafile-maintenance-contract =
     let
       contract = seafile.maintenanceContractText;
+      contractFile = pkgs.writeText "seafile-maintenance-contract.txt" (
+        builtins.unsafeDiscardStringContext contract
+      );
       health = pkgs.writeShellApplication {
         name = "seafile-health-check-under-test";
         runtimeInputs = [
@@ -691,6 +694,17 @@ in
         name = "seafile-enable-public-health-under-test";
         runtimeInputs = [ pkgs.coreutils ];
         text = builtins.unsafeDiscardStringContext seafile.enablePublicHealthScript;
+      };
+      onlyOfficeDriver = pkgs.writeText "seafile-onlyoffice-driver-under-test.py" (
+        builtins.unsafeDiscardStringContext seafile.onlyOfficeProbePython
+      );
+      onlyOffice = pkgs.writeShellApplication {
+        name = "seafile-onlyoffice-smoke-test-under-test";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.util-linux
+        ];
+        text = builtins.unsafeDiscardStringContext seafile.onlyOfficeSmokeTestScript;
       };
       maintenanceServiceNames = [
         "seafile-extended-health"
@@ -744,6 +758,7 @@ in
           pkgs.bash
           pkgs.coreutils
           pkgs.gnugrep
+          pkgs.python3
           pkgs.util-linux
         ];
       }
@@ -752,9 +767,132 @@ in
           ${health}/bin/seafile-health-check-under-test \
           ${extended}/bin/seafile-extended-health-under-test \
           ${metadata}/bin/seafile-metadata-probe-under-test \
-          ${enablePublic}/bin/seafile-enable-public-health-under-test
+          ${enablePublic}/bin/seafile-enable-public-health-under-test \
+          ${contractFile} \
+          ${onlyOfficeDriver} \
+          ${onlyOffice}/bin/seafile-onlyoffice-smoke-test-under-test
         touch "$out"
       '';
+
+  seafile-backup-state-machine-contract =
+    let
+      mkBackupHelper =
+        name: text: inputs:
+        pkgs.writeShellApplication {
+          inherit name;
+          runtimeInputs = [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.findutils
+            pkgs.gnugrep
+            pkgs.gnused
+            pkgs.jq
+            pkgs.openssl
+            pkgs.util-linux
+          ]
+          ++ inputs;
+          text = builtins.unsafeDiscardStringContext text;
+        };
+      logical = mkBackupHelper "seafile-logical-backup-under-test" seafile.logicalBackupScript [ ];
+      validate =
+        mkBackupHelper "seafile-validate-logical-backup-under-test" seafile.validateLogicalBackupScript
+          [ ];
+      prepare = mkBackupHelper "seafile-backup-prepare-under-test" seafile.backupPrepareScript [ ];
+      cleanup = mkBackupHelper "seafile-backup-cleanup-under-test" seafile.backupCleanupScript [ ];
+      restorePrepare =
+        mkBackupHelper "seafile-restore-prepare-under-test" seafile.restorePrepareScript
+          [ ];
+      restoreVerify = mkBackupHelper "seafile-restore-verify-under-test" seafile.restoreVerifyScript [ ];
+      restoreTeardown =
+        mkBackupHelper "seafile-restore-teardown-under-test" seafile.restoreTeardownScript
+          [ ];
+    in
+    pkgs.runCommand "seafile-backup-state-machine-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.gnugrep
+        ];
+      }
+      ''
+        ${./tests/seafile-backup-state-machine.sh} \
+          ${logical}/bin/seafile-logical-backup-under-test \
+          ${validate}/bin/seafile-validate-logical-backup-under-test \
+          ${prepare}/bin/seafile-backup-prepare-under-test \
+          ${cleanup}/bin/seafile-backup-cleanup-under-test \
+          ${restorePrepare}/bin/seafile-restore-prepare-under-test \
+          ${restoreVerify}/bin/seafile-restore-verify-under-test \
+          ${restoreTeardown}/bin/seafile-restore-teardown-under-test
+        touch "$out"
+      '';
+
+  seafile-backup-contract =
+    let
+      contract = seafile.backupContractText;
+      borgmatic = wardenConfig.services.borgmatic.settings;
+      commands = builtins.toJSON borgmatic.commands;
+      backupPackageNames = [
+        "seafile-backup-cleanup"
+        "seafile-backup-prepare"
+        "seafile-backup-status"
+        "seafile-logical-backup"
+        "seafile-pre-upgrade-check"
+        "seafile-restore-prepare"
+        "seafile-restore-teardown"
+        "seafile-restore-verify"
+        "seafile-validate-logical-backup"
+      ];
+    in
+    assert pkgs.lib.all (name: builtins.elem name systemPackageNames) backupPackageNames;
+    assert builtins.elem "/storage/flash/seafile/.zfs/snapshot/borgmatic/shared"
+      wardenConfig.shulker.system.modules.backup.dirs;
+    assert builtins.elem "/storage/flash/seafile/.zfs/snapshot/borgmatic/backups"
+      wardenConfig.shulker.system.modules.backup.dirs;
+    assert builtins.elem seafile.stateDir borgmaticService.unitConfig.RequiresMountsFor;
+    assert pkgs.lib.hasInfix "seafile-backup-prepare" commands;
+    assert pkgs.lib.hasInfix "seafile-backup-cleanup" commands;
+    assert pkgs.lib.hasInfix "finish" commands;
+    assert pkgs.lib.hasInfix "fail" commands;
+    assert pkgs.lib.hasInfix "error" commands;
+    assert builtins.elem "/storage/flash/seafile/.zfs/snapshot/borgmatic/shared/logs"
+      borgmatic.exclude_patterns;
+    assert builtins.elem "/storage/flash/seafile/.zfs/snapshot/borgmatic/shared/seafile/logs"
+      borgmatic.exclude_patterns;
+    assert !(borgmatic.follow_symlinks or false);
+    assert !(borgmatic.read_special or false);
+    assert seafile.restoreComposeConfig.name == "seafile-restore";
+    assert seafile.restoreComposeConfig.services.seafile.ports == [ ];
+    assert seafile.restoreComposeConfig.services.onlyoffice.ports == [ ];
+    assert seafile.restoreComposeConfig.services.notification.ports == [ ];
+    assert
+      seafile.restoreComposeConfig.services.proxy.ports == [
+        "127.0.0.1:24239:443/tcp"
+        "127.0.0.1:24240:444/tcp"
+        "127.0.0.1:24241:445/tcp"
+      ];
+    assert pkgs.lib.hasInfix "ccnet_db.sql" contract;
+    assert pkgs.lib.hasInfix "seafile_db.sql" contract;
+    assert pkgs.lib.hasInfix "seahub_db.sql" contract;
+    assert pkgs.lib.hasInfix "writers_quiesced=true" contract;
+    assert pkgs.lib.hasInfix "documentserver-prepare4shutdown.sh" contract;
+    assert pkgs.lib.hasInfix "330" contract;
+    assert pkgs.lib.hasInfix "backup-snapshot-owner" contract;
+    assert pkgs.lib.hasInfix "cleanup-armed" contract;
+    assert pkgs.lib.hasInfix "guid" (pkgs.lib.toLower contract);
+    assert pkgs.lib.hasInfix "/run/lock/seafile-maintenance.lock" contract;
+    assert pkgs.lib.hasInfix "seafile-restore-net" contract;
+    assert pkgs.lib.hasInfix "https://files.restore.invalid:24239" contract;
+    assert pkgs.lib.hasInfix "https://office.restore.invalid:24240" contract;
+    assert pkgs.lib.hasInfix "DynamicUser" contract;
+    assert pkgs.lib.hasInfix "--sandbox" contract;
+    assert !(pkgs.lib.hasInfix "--no-sandbox" contract);
+    assert !(pkgs.lib.hasInfix "--ignore-certificate-errors" contract);
+    assert !(pkgs.lib.hasInfix "/storage/flash/immich" contract);
+    assert !(pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_PASSWORD=" contract);
+    pkgs.runCommand "seafile-backup-contract" { } ''
+      touch "$out"
+    '';
 
   paperless-core-contract =
     assert paperless.enable;

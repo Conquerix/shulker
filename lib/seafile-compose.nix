@@ -12,6 +12,9 @@
   urls,
   images,
   metadata,
+  publishApplicationPorts ? true,
+  seafileExtraVolumes ? [ ],
+  onlyOfficeExtraVolumes ? [ ],
 }:
 
 let
@@ -151,12 +154,14 @@ let
         image = images.seafile;
         restart = "no";
         networks = privateNetwork;
-        ports = [ "${bindAddress}:${toString ports.seafile}:80/tcp" ];
+        ports =
+          if publishApplicationPorts then [ "${bindAddress}:${toString ports.seafile}:80/tcp" ] else [ ];
         environment = seafileEnvironment;
         volumes = [
           "${stateDir}/shared:/shared"
           "${appRuntimeDir}:/run/seafile:ro"
-        ];
+        ]
+        ++ seafileExtraVolumes;
         depends_on = {
           database.condition = "service_healthy";
           redis.condition = "service_healthy";
@@ -199,7 +204,11 @@ let
         image = images.notification;
         restart = "no";
         networks = privateNetwork;
-        ports = [ "${bindAddress}:${toString ports.notification}:8083/tcp" ];
+        ports =
+          if publishApplicationPorts then
+            [ "${bindAddress}:${toString ports.notification}:8083/tcp" ]
+          else
+            [ ];
         environment = {
           SEAFILE_MYSQL_DB_HOST = "database";
           SEAFILE_MYSQL_DB_PORT = "3306";
@@ -273,7 +282,8 @@ let
         image = images.onlyoffice;
         restart = "no";
         networks = privateNetwork;
-        ports = [ "${bindAddress}:${toString ports.onlyoffice}:80/tcp" ];
+        ports =
+          if publishApplicationPorts then [ "${bindAddress}:${toString ports.onlyoffice}:80/tcp" ] else [ ];
         environment = {
           JWT_ENABLED = "true";
           JWT_SECRET = required "ONLYOFFICE_JWT_SECRET";
@@ -305,7 +315,8 @@ let
             read_only = true;
             bind.create_host_path = false;
           }
-        ];
+        ]
+        ++ onlyOfficeExtraVolumes;
         healthcheck = {
           test = [
             "CMD-SHELL"
