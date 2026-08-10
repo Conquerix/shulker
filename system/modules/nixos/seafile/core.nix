@@ -84,13 +84,18 @@ let
     [ "$actual_type" = zfs ] \
       || fail_state "state path is not a ZFS mount"
 
+    actual_target="$(findmnt --noheadings --output TARGET --target "$state_dir")"
+    [ "$actual_target" = "$state_dir" ] \
+      || fail_state "stateDir is not the exact ZFS mount target"
+
     actual_quota="$(zfs get -Hp -o value quota "$dataset")"
     [ "$actual_quota" = "$expected_quota" ] \
       || fail_state "numeric ZFS quota does not match the evaluated configuration"
 
     validate_property() {
-      property="$1"
-      expected="$2"
+      local property="$1"
+      local expected="$2"
+      local actual
       actual="$(zfs get -H -o value "$property" "$dataset")"
       [ "$actual" = "$expected" ] \
         || fail_state "ZFS property $property does not match the evaluated configuration"
@@ -105,40 +110,146 @@ let
     [ "$(stat --format %F -- "$state_dir")" = directory ] \
       || fail_state "mount target is not a directory"
 
-    first_entry="$(find "$state_dir" -mindepth 1 -maxdepth 1 -print -quit)"
-    initialization_started=0
-    initialization_committed=0
-    staging=""
+    marker="$state_dir/.seafile-state-transaction"
+    staging="$state_dir/.seafile-state-staging"
+    marker_version="seafile-state-transaction-v1"
     initialized_paths=(shared database search onlyoffice backups control)
 
-    cleanup_initialization() {
-      status="$?"
-      trap - EXIT HUP INT TERM
-      set +e
-      if [ "$initialization_started" -eq 1 ] && [ "$initialization_committed" -eq 0 ]; then
-        for relative_path in "''${initialized_paths[@]}"; do
-          rm -rf -- "''${state_dir:?}/$relative_path"
-        done
-      fi
-      if [ -n "$staging" ]; then
-        rm -rf -- "$staging"
-      fi
-      exit "$status"
+    path_present() {
+      [ -e "$1" ] || [ -L "$1" ]
     }
 
-    abort_initialization() {
-      exit 70
+    validate_fresh_directory() {
+      local path="$1"
+      local expected_mode="$2"
+      local label="$3"
+
+      [ "$(stat --format %F -- "$path")" = directory ] \
+        || fail_state "$label is missing, symlinked, or not a directory"
+      [ "$(stat --format %u:%g -- "$path")" = 0:0 ] \
+        || fail_state "$label is not owned by root"
+      [ "$(stat --format %a -- "$path")" = "$expected_mode" ] \
+        || fail_state "$label has an unsafe or unexpected mode"
     }
 
-    if [ -z "$first_entry" ]; then
+    validate_empty_directory() {
+      local path="$1"
+      local label="$2"
+      [ -z "$(find "$path" -mindepth 1 -maxdepth 1 -print -quit)" ] \
+        || fail_state "$label is not empty during state initialization"
+    }
+
+    validate_fresh_tree() {
+      local path="$1"
+      local relative_path="$2"
+      local child_count child child_name
+
+      case "$relative_path" in
+        database | backups | control)
+          validate_fresh_directory "$path" 700 "$relative_path"
+          validate_empty_directory "$path" "$relative_path"
+          ;;
+        onlyoffice)
+          validate_fresh_directory "$path" 750 onlyoffice
+          child_count=0
+          while IFS= read -r -d "" child; do
+            child_name="''${child##*/}"
+            case "$child_name" in
+              logs | data | lib) ;;
+              *) fail_state "onlyoffice contains an unexpected initialization path" ;;
+            esac
+            child_count="$((child_count + 1))"
+          done < <(find "$path" -mindepth 1 -maxdepth 1 -print0)
+          [ "$child_count" -eq 3 ] \
+            || fail_state "onlyoffice does not contain exactly its three bind sources"
+          for child_name in logs data lib; do
+            validate_fresh_directory "$path/$child_name" 750 "onlyoffice/$child_name"
+            validate_empty_directory "$path/$child_name" "onlyoffice/$child_name"
+          done
+          ;;
+        shared | search)
+          validate_fresh_directory "$path" 750 "$relative_path"
+          validate_empty_directory "$path" "$relative_path"
+          ;;
+        *)
+          fail_state "transaction contains an unknown state path"
+          ;;
+      esac
+    }
+
+    validate_transaction_marker() {
+      [ "$(stat --format %F -- "$marker")" = "regular file" ] \
+        || fail_state "state transaction marker is missing, symlinked, or not a regular file"
+      [ "$(stat --format %u:%g -- "$marker")" = 0:0 ] \
+        || fail_state "state transaction marker is not owned by root"
+      [ "$(stat --format %a -- "$marker")" = 600 ] \
+        || fail_state "state transaction marker is not mode 0600"
+      printf '%s\n' "$marker_version" | cmp --silent - "$marker" \
+        || fail_state "state transaction marker has unexpected content"
+    }
+
+    validate_transaction_entries() {
+      local entry entry_name relative_path published staged
+      local published_present staged_present
+      validate_transaction_marker
+
+      if path_present "$staging"; then
+        validate_fresh_directory "$staging" 700 "state transaction staging"
+      fi
+
+      while IFS= read -r -d "" entry; do
+        entry_name="''${entry##*/}"
+        case "$entry_name" in
+          .seafile-state-transaction | .seafile-state-staging | shared | database | search | onlyoffice | backups | control) ;;
+          *) fail_state "state transaction has an unexpected top-level path" ;;
+        esac
+      done < <(find "$state_dir" -mindepth 1 -maxdepth 1 -print0)
+
+      if path_present "$staging"; then
+        while IFS= read -r -d "" entry; do
+          entry_name="''${entry##*/}"
+          case "$entry_name" in
+            shared | database | search | onlyoffice | backups | control) ;;
+            *) fail_state "state transaction staging has an unexpected path" ;;
+          esac
+        done < <(find "$staging" -mindepth 1 -maxdepth 1 -print0)
+      fi
+
+      for relative_path in "''${initialized_paths[@]}"; do
+        published="$state_dir/$relative_path"
+        staged="$staging/$relative_path"
+        published_present=0
+        staged_present=0
+        path_present "$published" && published_present=1
+        if path_present "$staging" && path_present "$staged"; then
+          staged_present=1
+        fi
+        [ "$((published_present + staged_present))" -eq 1 ] \
+          || fail_state "$relative_path is missing or duplicated across the state transaction"
+        if [ "$published_present" -eq 1 ]; then
+          validate_fresh_tree "$published" "$relative_path"
+        else
+          validate_fresh_tree "$staged" "$relative_path"
+        fi
+      done
+    }
+
+    first_entry="$(find "$state_dir" -mindepth 1 -maxdepth 1 -print -quit)"
+    transaction_active=0
+    if path_present "$marker"; then
+      [ "$initialize" -eq 1 ] \
+        || fail_state "an interrupted state transaction requires initialization mode"
+      transaction_active=1
+    elif [ -z "$first_entry" ]; then
       [ "$initialize" -eq 1 ] \
         || fail_state "empty state is accepted only for first initialization"
 
-      initialization_started=1
-      staging="$(mktemp -d "$state_dir/.seafile-state.XXXXXX")"
-      trap cleanup_initialization EXIT
-      trap abort_initialization HUP INT TERM
+      install -m 0600 -o 0 -g 0 /dev/null "$marker"
+      printf '%s\n' "$marker_version" >"$marker"
+      sync -f "$marker"
+      sync -f "$state_dir"
 
+      install -d -m 0700 -o 0 -g 0 "$staging"
       install -d -m 0750 -o 0 -g 0 \
         "$staging/shared" \
         "$staging/search" \
@@ -150,17 +261,34 @@ let
         "$staging/database" \
         "$staging/backups" \
         "$staging/control"
+      sync -f "$state_dir"
+      transaction_active=1
+    elif path_present "$staging"; then
+      fail_state "unmarked state transaction staging is not recoverable"
+    fi
 
+    if [ "$transaction_active" -eq 1 ]; then
+      validate_transaction_entries
       for relative_path in "''${initialized_paths[@]}"; do
-        mv -- "$staging/$relative_path" "$state_dir/$relative_path"
+        if path_present "$staging/$relative_path"; then
+          mv -- "$staging/$relative_path" "$state_dir/$relative_path"
+        fi
       done
+      validate_transaction_entries
+      if path_present "$staging"; then
+        rmdir -- "$staging"
+      fi
+      sync -f "$state_dir"
+      unlink "$marker"
+      sync -f "$state_dir"
     fi
 
     validate_path() {
-      relative_path="$1"
-      expected_mode="$2"
-      allowed_managed_owner="''${3:-}"
-      path="$state_dir/$relative_path"
+      local relative_path="$1"
+      local expected_mode="$2"
+      local allowed_managed_owner="''${3:-}"
+      local path="$state_dir/$relative_path"
+      local actual_owner actual_mode
 
       [ "$(stat --format %F -- "$path")" = directory ] \
         || fail_state "$relative_path is missing, symlinked, or not a directory"
@@ -187,12 +315,6 @@ let
     validate_path backups 700
     validate_path control 700
 
-    if [ "$initialization_started" -eq 1 ]; then
-      initialization_committed=1
-      rmdir -- "$staging"
-      staging=""
-      trap - EXIT HUP INT TERM
-    fi
   '';
   validateState = pkgs.writeShellApplication {
     name = "seafile-validate-state";
