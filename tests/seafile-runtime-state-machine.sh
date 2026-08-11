@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+write_bash_stub() {
+	local destination="$1"
+	printf '#!%s\n' "$BASH" >"$destination"
+	cat >>"$destination"
+}
+
 if [ "$#" -ne 4 ]; then
 	echo "usage: $0 VALIDATOR RENDERER RECONCILER COMPOSE_STARTER" >&2
 	exit 64
@@ -24,8 +30,7 @@ real_rmdir="$(command -v rmdir)"
 real_stat="$(command -v stat)"
 real_unlink="$(command -v unlink)"
 
-cat >"$stub_dir/findmnt" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/findmnt" <<'EOF'
 set -euo pipefail
 case " $* " in
   *" SOURCE "*) printf '%s\n' "${STUB_FINDMNT_SOURCE:?}" ;;
@@ -35,8 +40,7 @@ case " $* " in
 esac
 EOF
 
-cat >"$stub_dir/zfs" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/zfs" <<'EOF'
 set -euo pipefail
 property=""
 for argument in "$@"; do
@@ -55,8 +59,7 @@ case "$property" in
 esac
 EOF
 
-cat >"$stub_dir/stat" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/stat" <<'EOF'
 set -euo pipefail
 format=""
 path=""
@@ -103,8 +106,7 @@ case "$format" in
 esac
 EOF
 
-cat >"$stub_dir/install" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/install" <<'EOF'
 set -euo pipefail
 paths=()
 directory=0
@@ -149,8 +151,7 @@ else
 fi
 EOF
 
-cat >"$stub_dir/mv" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/mv" <<'EOF'
 set -euo pipefail
 source_path="$2"
 destination_path="$3"
@@ -182,8 +183,7 @@ if [[ "$source_path" == "${STUB_STAGING_ROOT:?}/"* ]] \
 fi
 EOF
 
-cat >"$stub_dir/sync" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/sync" <<'EOF'
 set -euo pipefail
 [ "$#" -eq 2 ] && [ "$1" = -f ]
 printf 'sync:%s\n' "$2" >> "${STUB_EVENT_LOG:?}"
@@ -195,8 +195,7 @@ if [ "$2" = "${STUB_MARKER_NEXT:?}" ] && [ -f "$2" ] \
 fi
 EOF
 
-cat >"$stub_dir/rmdir" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/rmdir" <<'EOF'
 set -euo pipefail
 target="${*: -1}"
 printf 'rmdir:%s\n' "$target" >>"${STUB_EVENT_LOG:?}"
@@ -207,8 +206,7 @@ if [ "$target" = "${STUB_STAGING_ROOT:?}" ] && [ "${STUB_RMDIR_CRASH:-0}" = 1 ];
 fi
 EOF
 
-cat >"$stub_dir/unlink" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/unlink" <<'EOF'
 set -euo pipefail
 [ "$#" -eq 1 ]
 printf 'unlink:%s\n' "$1" >> "${STUB_EVENT_LOG:?}"
@@ -597,8 +595,7 @@ rm -rf "$runtime_root"
 mkdir -p "$runtime_state" "$runtime_stub_dir"
 runtime_owner="$($real_stat -c %u:%g "$runtime_state")"
 
-cat >"$runtime_stub_dir/docker" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$runtime_stub_dir/docker" <<'EOF'
 set -euo pipefail
 if [ "${STUB_LIVE_CONTAINERS:-0}" = 1 ]; then
 	printf '%s\n' synthetic-seafile-container
@@ -918,8 +915,7 @@ reset_stack_fixture() {
 	cp -R "$runtime_app/." "$stack_app/"
 	cp -R "$runtime_metadata/." "$stack_metadata/"
 	: >"$stack_log"
-	cat >"$stack_bin/seafile-reconcile-runtime-config" <<'EOF'
-#!/usr/bin/env bash
+	write_bash_stub "$stack_bin/seafile-reconcile-runtime-config" <<'EOF'
 set -euo pipefail
 
 # The production inherited-FD proof uses Linux /proc. This contract runs on
@@ -942,16 +938,14 @@ exec 9>&-
 exec env -u SEAFILE_MAINTENANCE_LOCK_FD -u SEAFILE_ORCHESTRATION_STOPPED \
   "${STUB_REAL_RECONCILER:?}" "${arguments[@]}"
 EOF
-	cat >"$stack_bin/journalctl" <<'EOF'
-#!/usr/bin/env bash
+	write_bash_stub "$stack_bin/journalctl" <<'EOF'
 set -euo pipefail
 printf '%s\n' "${STUB_JOURNAL_CONTENT:-}"
 if [ "${STUB_JOURNAL_PAD_BYTES:-0}" -gt 0 ]; then
   head -c "$STUB_JOURNAL_PAD_BYTES" /dev/zero | tr '\000' x
 fi
 EOF
-	cat >"$stack_bin/systemctl" <<'EOF'
-#!/usr/bin/env bash
+	write_bash_stub "$stack_bin/systemctl" <<'EOF'
 set -euo pipefail
 if ! flock -n "${STUB_STACK_LOCK:?}" -c true; then
   printf 'systemctl-lock:held\n' >>"${STUB_STACK_LOG:?}"
@@ -963,8 +957,7 @@ case " $* " in
   *" is-active "*) [ "${STUB_SYSTEMD_ACTIVE:-0}" = 1 ] ;;
 esac
 EOF
-	cat >"$stack_bin/docker" <<'EOF'
-#!/usr/bin/env bash
+	write_bash_stub "$stack_bin/docker" <<'EOF'
 set -euo pipefail
 
 contains_line() {

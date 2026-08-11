@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+write_bash_stub() {
+	local destination="$1"
+	printf '#!%s\n' "$BASH" >"$destination"
+	cat >>"$destination"
+}
+
 if [ "$#" -ne 1 ]; then
 	echo "usage: $0 SHULKER_REBUILD" >&2
 	exit 64
@@ -17,8 +23,7 @@ rebuild_marker="$fixture_root/rebuild-called"
 mkdir -p "$stub_dir"
 printf '%s\n' synthetic-token >"$token_file"
 
-cat >"$stub_dir/nix" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/nix" <<'EOF'
 set -euo pipefail
 jq -n --arg token "${STUB_TOKEN_FILE:?}" '
   {
@@ -58,8 +63,7 @@ jq -n --arg token "${STUB_TOKEN_FILE:?}" '
 '
 EOF
 
-cat >"$stub_dir/opnix" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/opnix" <<'EOF'
 set -euo pipefail
 output_dir=""
 while [ "$#" -gt 0 ]; do
@@ -79,8 +83,7 @@ printf '%s\n' "$resolved" >"${STUB_RESOLVED_RECORD:?}"
 : >"${STUB_OPNIX_MARKER:?}"
 EOF
 
-cat >"$stub_dir/nixos-rebuild" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$stub_dir/nixos-rebuild" <<'EOF'
 set -euo pipefail
 test -f "${STUB_OPNIX_MARKER:?}"
 resolved="$(cat "${STUB_RESOLVED_RECORD:?}")"

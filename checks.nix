@@ -263,7 +263,7 @@ in
         ];
       }
       ''
-        ${./tests/seafile-runtime-state-machine.sh} \
+        ${pkgs.bash}/bin/bash ${./tests/seafile-runtime-state-machine.sh} \
           ${validator} \
           ${rendererPackage}/bin/seafile-render-runtime-config \
           ${reconcilerPackage}/bin/seafile-reconcile-runtime-config \
@@ -503,7 +503,7 @@ in
         ];
       }
       ''
-        ${./tests/shulker-rebuild-secret-preflight.sh} ${checkedRebuild}/bin/shulker-rebuild
+        ${pkgs.bash}/bin/bash ${./tests/shulker-rebuild-secret-preflight.sh} ${checkedRebuild}/bin/shulker-rebuild
         touch "$out"
       '';
 
@@ -563,7 +563,7 @@ in
         ];
       }
       ''
-        ${./tests/seafile-identity-boundary.sh} \
+        ${pkgs.bash}/bin/bash ${./tests/seafile-identity-boundary.sh} \
           ${./.}/scripts/validate-seafile-identities.sh
         touch "$out"
       '';
@@ -806,7 +806,7 @@ in
         ];
       }
       ''
-        ${./tests/seafile-maintenance.sh} \
+        ${pkgs.bash}/bin/bash ${./tests/seafile-maintenance.sh} \
           ${health}/bin/seafile-health-check-under-test \
           ${extended}/bin/seafile-extended-health-under-test \
           ${metadata}/bin/seafile-metadata-probe-under-test \
@@ -881,7 +881,7 @@ in
         ];
       }
       ''
-        ${./tests/seafile-backup-state-machine.sh} \
+        ${pkgs.bash}/bin/bash ${./tests/seafile-backup-state-machine.sh} \
           ${logical}/bin/seafile-logical-backup-under-test \
           ${validate}/bin/seafile-validate-logical-backup-under-test \
           ${prepare}/bin/seafile-backup-prepare-under-test \

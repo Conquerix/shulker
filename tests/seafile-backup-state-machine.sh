@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+write_bash_stub() {
+	local destination="$1"
+	printf '#!%s\n' "$BASH" >"$destination"
+	cat >>"$destination"
+}
+
 if [ "$#" -ne 7 ]; then
 	echo "usage: $0 LOGICAL VALIDATE PREPARE CLEANUP RESTORE_PREPARE RESTORE_VERIFY RESTORE_TEARDOWN" >&2
 	exit 64
@@ -33,8 +39,7 @@ mkdir -p "$bin" "$state/backups" "$state/control" "$state/shared/logs" \
 : >"$restore_network_state"
 real_install="$(command -v install)"
 
-cat >"$bin/install" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/install" <<'EOF'
 set -euo pipefail
 arguments=()
 while [ "$#" -gt 0 ]; do
@@ -46,8 +51,7 @@ done
 exec "$STUB_REAL_INSTALL" "${arguments[@]}"
 EOF
 
-cat >"$bin/systemctl" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/systemctl" <<'EOF'
 set -euo pipefail
 printf 'systemctl:%s\n' "$*" >>"$STUB_EVENTS"
 case "$1" in
@@ -57,8 +61,7 @@ case "$1" in
 esac
 EOF
 
-cat >"$bin/docker" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/docker" <<'EOF'
 set -euo pipefail
 printf 'docker:%s\n' "$*" >>"$STUB_EVENTS"
 case "$1" in
@@ -200,8 +203,7 @@ STATE
 esac
 EOF
 
-cat >"$bin/seafile-render-runtime-config" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/seafile-render-runtime-config" <<'EOF'
 set -euo pipefail
 printf 'render:%s\n' "$*" >>"$STUB_EVENTS"
 source_file=
@@ -232,8 +234,7 @@ chmod 0400 "$host_dir/bootstrap.environment" "$host_dir/environment" \
 chmod 0444 "$app_dir/seafile.conf" "$app_dir/seafdav.conf" "$metadata_dir/seafile.conf"
 EOF
 
-cat >"$bin/zfs" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/zfs" <<'EOF'
 set -euo pipefail
 printf 'zfs:%s\n' "$*" >>"$STUB_EVENTS"
 case "$1" in
@@ -260,15 +261,13 @@ case "$1" in
 esac
 EOF
 
-cat >"$bin/seafile-health-check" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/seafile-health-check" <<'EOF'
 set -euo pipefail
 printf 'health\n' >>"$STUB_EVENTS"
 [ "${STUB_HEALTHY:-1}" = 1 ]
 EOF
 
-cat >"$bin/seafile-logical-backup" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/seafile-logical-backup" <<'EOF'
 set -euo pipefail
 printf 'logical-backup\n' >>"$STUB_EVENTS"
 [ "${STUB_LOGICAL_FAIL:-0}" = 0 ] || exit 75
@@ -281,30 +280,26 @@ printf '%s\n' '{"transaction_kind":"writers_quiesced=true"}' >"$candidate/manife
 printf '%s\n' "$candidate" >"$SEAFILE_BACKUP_CANDIDATE_FILE"
 EOF
 
-cat >"$bin/seafile-validate-logical-backup" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/seafile-validate-logical-backup" <<'EOF'
 set -euo pipefail
 printf 'validate-logical-backup\n' >>"$STUB_EVENTS"
 [ "${STUB_VALIDATE_FAIL:-0}" = 0 ]
 EOF
 
-cat >"$bin/seafile-validate-state" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/seafile-validate-state" <<'EOF'
 set -euo pipefail
 printf 'validate-state\n' >>"$STUB_EVENTS"
 [ "${STUB_STATE_VALID:-1}" = 1 ]
 EOF
 
-cat >"$bin/timeout" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/timeout" <<'EOF'
 set -euo pipefail
 printf 'timeout:%s\n' "$*" >>"$STUB_EVENTS"
 shift
 exec "$@"
 EOF
 
-cat >"$bin/df" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/df" <<'EOF'
 set -euo pipefail
 case " $* " in
 	*' --output=avail '*) printf 'Avail\n%s\n' "${STUB_FREE_BLOCKS:-1099511627776}" ;;
@@ -313,16 +308,14 @@ case " $* " in
 esac
 EOF
 
-cat >"$bin/free" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/free" <<'EOF'
 set -euo pipefail
 printf '              total        used        free      shared  buff/cache   available\n'
 printf 'Mem:       33554432           0           0           0           0    %s\n' "${STUB_AVAILABLE_RAM_KIB:-16777216}"
 printf 'Swap:       %s           0     %s\n' "${STUB_SWAP_KIB:-8388608}" "${STUB_SWAP_KIB:-8388608}"
 EOF
 
-cat >"$bin/findmnt" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/findmnt" <<'EOF'
 set -euo pipefail
 target="${!#}"
 if [[ "$target" == "$STUB_PRODUCTION_STATE" || "$target" == "$STUB_PRODUCTION_STATE"/* ]]; then
@@ -332,8 +325,7 @@ else
 fi
 EOF
 
-cat >"$bin/curl" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/curl" <<'EOF'
 set -euo pipefail
 printf 'curl:%s\n' "$*" >>"$STUB_EVENTS"
 if [ -n "${STUB_CURL_FAIL_MATCH:-}" ] && [[ "$*" == *"$STUB_CURL_FAIL_MATCH"* ]]; then

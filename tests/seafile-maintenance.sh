@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+write_bash_stub() {
+	local destination="$1"
+	printf '#!%s\n' "$BASH" >"$destination"
+	cat >>"$destination"
+}
+
 if [ "$#" -ne 7 ]; then
 	echo "usage: seafile-maintenance.sh HEALTH EXTENDED METADATA ENABLE-PUBLIC CONTRACT ONLYOFFICE-DRIVER ONLYOFFICE" >&2
 	exit 64
@@ -74,8 +80,7 @@ cat >"$state/control/last-validated-backup" <<EOF
 EOF
 chmod 0600 "$state/control/last-validated-backup"
 
-cat >"$bin/systemctl" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/systemctl" <<'EOF'
 set -euo pipefail
 printf 'systemctl %s\n' "$*" >>"${STUB_CALLS:?}"
 case "$*" in
@@ -93,8 +98,7 @@ case "$*" in
 esac
 EOF
 
-cat >"$bin/docker" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/docker" <<'EOF'
 set -euo pipefail
 printf 'docker %s\n' "$*" >>"${STUB_CALLS:?}"
 if [ "${1:-}" = ps ]; then
@@ -151,8 +155,7 @@ fi
 exit 0
 EOF
 
-cat >"$bin/curl" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/curl" <<'EOF'
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"${STUB_CALLS:?}"
 case " $* " in
@@ -166,8 +169,7 @@ case " $* " in
 esac
 EOF
 
-cat >"$bin/flock" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/flock" <<'EOF'
 set -euo pipefail
 printf 'flock %s\n' "$*" >>"${STUB_CALLS:?}"
 if [ "${1:-}" = -n ] && [ "${STUB_LOCK_BUSY:-0}" = 1 ]; then
@@ -182,15 +184,13 @@ fi
 exit 0
 EOF
 
-cat >"$bin/seafile-validate-state" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/seafile-validate-state" <<'EOF'
 set -euo pipefail
 printf 'validate-state\n' >>"${STUB_CALLS:?}"
 [ "${STUB_FAIL:-}" != dataset ]
 EOF
 
-cat >"$bin/journalctl" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/journalctl" <<'EOF'
 set -euo pipefail
 printf 'journalctl %s\n' "$*" >>"${STUB_CALLS:?}"
 case "${STUB_BORG_RECORD:-current}" in
@@ -203,14 +203,12 @@ printf '{"MESSAGE_ID":"39f53479d3a045ac8e11786248231fbf","UNIT":"borgmatic.servi
 	"$record_epoch"
 EOF
 
-cat >"$bin/metadata-probe" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/metadata-probe" <<'EOF'
 set -euo pipefail
 exit 0
 EOF
 
-cat >"$bin/id" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/id" <<'EOF'
 set -euo pipefail
 [ "${1:-}" = -u ] || exit 64
 printf '%s\n' 0
@@ -341,8 +339,7 @@ onlyoffice_package.converter = converter
 onlyoffice_package.utils = onlyoffice_utils
 PY
 
-cat >"$bin/docker-onlyoffice" <<'EOF'
-#!/usr/bin/env bash
+write_bash_stub "$bin/docker-onlyoffice" <<'EOF'
 set -euo pipefail
 [ "${1:-}" = exec ] || exit 64
 PYTHONPATH="${STUB_SITE_PACKAGES:?}" python3 -
