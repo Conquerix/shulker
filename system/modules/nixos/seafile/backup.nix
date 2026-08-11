@@ -16,6 +16,7 @@ let
     from seaserv import ccnet_api
     from seahub.auth.models import SocialAuthUser
 
+    license_user_limit = ${toString cfg.licenseUserLimit}
     active_users = [user for user in ccnet_api.get_emailusers("DB", -1, -1) if user.is_active]
     oauth_usernames = set(
         SocialAuthUser.objects.filter(provider="pocket-id").values_list("username", flat=True)
@@ -28,8 +29,8 @@ let
     ]
     recognized = len(oauth_users) + len(native_admins)
     valid = (
-        len(active_users) == ${toString cfg.licenseUserLimit}
-        and len(oauth_users) == 2
+        len(active_users) <= license_user_limit
+        and 1 <= len(oauth_users) <= 2
         and all(user.password == "!" for user in oauth_users)
         and len(native_admins) == 1
         and native_admins[0].email != "restore-admin@restore.invalid"
@@ -47,6 +48,7 @@ let
     from seahub.auth.models import SocialAuthUser
     from seahub.base.accounts import User
 
+    license_user_limit = ${toString cfg.licenseUserLimit}
     native_email = os.environ["RESTORE_NATIVE_EMAIL"]
     active_users = [user for user in ccnet_api.get_emailusers("DB", -1, -1) if user.is_active]
     oauth_usernames = set(
@@ -60,8 +62,8 @@ let
     ]
     recognized = len(oauth_users) + len(native_admins)
     valid = (
-        len(active_users) == ${toString cfg.licenseUserLimit}
-        and len(oauth_users) == 2
+        len(active_users) <= license_user_limit
+        and 1 <= len(oauth_users) <= 2
         and all(user.password == "!" for user in oauth_users)
         and len(native_admins) == 1
         and native_admins[0].email != "restore-admin@restore.invalid"

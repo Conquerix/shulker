@@ -589,6 +589,7 @@ in
   seafile-bootstrap-contract =
     let
       settings = pkgs.writeText "seahub_settings.py" seafile.seahubSettingsText;
+      status = pkgs.writeText "seafile-bootstrap-status.py" seafile.bootstrapStatusPython;
       contract = seafile.bootstrapContractText;
       revokeStart = "from django.contrib.sessions.models import Session";
       revokeAfterStart = builtins.elemAt (pkgs.lib.splitString revokeStart contract) 1;
@@ -694,6 +695,7 @@ in
         PY
 
         python ${./tests/seafile-revoke-admin.py} ${revokeScript}
+        python ${./tests/seafile-bootstrap-identity.py} --status ${status}
 
         touch "$out"
       '';

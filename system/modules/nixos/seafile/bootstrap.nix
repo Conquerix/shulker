@@ -135,7 +135,7 @@ let
     valid = (
         active_user_count <= license_user_limit
         and len(native_admins) == 1
-        and len(oauth_users) <= 2
+        and 1 <= len(oauth_users) <= 2
         and all(user.password == "!" for user in oauth_users)
         and recognized == active_user_count
     )
@@ -349,8 +349,16 @@ in
     description = "Seafile bootstrap and recovery source exposed for evaluation contracts.";
   };
 
+  options.shulker.system.modules.seafile.bootstrapStatusPython = lib.mkOption {
+    type = lib.types.lines;
+    readOnly = true;
+    internal = true;
+    description = "Seafile bootstrap identity status source exposed for evaluation contracts.";
+  };
+
   config = lib.mkIf cfg.enable {
     shulker.system.modules.seafile.bootstrapContractText = bootstrapContractText;
+    shulker.system.modules.seafile.bootstrapStatusPython = bootstrapStatusPython;
 
     environment.systemPackages = [
       listUsers

@@ -40,7 +40,7 @@ jq --exit-status '
     ((keys | sort) == ["native", "oauth"]) and
     (.native | type == "object" and keys == ["email"]) and
     (.native.email | valid_email) and
-    (.oauth | type == "array" and length == 2) and
+    (.oauth | type == "array" and length >= 1 and length <= 2) and
     all(.oauth[];
         type == "object" and
         ((keys | sort) == ["email", "subject"]) and
@@ -50,10 +50,7 @@ jq --exit-status '
     (
         [
             (.native.email | ascii_downcase),
-            (.oauth[0].subject | ascii_downcase),
-            (.oauth[0].email | ascii_downcase),
-            (.oauth[1].subject | ascii_downcase),
-            (.oauth[1].email | ascii_downcase)
+            (.oauth[] | [.subject, .email] | .[] | ascii_downcase)
         ] as $identities |
         ($identities | length) == ($identities | unique | length)
     )

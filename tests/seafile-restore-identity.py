@@ -131,11 +131,12 @@ class SeafileFixture:
         return stdout.getvalue()
 
 
-def valid_fixture(native_email: str = "native@example.test") -> tuple[SeafileFixture, FakeUser]:
+def valid_fixture(
+    native_email: str = "native@example.test", oauth_count: int = 2
+) -> tuple[SeafileFixture, FakeUser]:
     native = FakeUser(native_email, "existing-password-hash", is_staff=True)
     oauth_users = [
-        FakeUser("alice@example.test", "!"),
-        FakeUser("bob@example.test", "!"),
+        FakeUser(f"oauth-{index}@example.test", "!") for index in range(1, oauth_count + 1)
     ]
     fixture = SeafileFixture([native, *oauth_users], [user.email for user in oauth_users])
     return fixture, native
@@ -146,54 +147,77 @@ class RestoreIdentityHelpersTest(unittest.TestCase):
     reset_script: str
     verify_script: str
 
-    def test_valid_three_user_boundary_resets_native_admin_in_place(self) -> None:
-        fixture, native = valid_fixture()
+    def assert_boundary_rejected(self, fixture: SeafileFixture, native: FakeUser) -> None:
+        with self.assertRaisesRegex(RuntimeError, "identity boundary is not safe"):
+            fixture.run(self.identify_script)
 
-        self.assertEqual(fixture.run(self.identify_script), f"{native.email}\n")
-        before_identity = id(native)
-        fixture.run(
-            self.reset_script,
-            RESTORE_NATIVE_EMAIL=native.email,
-            RESTORE_PASSWORD="restore-only-secret",
-        )
-
-        self.assertEqual(id(native), before_identity)
-        self.assertEqual(native.save_calls, 1)
-        self.assertTrue(native.check_password("restore-only-secret"))
-        fixture.run(
-            self.verify_script,
-            RESTORE_NATIVE_EMAIL=native.email,
-            RESTORE_PASSWORD="restore-only-secret",
-        )
-        with self.assertRaisesRegex(RuntimeError, "credential verification failed"):
+        native.set_password("restore-only-secret")
+        with self.assertRaisesRegex(RuntimeError, "identity boundary"):
             fixture.run(
                 self.verify_script,
                 RESTORE_NATIVE_EMAIL=native.email,
-                RESTORE_PASSWORD="wrong-secret",
+                RESTORE_PASSWORD="restore-only-secret",
             )
+
+    def test_one_or_two_oauth_boundaries_reset_native_admin_in_place(self) -> None:
+        for oauth_count in (1, 2):
+            with self.subTest(oauth_count=oauth_count):
+                fixture, native = valid_fixture(oauth_count=oauth_count)
+
+                self.assertEqual(fixture.run(self.identify_script), f"{native.email}\n")
+                before_identity = id(native)
+                before_user_count = len(fixture.users)
+                fixture.run(
+                    self.reset_script,
+                    RESTORE_NATIVE_EMAIL=native.email,
+                    RESTORE_PASSWORD="restore-only-secret",
+                )
+
+                self.assertEqual(id(native), before_identity)
+                self.assertEqual(len(fixture.users), before_user_count)
+                self.assertEqual(native.save_calls, 1)
+                self.assertTrue(native.check_password("restore-only-secret"))
+                fixture.run(
+                    self.verify_script,
+                    RESTORE_NATIVE_EMAIL=native.email,
+                    RESTORE_PASSWORD="restore-only-secret",
+                )
+                with self.assertRaisesRegex(RuntimeError, "credential verification failed"):
+                    fixture.run(
+                        self.verify_script,
+                        RESTORE_NATIVE_EMAIL=native.email,
+                        RESTORE_PASSWORD="wrong-secret",
+                    )
+
+    def test_native_only_boundary_is_rejected(self) -> None:
+        fixture, native = valid_fixture(oauth_count=0)
+
+        self.assert_boundary_rejected(fixture, native)
 
     def test_dummy_restore_admin_is_rejected(self) -> None:
         fixture, _native = valid_fixture("restore-admin@restore.invalid")
 
-        with self.assertRaisesRegex(RuntimeError, "identity boundary is not safe"):
-            fixture.run(self.identify_script)
+        self.assert_boundary_rejected(fixture, _native)
 
-    def test_fourth_active_user_is_rejected(self) -> None:
-        fixture, _native = valid_fixture()
+    def test_three_oauth_users_are_rejected(self) -> None:
+        fixture, native = valid_fixture(oauth_count=3)
+
+        self.assert_boundary_rejected(fixture, native)
+
+    def test_more_than_three_active_users_are_rejected(self) -> None:
+        fixture, native = valid_fixture()
         fixture.users.append(FakeUser("unexpected@example.test", "!"))
 
-        with self.assertRaisesRegex(RuntimeError, "identity boundary is not safe"):
-            fixture.run(self.identify_script)
+        self.assert_boundary_rejected(fixture, native)
 
     def test_password_capable_oauth_user_is_rejected_without_mutation(self) -> None:
-        fixture, _native = valid_fixture()
+        fixture, native = valid_fixture()
         oauth_user = fixture.users[1]
         oauth_user.password = "unexpected-oauth-password-hash"
         oauth_user.enc_password = oauth_user.password
         oauth_user.is_staff = True
 
-        with self.assertRaisesRegex(RuntimeError, "identity boundary is not safe"):
-            fixture.run(self.identify_script)
+        self.assert_boundary_rejected(fixture, native)
         with self.assertRaisesRegex(RuntimeError, "OAuth-linked"):
             fixture.run(
                 self.reset_script,
@@ -202,6 +226,26 @@ class RestoreIdentityHelpersTest(unittest.TestCase):
             )
         self.assertEqual(oauth_user.password, "unexpected-oauth-password-hash")
         self.assertEqual(oauth_user.save_calls, 0)
+
+    def test_multiple_native_administrators_are_rejected(self) -> None:
+        fixture, native = valid_fixture(oauth_count=1)
+        fixture.users.append(FakeUser("second-native@example.test", "password-hash", is_staff=True))
+
+        self.assert_boundary_rejected(fixture, native)
+
+    def test_unclassified_active_user_is_rejected(self) -> None:
+        fixture, native = valid_fixture(oauth_count=1)
+        fixture.users.append(FakeUser("unclassified@example.test", "!"))
+
+        self.assert_boundary_rejected(fixture, native)
+
+    def test_native_administrator_must_be_active_and_staff(self) -> None:
+        for attribute in ("is_active", "is_staff"):
+            with self.subTest(attribute=attribute):
+                fixture, native = valid_fixture(oauth_count=1)
+                setattr(native, attribute, False)
+
+                self.assert_boundary_rejected(fixture, native)
 
 
 def parse_args() -> argparse.Namespace:
