@@ -42,7 +42,7 @@ expect_accept() {
 
 	: >"$stdout"
 	: >"$stderr"
-	"$validator" "$source" >"$stdout" 2>"$stderr"
+	"$BASH" "$validator" "$source" >"$stdout" 2>"$stderr"
 	test ! -s "$stdout"
 	test ! -s "$stderr"
 }
@@ -54,7 +54,7 @@ expect_reject() {
 
 	: >"$stdout"
 	: >"$stderr"
-	if "$validator" "$source" >"$stdout" 2>"$stderr"; then
+	if "$BASH" "$validator" "$source" >"$stdout" 2>"$stderr"; then
 		echo "Seafile identity validator accepted an invalid boundary" >&2
 		exit 1
 	fi
@@ -74,7 +74,7 @@ expect_accept "$valid"
 
 stdin_stdout="$fixture_root/stdin-stdout"
 stdin_stderr="$fixture_root/stdin-stderr"
-"$validator" - <"$valid" >"$stdin_stdout" 2>"$stdin_stderr"
+"$BASH" "$validator" - <"$valid" >"$stdin_stdout" 2>"$stdin_stderr"
 test ! -s "$stdin_stdout"
 test ! -s "$stdin_stderr"
 
