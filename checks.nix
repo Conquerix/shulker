@@ -984,6 +984,7 @@ in
         seafile_readme_text="$TMPDIR/seafile-readme-text"
         seafile_service_row="$TMPDIR/seafile-service-row"
         seafile_operations="$TMPDIR/seafile-operations"
+        seafile_operations_text="$TMPDIR/seafile-operations-text"
         mkdir -p "$combined/warden" "$combined/infrastructure" "$combined/diagram" "$combined/wiki"
         cp -R ${wardenServerDocs}/. "$combined/warden"
         cp -R ${infrastructureData}/. "$combined/infrastructure"
@@ -1019,6 +1020,29 @@ in
           in_section { print }
         ' "$warden_report" > "$seafile_operations"
         test -s "$seafile_operations"
+        tr '\n' ' ' < "$seafile_operations" > "$seafile_operations_text"
+
+        for staged_identity_policy in \
+          'Initial owner-only OAuth enrollment' \
+          'one native plus one OAuth user initially' \
+          'one native plus two OAuth users after second-user enrollment' \
+          'no OIDC secret rotation or 1Password edit during second-user enrollment'
+        do
+          grep -F -- "$staged_identity_policy" "$seafile_readme_text" >/dev/null
+          grep -F -- "$staged_identity_policy" "$seafile_service_row" >/dev/null
+          grep -F -- "$staged_identity_policy" "$seafile_operations_text" >/dev/null
+        done
+
+        for stale_identity_policy in \
+          'containing the two intended people' \
+          'The two OAuth users plus the native administrator consume' \
+          'Before making Seafile authoritative, test both users'
+        do
+          if grep -R -F -- "$stale_identity_policy" "$seafile_readme" "$warden_report" >/dev/null; then
+            echo "Seafile documentation contains stale identity guidance: $stale_identity_policy" >&2
+            exit 1
+          fi
+        done
 
         for container in \
           seafile \

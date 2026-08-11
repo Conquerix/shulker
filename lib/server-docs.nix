@@ -132,7 +132,7 @@ let
     (service "Seafile Pro ${modules.seafile.version}" modules.seafile.enable
       "${modules.seafile.publicUrl} via ${modules.seafile.bindAddress}:${toString modules.seafile.port}; OnlyOffice ${modules.seafile.onlyOfficePublicUrl} via ${modules.seafile.bindAddress}:${toString modules.seafile.onlyOfficePort}; Notification ${modules.seafile.notificationPublicUrl} via ${modules.seafile.bindAddress}:${toString modules.seafile.notificationPort}"
       "${modules.seafile.stateDir} (${modules.seafile.dataset})"
-      "1.5 TiB quota; Pocket ID OIDC; ${toString modules.seafile.licenseUserLimit} named users maximum (two OAuth plus one native break-glass administrator); password-protected public download/upload links with ${toString modules.seafile.shareLinkExpireDaysDefault}-day default and ${toString modules.seafile.shareLinkExpireDaysMax}-day maximum expiry; Immich exclusively owns photo/video originals; writer-quiesced Borgmatic snapshot coverage ${enabledDisabled modules.seafile.backUpData}"
+      "1.5 TiB quota; Pocket ID OIDC; ${toString modules.seafile.licenseUserLimit} named users maximum; Initial owner-only OAuth enrollment has one native plus one OAuth user initially; the reviewed transition has one native plus two OAuth users after second-user enrollment and no fourth user, with no OIDC secret rotation or 1Password edit during second-user enrollment; password-protected public download/upload links with ${toString modules.seafile.shareLinkExpireDaysDefault}-day default and ${toString modules.seafile.shareLinkExpireDaysMax}-day maximum expiry; Immich exclusively owns photo/video originals; writer-quiesced Borgmatic snapshot coverage ${enabledDisabled modules.seafile.backUpData}"
     )
     (service "Newt" modules.newt.enable modules.newt.endpoint modules.newt.stateDir
       "Outbound Pangolin tunnel"
@@ -462,7 +462,8 @@ let
       modules.seafile.enable && !modules.seafile.backUpData
     ) "Seafile state is not included in Borgmatic backups."
     ++ optional modules.seafile.enable "Seafile identity/bootstrap status is live state; run seafile-bootstrap-status and seafile-license-status before admitting users."
-    ++ optional modules.seafile.enable "Seafile Pro is limited to three named users; the intended two OAuth users plus native break-glass administrator consume the allowance."
+    ++ optional modules.seafile.enable "Initial owner-only OAuth enrollment consumes two of Seafile Pro's three named-user slots: one native plus one OAuth user initially."
+    ++ optional modules.seafile.enable "Reviewed enrollment of the second approved family member consumes the final slot: one native plus two OAuth users after second-user enrollment, with no fourth user and no OIDC secret rotation or 1Password edit during second-user enrollment."
     ++ optional modules.seafile.enable "Evaluation cannot prove live Pangolin prefix rewriting, forwarding-header replacement, WebSocket upgrades, or public OnlyOffice callbacks; keep public health disabled until those routes pass acceptance.";
 
   revisionLine = if revision == null then "" else "\nFlake revision: `${revision}`.\n";
@@ -793,6 +794,13 @@ let
           sudo seafile-restore-verify --runtime-dir /srv/seafile-restore/runtime
           sudo seafile-restore-teardown --runtime-dir /srv/seafile-restore/runtime
           ```
+
+          Initial owner-only OAuth enrollment keeps `seafile_users` restricted
+          to the owner, with one native plus one OAuth user initially. A later
+          reviewed enrollment adds the second approved family member, producing
+          one native plus two OAuth users after second-user enrollment and no
+          fourth user. That exact group-membership transition requires no OIDC
+          secret rotation or 1Password edit during second-user enrollment.
 
           Seafile's reserved snapshot path is `${seafileSnapshotPath}`. Its exact
           off-host Borg sources are `${builtins.elemAt seafileBackupSources 0}`

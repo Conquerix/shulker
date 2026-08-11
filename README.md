@@ -277,8 +277,9 @@ issued by Pocket ID. The checked rebuild validates the exact key set and
 reports logical names only.
 
 With separate approval, create a confidential Pocket ID authorization-code
-client named `Seafile`, restricted to a `seafile_users` group containing the
-two intended people. Configure this exact callback:
+client named `Seafile`, restricted to a `seafile_users` group. Initial
+owner-only OAuth enrollment means that `seafile_users` contains exactly the
+owner and no other member. Configure this exact callback:
 
 ```text
 https://files.shulker.link/oauth/callback/
@@ -287,9 +288,14 @@ https://files.shulker.link/oauth/callback/
 Grant only `openid profile email`. Seafile maps immutable `sub` to the external
 user identifier and uses `name` and `email` as profile attributes. Local-browser
 SSO is enabled so Android, desktop sync, and SeaDrive hand authentication to
-the operating-system browser. Do not place Pangolin authentication in front of
-the web, `/client-sso/`, OAuth callback, API, file-transfer, static, or public
-link surfaces.
+the operating-system browser. The active-account boundary is one native plus
+one OAuth user initially. After a separate reviewed second-user enrollment, add
+only the second approved family member to the existing `seafile_users` group;
+the boundary becomes one native plus two OAuth users after second-user
+enrollment. This is an exact one-to-two group-membership change with no OIDC
+secret rotation or 1Password edit during second-user enrollment. Do not place
+Pangolin authentication in front of the web, `/client-sso/`, OAuth callback,
+API, file-transfer, static, or public link surfaces.
 
 ### Pangolin routing
 
@@ -324,11 +330,13 @@ sudo seafile-bootstrap-status
 sudo seafile-license-status
 ```
 
-The two OAuth users plus the native administrator consume Seafile Pro's full
-three-named-user allowance. Do not activate another user without a licensing
-decision. Keep the native account independent and use this interactive,
-live-credential recovery only after explicit approval and a reviewed 1Password
-rotation when required:
+The initial owner OAuth account and native administrator consume two of
+Seafile Pro's three named-user slots. The reviewed enrollment of the second
+approved family member consumes the final slot; the mature state is exactly
+one native administrator plus two passwordless OAuth users. Do not activate a
+fourth user without a licensing decision. Keep the native account independent
+and use this interactive, live-credential recovery only after explicit
+approval and a reviewed 1Password rotation when required:
 
 ```sh
 sudo seafile-reset-native-admin --restore-stored
@@ -462,14 +470,23 @@ hardlinks, reflinks, scheduled exports, or an Immich external library. A manual
 copy into a general-file library is an intentional independent Seafile object;
 otherwise share the asset from Immich.
 
-Before making Seafile authoritative, test both users and the independent native
-administrator; browser/native-client SSO; Android manual operations with camera
-upload off; desktop sync and SeaDrive conflicts; large and unusual-name files;
-permissions, locking, versions, and audit; Notification WebSockets; Metadata
-views/reconciliation; OnlyOffice collaboration and durable callbacks; public
-links; search; restart/reboot persistence; the exact three listeners; current
-health/fsck/Borg checks; and a complete isolated restore rehearsal with sample
-checksums, login, sharing, search, and a new upload.
+Before making Seafile authoritative during the initial owner-only stage, test
+the owner OAuth account and independent native administrator; browser and
+native-client SSO; Android manual operations with camera upload off; desktop
+sync and SeaDrive conflicts; large and unusual-name files; permissions,
+locking, versions, and audit; Notification WebSockets; Metadata views and
+reconciliation; OnlyOffice editing and durable callbacks; public links;
+search; restart and reboot persistence; the exact three listeners; current
+health, fsck, and Borg checks; and a complete isolated restore rehearsal with
+sample checksums, login, sharing, search, and a new upload.
+
+After the second approved family member is enrolled, repeat login and client
+acceptance with both OAuth users and test two-user sharing, permissions,
+locking, conflict handling, Notification updates, Metadata views, and
+OnlyOffice collaboration. OpenCloud retirement requires every applicable gate
+for the current onboarding stage: the later two-user checks are not blockers
+while `seafile_users` remains owner-only, but become mandatory as soon as the
+second member is enrolled.
 
 If acceptance fails, keep or return users to OpenCloud and leave its service,
 dataset, identity objects, and secret material unchanged. Immediately before
