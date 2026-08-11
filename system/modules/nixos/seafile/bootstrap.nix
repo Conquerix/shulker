@@ -120,12 +120,16 @@ let
     from seahub.auth.models import SocialAuthUser
 
     license_user_limit = ${toString cfg.licenseUserLimit}
-    active_users = [user for user in ccnet_api.get_emailusers("DB", -1, -1) if user.is_active]
+    users = ccnet_api.get_emailusers("DB", -1, -1)
+    active_users = [user for user in users if user.is_active]
     active_user_count = len(active_users)
     oauth_usernames = set(
         SocialAuthUser.objects.filter(provider="pocket-id").values_list("username", flat=True)
     )
     oauth_users = [user for user in active_users if user.email in oauth_usernames]
+    disabled_oauth_users = [
+        user for user in users if not user.is_active and user.email in oauth_usernames
+    ]
     native_admins = [
         user
         for user in active_users
@@ -137,6 +141,7 @@ let
         and len(native_admins) == 1
         and 1 <= len(oauth_users) <= 2
         and all(user.password == "!" for user in oauth_users)
+        and not disabled_oauth_users
         and recognized == active_user_count
     )
     print(

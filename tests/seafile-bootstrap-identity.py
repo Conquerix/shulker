@@ -150,6 +150,25 @@ class BootstrapIdentityStatusTest(unittest.TestCase):
 
                 self.assert_boundary_rejected(fixture)
 
+    def test_disabled_pocket_linked_user_is_rejected(self) -> None:
+        fixture = SeafileFixture(1)
+        disabled_oauth = FakeUser("disabled-oauth@example.test", "!", is_active=False)
+        fixture.users.append(disabled_oauth)
+        fixture.social_auth_users.append(FakeSocialAuthUser(disabled_oauth.email))
+
+        self.assert_boundary_rejected(fixture)
+
+    def test_unrelated_disabled_history_user_is_ignored(self) -> None:
+        fixture = SeafileFixture(1)
+        fixture.users.append(
+            FakeUser("disabled-history@example.test", "historical-password-hash", is_active=False)
+        )
+
+        self.assertEqual(
+            fixture.run(self.status_script),
+            "active=2\tnative_break_glass_admins=1\toauth=1\tlimit=3\n",
+        )
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()

@@ -247,6 +247,43 @@ class RestoreIdentityHelpersTest(unittest.TestCase):
 
                 self.assert_boundary_rejected(fixture, native)
 
+    def test_disabled_pocket_linked_user_is_rejected_by_identify(self) -> None:
+        fixture, _native = valid_fixture(oauth_count=1)
+        disabled_oauth = FakeUser("disabled-oauth@example.test", "!", is_active=False)
+        fixture.users.append(disabled_oauth)
+        fixture.social_auth_users.append(FakeSocialAuthUser(disabled_oauth.email))
+
+        with self.assertRaisesRegex(RuntimeError, "identity boundary is not safe"):
+            fixture.run(self.identify_script)
+
+    def test_disabled_pocket_linked_user_is_rejected_by_verify(self) -> None:
+        fixture, native = valid_fixture(oauth_count=1)
+        disabled_oauth = FakeUser("disabled-oauth@example.test", "!", is_active=False)
+        fixture.users.append(disabled_oauth)
+        fixture.social_auth_users.append(FakeSocialAuthUser(disabled_oauth.email))
+        native.set_password("restore-only-secret")
+
+        with self.assertRaisesRegex(RuntimeError, "identity boundary"):
+            fixture.run(
+                self.verify_script,
+                RESTORE_NATIVE_EMAIL=native.email,
+                RESTORE_PASSWORD="restore-only-secret",
+            )
+
+    def test_unrelated_disabled_history_user_is_ignored(self) -> None:
+        fixture, native = valid_fixture(oauth_count=1)
+        fixture.users.append(
+            FakeUser("disabled-history@example.test", "historical-password-hash", is_active=False)
+        )
+
+        self.assertEqual(fixture.run(self.identify_script), f"{native.email}\n")
+        native.set_password("restore-only-secret")
+        fixture.run(
+            self.verify_script,
+            RESTORE_NATIVE_EMAIL=native.email,
+            RESTORE_PASSWORD="restore-only-secret",
+        )
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
