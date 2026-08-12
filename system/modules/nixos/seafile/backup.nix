@@ -1374,7 +1374,6 @@ in
         "${snapshotPath}/shared/seafile/conf/seafile.conf"
         "${snapshotPath}/shared/seafile/conf/seafdav.conf"
       ];
-      follow_symlinks = false;
       read_special = false;
       commands = [
         {
