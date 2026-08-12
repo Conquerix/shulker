@@ -59,6 +59,32 @@ let
     executable = true;
     text = redisStartScriptText;
   };
+  metadataEntrypointHash = "cd9a0609e3928af93c4601a9565ea9e0e3795915c206d1bd6375eb6e55649f98";
+  metadataStartScriptText = ''
+    #!/bin/bash
+    set -euo pipefail
+
+    source_entrypoint=/opt/scripts/entrypoint.sh
+    expected_hash=${metadataEntrypointHash}
+    actual_hash="$(sha256sum -- "$source_entrypoint")"
+    [ "''${actual_hash%% *}" = "$expected_hash" ] || {
+      echo "metadata entrypoint does not match the pinned image" >&2
+      exit 70
+    }
+    [ "$(grep -Fxc -- './seaf-md-server' "$source_entrypoint")" -eq 1 ] || {
+      echo "metadata entrypoint server launch is ambiguous" >&2
+      exit 70
+    }
+    patched_entrypoint="$(mktemp /tmp/seafile-metadata-entrypoint.XXXXXX)"
+    sed 's|^\./seaf-md-server$|exec ./seaf-md-server|' \
+      "$source_entrypoint" >"$patched_entrypoint"
+    exec /bin/bash "$patched_entrypoint"
+  '';
+  metadataStartScript = pkgs.writeTextFile {
+    name = "seafile-start-metadata";
+    executable = true;
+    text = metadataStartScriptText;
+  };
   onlyOfficeConfig = (pkgs.formats.json { }).generate "local-production-linux.json" {
     services.CoAuthoring.autoAssembly = {
       enable = true;
@@ -258,9 +284,11 @@ let
       metadata = {
         container_name = containerNames.metadata;
         image = images.metadata;
+        init = true;
         restart = "no";
         labels = serviceLabels;
         networks = privateNetwork;
+        command = [ "/usr/local/sbin/seafile-start-metadata" ];
         environment = {
           JWT_PRIVATE_KEY = required "JWT_PRIVATE_KEY";
           SEAFILE_MYSQL_DB_HOST = "database";
@@ -282,6 +310,13 @@ let
         volumes = [
           "${stateDir}/shared:/shared"
           "${metadataRuntimeDir}:/run/seafile:ro"
+          {
+            type = "bind";
+            source = toString metadataStartScript;
+            target = "/usr/local/sbin/seafile-start-metadata";
+            read_only = true;
+            bind.create_host_path = false;
+          }
         ];
         depends_on = {
           database.condition = "service_healthy";
@@ -381,6 +416,9 @@ in
   inherit
     bootstrapComposeConfig
     composeConfig
+    metadataEntrypointHash
+    metadataStartScript
+    metadataStartScriptText
     onlyOfficeConfig
     redisStartScript
     redisStartScriptText

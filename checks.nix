@@ -324,6 +324,70 @@ in
           )}
         '';
       };
+      metadataEntrypointText = ''
+        #!/bin/bash
+        cd "$METADATA_TEST_DIR"
+        ./seaf-md-server
+      '';
+      metadataEntrypointUnderTest = pkgs.writeText "seafile-metadata-entrypoint-under-test" metadataEntrypointText;
+      metadataAmbiguousEntrypointText = metadataEntrypointText + ''
+        ./seaf-md-server
+      '';
+      metadataAmbiguousEntrypointUnderTest = pkgs.writeText "seafile-metadata-ambiguous-entrypoint-under-test" metadataAmbiguousEntrypointText;
+      metadataHashDriftEntrypointUnderTest =
+        pkgs.writeText "seafile-metadata-hash-drift-entrypoint-under-test"
+          (metadataEntrypointText + "# upstream drift\n");
+      metadataStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-metadata-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [
+              "/opt/scripts/entrypoint.sh"
+              seafile.metadataEntrypointHash
+            ]
+            [
+              (toString metadataEntrypointUnderTest)
+              (builtins.hashString "sha256" metadataEntrypointText)
+            ]
+            seafile.metadataStartScriptText;
+      };
+      metadataAmbiguousStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-metadata-ambiguous-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [
+              "/opt/scripts/entrypoint.sh"
+              seafile.metadataEntrypointHash
+            ]
+            [
+              (toString metadataAmbiguousEntrypointUnderTest)
+              (builtins.hashString "sha256" metadataAmbiguousEntrypointText)
+            ]
+            seafile.metadataStartScriptText;
+      };
+      metadataHashDriftStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-metadata-hash-drift-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [ "/opt/scripts/entrypoint.sh" ]
+            [ (toString metadataHashDriftEntrypointUnderTest) ]
+            seafile.metadataStartScriptText;
+      };
+      metadataServerUnderTest = pkgs.writeTextFile {
+        name = "seaf-md-server-under-test";
+        executable = true;
+        text = ''
+          #!${pkgs.bash}/bin/bash
+          trap 'sleep 1; printf completed >"$METADATA_TEST_DIR/completed"; exit 0' TERM
+          printf ready >"$METADATA_TEST_DIR/ready"
+          while :; do
+            sleep 1
+          done
+        '';
+      };
     in
     assert compose.name == "seafile";
     assert
@@ -410,6 +474,13 @@ in
       services'.metadata.volumes == [
         "/storage/flash/seafile/shared:/shared"
         "/run/seafile-metadata:/run/seafile:ro"
+        {
+          type = "bind";
+          source = toString seafile.metadataStartScript;
+          target = "/usr/local/sbin/seafile-start-metadata";
+          read_only = true;
+          bind.create_host_path = false;
+        }
       ];
     assert
       map (volume: volume.source) (
@@ -540,6 +611,12 @@ in
         "-ec"
         "exec 3<>/dev/tcp/127.0.0.1/8083; printf 'GET /ping HTTP/1.0\\r\\nHost: 127.0.0.1\\r\\nConnection: close\\r\\n\\r\\n' >&3; IFS= read -r -u 3 status; [[ \"$$status\" == HTTP/*\" 200 \"* ]]; while IFS= read -r -u 3 header; do [[ \"$$header\" != $$'\\r' ]] || break; done; body=; IFS= read -r -u 3 body || [[ -n \"$$body\" ]]; [[ \"$$body\" == '{\"ret\": \"pong\"}' ]]"
       ];
+    assert services'.metadata.init;
+    assert services'.metadata.command == [ "/usr/local/sbin/seafile-start-metadata" ];
+    assert !(builtins.hasAttr "TINI_KILL_PROCESS_GROUP" services'.metadata.environment);
+    assert
+      seafile.metadataEntrypointHash
+      == "cd9a0609e3928af93c4601a9565ea9e0e3795915c206d1bd6375eb6e55649f98";
     pkgs.runCommand "seafile-stack-contract" { } ''
       test "$(head -n 1 ${redisStartScriptUnderTest})" = '#!/bin/sh'
       ! grep -F '/nix/store' ${redisStartScriptUnderTest}
@@ -599,6 +676,47 @@ in
         echo "Notification health probe accepted an unexpected response body" >&2
         exit 1
       fi
+
+      metadata_test_dir="$TMPDIR/metadata-wrapper"
+      mkdir -p "$metadata_test_dir"
+      ln -s ${metadataServerUnderTest} "$metadata_test_dir/seaf-md-server"
+      if METADATA_TEST_DIR="$metadata_test_dir" \
+        ${metadataHashDriftStartScriptRuntimeUnderTest} >metadata-hash-drift.output 2>&1
+      then
+        echo "Metadata wrapper accepted an unexpected upstream entrypoint hash" >&2
+        exit 1
+      fi
+      grep -F 'metadata entrypoint does not match the pinned image' metadata-hash-drift.output >/dev/null
+
+      if METADATA_TEST_DIR="$metadata_test_dir" \
+        ${metadataAmbiguousStartScriptRuntimeUnderTest} >metadata-ambiguous.output 2>&1
+      then
+        echo "Metadata wrapper accepted an ambiguous server launch" >&2
+        exit 1
+      fi
+      grep -F 'metadata entrypoint server launch is ambiguous' metadata-ambiguous.output >/dev/null
+
+      ${
+        if pkgs.stdenv.hostPlatform.isLinux then
+          ''TINI_SUBREAPER=1 METADATA_TEST_DIR="$metadata_test_dir" ${pkgs.tini}/bin/tini -- ${metadataStartScriptRuntimeUnderTest}''
+        else
+          ''METADATA_TEST_DIR="$metadata_test_dir" ${metadataStartScriptRuntimeUnderTest}''
+      } &
+      metadata_pid=$!
+      cleanup_metadata_fixture() {
+        kill -KILL "$metadata_pid" 2>/dev/null || true
+        wait "$metadata_pid" 2>/dev/null || true
+      }
+      trap cleanup_metadata_fixture EXIT
+      for _ in $(seq 1 500); do
+        test ! -e "$metadata_test_dir/ready" || break
+        sleep 0.01
+      done
+      test -e "$metadata_test_dir/ready"
+      kill -TERM "$metadata_pid"
+      wait "$metadata_pid"
+      test -e "$metadata_test_dir/completed"
+      trap - EXIT
       touch "$out"
     '';
 

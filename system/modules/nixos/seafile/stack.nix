@@ -447,6 +447,24 @@ in
       internal = true;
       description = "Source for the rootless-argv Redis entrypoint.";
     };
+    metadataEntrypointHash = lib.mkOption {
+      type = lib.types.str;
+      readOnly = true;
+      internal = true;
+      description = "Expected upstream Metadata entrypoint hash for the pinned image.";
+    };
+    metadataStartScript = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      internal = true;
+      description = "Fail-closed Metadata entrypoint wrapper for graceful shutdown.";
+    };
+    metadataStartScriptText = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+      description = "Source for the fail-closed Metadata entrypoint wrapper.";
+    };
     onlyOfficeConfig = lib.mkOption {
       type = lib.types.package;
       readOnly = true;
@@ -474,6 +492,9 @@ in
         bootstrapComposeFile
         composeConfig
         composeFile
+        metadataEntrypointHash
+        metadataStartScript
+        metadataStartScriptText
         onlyOfficeConfig
         redisStartScript
         redisStartScriptText
