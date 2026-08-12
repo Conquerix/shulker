@@ -592,7 +592,11 @@ let
         [ "$(stat -c '%u:%g' -- "$path")" = "$expected_owner" ] \
           || fail_reconcile "managed path owner is unsafe"
         mode="$(stat -c '%a' -- "$path")"
-        case "$mode" in 400 | 440 | 444 | 600 | 640 | 644) ;; *) fail_reconcile "managed path mode is unsafe" ;; esac
+        case "$mode" in
+          400 | 440 | 444 | 600 | 640 | 644) ;;
+          700) [ "$name" = seahub_settings.py ] || fail_reconcile "managed path mode is unsafe" ;;
+          *) fail_reconcile "managed path mode is unsafe" ;;
+        esac
       fi
     done
 

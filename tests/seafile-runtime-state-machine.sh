@@ -825,6 +825,9 @@ for managed in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf
 	printf '%s\n' upstream >"$config_dir/$managed"
 	chmod 0600 "$config_dir/$managed"
 done
+# The pinned upstream image creates this Python settings file owner-only but
+# executable during fresh bootstrap; reconciliation replaces it with a symlink.
+chmod 0700 "$config_dir/seahub_settings.py"
 run_reconciler
 for managed in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
 	test -L "$config_dir/$managed"
@@ -842,6 +845,10 @@ test "$(readlink "$config_dir/seafile.conf")" = "$runtime_root/foreign"
 rm "$config_dir/seafile.conf"
 printf '%s\n' upstream >"$config_dir/seafile.conf"
 chmod 0666 "$config_dir/seafile.conf"
+expect_failure run_reconciler
+test ! -L "$config_dir/seafile.conf"
+
+chmod 0700 "$config_dir/seafile.conf"
 expect_failure run_reconciler
 test ! -L "$config_dir/seafile.conf"
 
