@@ -660,8 +660,9 @@ let
     [ "$current" != "$previous" ] || fail_backup "Borgmatic did not produce a fresh result"
     [ "$(systemctl show borgmatic.service --property=Result --value)" = success ] || fail_backup "fresh Borgmatic run failed"
     newest="$(find "$state_dir/control" -maxdepth 1 -type f -name 'seafile-*.validated' -mmin -120 -print -quit)"
-    [ -n "$newest" ] && grep -Fqx 'transaction_kind=writers_quiesced=true' "$newest" \
-      || fail_backup "fresh quiesced logical dump is missing"
+    if [ -z "$newest" ] || ! grep -Fqx 'transaction_kind=writers_quiesced=true' "$newest"; then
+      fail_backup "fresh quiesced logical dump is missing"
+    fi
   '';
 
   restoreCommonScript = ''
