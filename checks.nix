@@ -337,6 +337,9 @@ in
       metadataHashDriftEntrypointUnderTest =
         pkgs.writeText "seafile-metadata-hash-drift-entrypoint-under-test"
           (metadataEntrypointText + "# upstream drift\n");
+      metadataStartScriptUnderTest = pkgs.writeText "seafile-start-metadata-under-test" (
+        seafile.metadataStartScriptText
+      );
       metadataStartScriptRuntimeUnderTest = pkgs.writeTextFile {
         name = "seafile-start-metadata-runtime-under-test";
         executable = true;
@@ -345,10 +348,12 @@ in
             [
               "/opt/scripts/entrypoint.sh"
               seafile.metadataEntrypointHash
+              "/bin/bash"
             ]
             [
               (toString metadataEntrypointUnderTest)
               (builtins.hashString "sha256" metadataEntrypointText)
+              "${pkgs.bash}/bin/bash"
             ]
             seafile.metadataStartScriptText;
       };
@@ -360,10 +365,12 @@ in
             [
               "/opt/scripts/entrypoint.sh"
               seafile.metadataEntrypointHash
+              "/bin/bash"
             ]
             [
               (toString metadataAmbiguousEntrypointUnderTest)
               (builtins.hashString "sha256" metadataAmbiguousEntrypointText)
+              "${pkgs.bash}/bin/bash"
             ]
             seafile.metadataStartScriptText;
       };
@@ -372,8 +379,14 @@ in
         executable = true;
         text =
           builtins.replaceStrings
-            [ "/opt/scripts/entrypoint.sh" ]
-            [ (toString metadataHashDriftEntrypointUnderTest) ]
+            [
+              "/opt/scripts/entrypoint.sh"
+              "/bin/bash"
+            ]
+            [
+              (toString metadataHashDriftEntrypointUnderTest)
+              "${pkgs.bash}/bin/bash"
+            ]
             seafile.metadataStartScriptText;
       };
       metadataServerUnderTest = pkgs.writeTextFile {
@@ -620,6 +633,8 @@ in
     pkgs.runCommand "seafile-stack-contract" { } ''
       test "$(head -n 1 ${redisStartScriptUnderTest})" = '#!/bin/sh'
       ! grep -F '/nix/store' ${redisStartScriptUnderTest}
+      test "$(head -n 1 ${metadataStartScriptUnderTest})" = '#!/bin/bash'
+      grep -F -x 'exec /bin/bash "$patched_entrypoint"' ${metadataStartScriptUnderTest} >/dev/null
 
       redis_runtime_dir="$TMPDIR/redis-runtime"
       redis_stub_dir="$TMPDIR/redis-stubs"
@@ -698,9 +713,9 @@ in
 
       ${
         if pkgs.stdenv.hostPlatform.isLinux then
-          ''TINI_SUBREAPER=1 METADATA_TEST_DIR="$metadata_test_dir" ${pkgs.tini}/bin/tini -- ${metadataStartScriptRuntimeUnderTest}''
+          ''TINI_SUBREAPER=1 METADATA_TEST_DIR="$metadata_test_dir" ${pkgs.tini}/bin/tini -- ${pkgs.bash}/bin/bash ${metadataStartScriptRuntimeUnderTest}''
         else
-          ''METADATA_TEST_DIR="$metadata_test_dir" ${metadataStartScriptRuntimeUnderTest}''
+          ''METADATA_TEST_DIR="$metadata_test_dir" ${pkgs.bash}/bin/bash ${metadataStartScriptRuntimeUnderTest}''
       } &
       metadata_pid=$!
       cleanup_metadata_fixture() {
