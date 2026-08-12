@@ -40,12 +40,97 @@ let
     metadata_dir="''${SEAFILE_METADATA_DIR:-/run/seafile-metadata}"
     lock_file="''${SEAFILE_MAINTENANCE_LOCK:-${maintenanceLock}}"
     environment_file="$host_dir/environment"
+    bootstrap_environment_file="$host_dir/bootstrap.environment"
+    seafevents_file="$app_dir/seafevents.conf"
     : "$systemctl_command" "$docker_command" "$curl_command" "$flock_command" \
-      "$id_command" "$state_dir" "$host_dir" "$app_dir" "$metadata_dir" "$lock_file" "$environment_file"
+      "$id_command" "$state_dir" "$host_dir" "$app_dir" "$metadata_dir" "$lock_file" \
+      "$environment_file" "$bootstrap_environment_file" "$seafevents_file"
 
     fail_maintenance() {
       echo "Seafile $1 probe failed" >&2
       exit 69
+    }
+
+    validate_protected_maintenance_file() {
+      local path="$1"
+      local expected_mode="$2"
+      local probe="$3"
+      local expected_owner="''${SEAFILE_EXPECTED_OWNER:-0:0}"
+      [ -f "$path" ] && [ ! -L "$path" ] \
+        || fail_maintenance "$probe"
+      [ "$(stat --format '%u:%g' -- "$path")" = "$expected_owner" ] \
+        || fail_maintenance "$probe"
+      [ "$(stat --format '%a' -- "$path")" = "$expected_mode" ] \
+        || fail_maintenance "$probe"
+      [ "$(stat --format '%h' -- "$path")" = 1 ] \
+        || fail_maintenance "$probe"
+    }
+
+    load_search_token() {
+      local line authorization_count=0
+      validate_protected_maintenance_file "$seafevents_file" 400 "SeaSearch credentials"
+      search_token=
+      while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in
+          "authorization = Basic "*)
+            authorization_count="$((authorization_count + 1))"
+            search_token="''${line#authorization = Basic }"
+            [[ "$search_token" =~ ^[A-Za-z0-9+/]+={0,2}$ ]] \
+              || fail_maintenance "SeaSearch credentials"
+            ;;
+          authorization*) fail_maintenance "SeaSearch credentials" ;;
+        esac
+      done <"$seafevents_file"
+      [ "$authorization_count" -eq 1 ] \
+        || fail_maintenance "SeaSearch credentials"
+      printf '%s' "$search_token" | base64 --decode >/dev/null 2>&1 \
+        || fail_maintenance "SeaSearch credentials"
+    }
+
+    append_bootstrap_values_to_patterns() {
+      local destination="$1"
+      local line key
+      local expected_keys=(
+        INIT_SEAFILE_MYSQL_ROOT_PASSWORD
+        SEAFILE_MYSQL_DB_PASSWORD
+        REDIS_PASSWORD
+        JWT_PRIVATE_KEY
+        SEAHUB_SECRET_KEY
+        INIT_SEAFILE_ADMIN_EMAIL
+        INIT_SEAFILE_ADMIN_PASSWORD
+        INIT_SS_ADMIN_USER
+        INIT_SS_ADMIN_PASSWORD
+        SEAFILE_OAUTH_CLIENT_ID
+        SEAFILE_OAUTH_CLIENT_SECRET
+        ONLYOFFICE_JWT_SECRET
+      )
+      declare -A seen=()
+      validate_protected_maintenance_file \
+        "$bootstrap_environment_file" 400 "bootstrap maintenance environment"
+      while IFS= read -r line || [ -n "$line" ]; do
+        [ -n "$line" ] && [[ "$line" == *=* ]] \
+          || fail_maintenance "bootstrap maintenance environment"
+        key="''${line%%=*}"
+        case "$key" in
+          INIT_SEAFILE_MYSQL_ROOT_PASSWORD | SEAFILE_MYSQL_DB_PASSWORD | \
+            REDIS_PASSWORD | JWT_PRIVATE_KEY | SEAHUB_SECRET_KEY | \
+            INIT_SEAFILE_ADMIN_EMAIL | INIT_SEAFILE_ADMIN_PASSWORD | \
+            INIT_SS_ADMIN_USER | INIT_SS_ADMIN_PASSWORD | \
+            SEAFILE_OAUTH_CLIENT_ID | SEAFILE_OAUTH_CLIENT_SECRET | \
+            ONLYOFFICE_JWT_SECRET) ;;
+          *) fail_maintenance "bootstrap maintenance environment" ;;
+        esac
+        [ -z "''${seen[$key]+present}" ] && [ -n "''${line#*=}" ] \
+          || fail_maintenance "bootstrap maintenance environment"
+        seen["$key"]=1
+        printf '%s\n' "''${line#*=}" >>"$destination"
+      done <"$bootstrap_environment_file"
+      [ "''${#seen[@]}" -eq "''${#expected_keys[@]}" ] \
+        || fail_maintenance "bootstrap maintenance environment"
+      for key in "''${expected_keys[@]}"; do
+        [ -n "''${seen[$key]+present}" ] \
+          || fail_maintenance "bootstrap maintenance environment"
+      done
     }
 
     prove_inherited_lock() {
@@ -149,6 +234,7 @@ let
         [ "$onlyoffice_health" = true ] || fail_maintenance "OnlyOffice"
 
         load_runtime_environment
+        load_search_token
 
         export MYSQL_PWD="$SEAFILE_MYSQL_DB_PASSWORD"
         sql_result="$({
@@ -166,7 +252,6 @@ let
         unset REDISCLI_AUTH
         [ "$redis_result" = PONG ] || fail_maintenance "Redis"
 
-        search_token="$(printf '%s:%s' "$INIT_SS_ADMIN_USER" "$INIT_SS_ADMIN_PASSWORD" | base64 | tr -d '\n')"
         if ! printf 'silent = true\nshow-error = false\nfail = true\nmax-time = 10\nheader = "Authorization: Basic %s"\nurl = "http://127.0.0.1:4080/api/permissions"\n' \
           "$search_token" \
           | "$docker_command" exec --interactive seafile-seasearch curl --config - >/dev/null 2>&1
@@ -186,19 +271,12 @@ let
           rm -f -- "$patterns"
         }
         trap cleanup_health EXIT HUP INT TERM
-        for key in \
-          INIT_SEAFILE_MYSQL_ROOT_PASSWORD SEAFILE_MYSQL_DB_PASSWORD REDIS_PASSWORD \
-          JWT_PRIVATE_KEY SEAHUB_SECRET_KEY INIT_SEAFILE_ADMIN_EMAIL \
-          INIT_SEAFILE_ADMIN_PASSWORD INIT_SS_ADMIN_USER INIT_SS_ADMIN_PASSWORD \
-          SEAFILE_OAUTH_CLIENT_ID SEAFILE_OAUTH_CLIENT_SECRET ONLYOFFICE_JWT_SECRET
-        do
-          printf '%s\n' "''${!key}" >>"$patterns"
-        done
+        append_bootstrap_values_to_patterns "$patterns"
         printf '%s\n' "$search_token" >>"$patterns"
         chmod 0400 "$patterns"
-        unset search_token INIT_SEAFILE_MYSQL_ROOT_PASSWORD SEAFILE_MYSQL_DB_PASSWORD \
+        unset search_token SEAFILE_MYSQL_DB_PASSWORD \
           REDIS_PASSWORD JWT_PRIVATE_KEY SEAHUB_SECRET_KEY INIT_SEAFILE_ADMIN_PASSWORD \
-          INIT_SS_ADMIN_PASSWORD SEAFILE_OAUTH_CLIENT_SECRET ONLYOFFICE_JWT_SECRET
+          SEAFILE_OAUTH_CLIENT_SECRET ONLYOFFICE_JWT_SECRET
 
         scan_deadline="$((SECONDS + 120))"
         for log_tree in "$state_dir/shared/logs" "$state_dir/shared/seafile/logs"; do
@@ -742,15 +820,14 @@ let
   searchStatusScript = ''
     ${heavyPrelude}
     ${requireActiveStack}
-    load_runtime_environment
-    search_token="$(printf '%s:%s' "$INIT_SS_ADMIN_USER" "$INIT_SS_ADMIN_PASSWORD" | base64 | tr -d '\n')"
+    load_search_token
     if ! printf 'silent = true\nshow-error = false\nfail = true\nmax-time = 30\nheader = "Authorization: Basic %s"\nurl = "http://127.0.0.1:4080/api/permissions"\n' \
       "$search_token" | "$docker_command" exec --interactive seafile-seasearch curl --config - \
       >/dev/null 2>&1
     then
       fail_maintenance "SeaSearch"
     fi
-    unset search_token INIT_SS_ADMIN_USER INIT_SS_ADMIN_PASSWORD
+    unset search_token
     echo "Seafile SeaSearch authenticated status passed"
   '';
   searchUpdateScript = quietMaintenance "SeaSearch update" ''
@@ -923,6 +1000,12 @@ in
       internal = true;
       description = "Seafile OnlyOffice smoke-test source exposed for fixtures.";
     };
+    searchStatusScript = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+      description = "SeaSearch authenticated status source exposed for fixtures.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -935,6 +1018,7 @@ in
         metadataProbeScript
         onlyOfficeProbePython
         onlyOfficeSmokeTestScript
+        searchStatusScript
         ;
     };
 

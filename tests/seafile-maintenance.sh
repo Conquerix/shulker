@@ -7,8 +7,8 @@ write_bash_stub() {
 	cat >>"$destination"
 }
 
-if [ "$#" -ne 7 ]; then
-	echo "usage: seafile-maintenance.sh HEALTH EXTENDED METADATA ENABLE-PUBLIC CONTRACT ONLYOFFICE-DRIVER ONLYOFFICE" >&2
+if [ "$#" -ne 8 ]; then
+	echo "usage: seafile-maintenance.sh HEALTH EXTENDED METADATA ENABLE-PUBLIC SEARCH CONTRACT ONLYOFFICE-DRIVER ONLYOFFICE" >&2
 	exit 64
 fi
 
@@ -16,9 +16,10 @@ health="$1"
 extended="$2"
 metadata="$3"
 enable_public="$4"
-contract_source="$5"
-onlyoffice_driver="$6"
-onlyoffice="$7"
+search="$5"
+contract_source="$6"
+onlyoffice_driver="$7"
+onlyoffice="$8"
 root="$(mktemp -d "$TMPDIR/seafile-maintenance-fixture.XXXXXX")"
 holder_pid=
 cleanup_fixture() {
@@ -44,6 +45,19 @@ mkdir -p "$bin" "$state/shared/logs" "$state/shared/seafile/logs" \
 : >"$lock"
 
 cat >"$runtime_host/environment" <<'EOF'
+SEAFILE_MYSQL_DB_PASSWORD=fixture-database-password
+REDIS_PASSWORD=fixture-redis-password
+JWT_PRIVATE_KEY=fixture-jwt-private-key
+SEAHUB_SECRET_KEY=fixture-seahub-secret-key
+INIT_SEAFILE_ADMIN_EMAIL=fixture-admin@example.invalid
+INIT_SEAFILE_ADMIN_PASSWORD=fixture-admin-password
+SEAFILE_OAUTH_CLIENT_ID=fixture-client-id
+SEAFILE_OAUTH_CLIENT_SECRET=fixture-client-secret
+ONLYOFFICE_JWT_SECRET=fixture-office-secret
+EOF
+chmod 0400 "$runtime_host/environment"
+
+cat >"$runtime_host/bootstrap.environment" <<'EOF'
 INIT_SEAFILE_MYSQL_ROOT_PASSWORD=fixture-root-password
 SEAFILE_MYSQL_DB_PASSWORD=fixture-database-password
 REDIS_PASSWORD=fixture-redis-password
@@ -57,7 +71,9 @@ SEAFILE_OAUTH_CLIENT_ID=fixture-client-id
 SEAFILE_OAUTH_CLIENT_SECRET=fixture-client-secret
 ONLYOFFICE_JWT_SECRET=fixture-office-secret
 EOF
-chmod 0400 "$runtime_host/environment"
+chmod 0400 "$runtime_host/bootstrap.environment"
+[ "$(wc -l <"$runtime_host/environment" | tr -d ' ')" -eq 9 ]
+[ "$(wc -l <"$runtime_host/bootstrap.environment" | tr -d ' ')" -eq 12 ]
 
 for name in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
 	target="$name"
@@ -66,6 +82,13 @@ for name in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; d
 	chmod 0444 "$runtime_app/$target"
 	ln -s "$runtime_app/$target" "$state/shared/seafile/conf/$name"
 done
+chmod 0600 "$runtime_app/seafevents.conf"
+cat >"$runtime_app/seafevents.conf" <<'EOF'
+[SEASEARCH]
+enabled = true
+authorization = Basic Zml4dHVyZS1zZWFyY2gtdXNlcjpmaXh0dXJlLXNlYXJjaC1wYXNzd29yZA==
+EOF
+chmod 0400 "$runtime_app/seafevents.conf"
 : >"$runtime_metadata/seafile.conf"
 chmod 0444 "$runtime_metadata/seafile.conf"
 
@@ -382,6 +405,57 @@ run_health() {
 		"$health"
 }
 
+run_search() {
+	env \
+		STUB_CALLS="$calls" \
+		STUB_FAIL="${STUB_FAIL:-}" \
+		SEAFILE_SYSTEMCTL_COMMAND="$bin/systemctl" \
+		SEAFILE_DOCKER_COMMAND="$bin/docker" \
+		SEAFILE_FLOCK_COMMAND="$bin/flock" \
+		SEAFILE_ID_COMMAND="$bin/id" \
+		SEAFILE_STATE_DIR="$state" \
+		SEAFILE_HOST_DIR="$runtime_host" \
+		SEAFILE_APP_DIR="$runtime_app" \
+		SEAFILE_EXPECTED_OWNER="$expected_owner" \
+		SEAFILE_MAINTENANCE_LOCK="$lock" \
+		"$search"
+}
+
+expect_bootstrap_failure() {
+	local scenario="$1" output
+	if output="$(run_health 2>&1)"; then
+		echo "health unexpectedly accepted $scenario bootstrap environment" >&2
+		exit 1
+	fi
+	grep -F -- 'Seafile bootstrap maintenance environment probe failed' <<<"$output" >/dev/null
+	for value in fixture-root-password fixture-search-user fixture-search-password; do
+		if grep -F -- "$value" <<<"$output" >/dev/null; then
+			echo "health exposed a bootstrap value for $scenario" >&2
+			exit 1
+		fi
+	done
+}
+
+expect_search_auth_failure() {
+	local scenario="$1" command output
+	for command in run_health run_search; do
+		if output="$($command 2>&1)"; then
+			echo "$command unexpectedly accepted $scenario SeaSearch authorization" >&2
+			exit 1
+		fi
+		grep -F -- 'Seafile SeaSearch credentials probe failed' <<<"$output" >/dev/null
+		for value in \
+			fixture-search-user \
+			fixture-search-password \
+			Zml4dHVyZS1zZWFyY2gtdXNlcjpmaXh0dXJlLXNlYXJjaC1wYXNzd29yZA==; do
+			if grep -F -- "$value" <<<"$output" >/dev/null; then
+				echo "$command exposed a SeaSearch credential for $scenario" >&2
+				exit 1
+			fi
+		done
+	done
+}
+
 expect_failure() {
 	local failure="$1" expected="$2" output
 	: >"$calls"
@@ -414,6 +488,84 @@ if grep -F 'docker exec seafile-notification curl' "$calls" >/dev/null; then
 	echo 'health used an unavailable in-container Notification curl probe' >&2
 	exit 1
 fi
+
+: >"$calls"
+run_search >/dev/null
+grep -F 'docker exec --interactive seafile-seasearch curl --config -' "$calls" >/dev/null
+for value in \
+	fixture-root-password \
+	fixture-search-user \
+	fixture-search-password \
+	Zml4dHVyZS1zZWFyY2gtdXNlcjpmaXh0dXJlLXNlYXJjaC1wYXNzd29yZA==; do
+	if grep -F -- "$value" "$calls" >/dev/null; then
+		echo "maintenance probe logged a protected value" >&2
+		exit 1
+	fi
+done
+
+cp "$runtime_app/seafevents.conf" "$runtime_app/seafevents.conf.saved"
+chmod 0600 "$runtime_app/seafevents.conf"
+: >"$runtime_app/seafevents.conf"
+chmod 0400 "$runtime_app/seafevents.conf"
+expect_search_auth_failure missing
+mv -f "$runtime_app/seafevents.conf.saved" "$runtime_app/seafevents.conf"
+
+cp "$runtime_app/seafevents.conf" "$runtime_app/seafevents.conf.saved"
+chmod 0600 "$runtime_app/seafevents.conf"
+printf '%s\n' 'authorization = Basic %%%' >"$runtime_app/seafevents.conf"
+chmod 0400 "$runtime_app/seafevents.conf"
+expect_search_auth_failure malformed
+mv -f "$runtime_app/seafevents.conf.saved" "$runtime_app/seafevents.conf"
+
+cp "$runtime_app/seafevents.conf" "$runtime_app/seafevents.conf.saved"
+chmod 0600 "$runtime_app/seafevents.conf"
+printf '%s\n' \
+	'authorization = Basic Zml4dHVyZS1zZWFyY2gtdXNlcjpmaXh0dXJlLXNlYXJjaC1wYXNzd29yZA==' \
+	>>"$runtime_app/seafevents.conf"
+chmod 0400 "$runtime_app/seafevents.conf"
+expect_search_auth_failure duplicate
+mv -f "$runtime_app/seafevents.conf.saved" "$runtime_app/seafevents.conf"
+
+chmod 0600 "$runtime_app/seafevents.conf"
+expect_search_auth_failure unsafe-mode
+chmod 0400 "$runtime_app/seafevents.conf"
+
+mv "$runtime_app/seafevents.conf" "$runtime_app/seafevents.conf.saved"
+ln -s "$runtime_app/seafevents.conf.saved" "$runtime_app/seafevents.conf"
+expect_search_auth_failure symlink
+rm "$runtime_app/seafevents.conf"
+mv "$runtime_app/seafevents.conf.saved" "$runtime_app/seafevents.conf"
+
+mv "$runtime_host/bootstrap.environment" "$runtime_host/bootstrap.environment.saved"
+expect_bootstrap_failure missing
+mv "$runtime_host/bootstrap.environment.saved" "$runtime_host/bootstrap.environment"
+
+chmod 0600 "$runtime_host/bootstrap.environment"
+expect_bootstrap_failure unsafe-mode
+chmod 0400 "$runtime_host/bootstrap.environment"
+
+ln "$runtime_host/bootstrap.environment" "$runtime_host/bootstrap.environment.link"
+expect_bootstrap_failure hardlink
+rm "$runtime_host/bootstrap.environment.link"
+
+cp "$runtime_host/bootstrap.environment" "$runtime_host/bootstrap.environment.saved"
+chmod 0600 "$runtime_host/bootstrap.environment"
+printf '%s\n' 'INIT_SS_ADMIN_USER=fixture-search-user' >>"$runtime_host/bootstrap.environment"
+chmod 0400 "$runtime_host/bootstrap.environment"
+expect_bootstrap_failure duplicate-key
+mv -f "$runtime_host/bootstrap.environment.saved" "$runtime_host/bootstrap.environment"
+
+printf '%s\n' fixture-root-password >"$state/shared/logs/bootstrap-secret.log"
+if output="$(run_health 2>&1)"; then
+	echo 'health accepted a bootstrap-only secret in persistent logs' >&2
+	exit 1
+fi
+grep -F -- 'Seafile persistent log probe failed' <<<"$output" >/dev/null
+if grep -F -- fixture-root-password <<<"$output" >/dev/null; then
+	echo 'health exposed the bootstrap-only persistent-log secret' >&2
+	exit 1
+fi
+rm -f "$state/shared/logs/bootstrap-secret.log"
 
 : >"$calls"
 busy_output="$(STUB_LOCK_BUSY=1 run_health)"

@@ -984,6 +984,14 @@ in
         runtimeInputs = [ pkgs.coreutils ];
         text = builtins.unsafeDiscardStringContext seafile.enablePublicHealthScript;
       };
+      search = pkgs.writeShellApplication {
+        name = "seafile-search-status-under-test";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.util-linux
+        ];
+        text = builtins.unsafeDiscardStringContext seafile.searchStatusScript;
+      };
       onlyOfficeDriver = pkgs.writeText "seafile-onlyoffice-driver-under-test.py" (
         builtins.unsafeDiscardStringContext seafile.onlyOfficeProbePython
       );
@@ -1057,6 +1065,7 @@ in
           ${extended}/bin/seafile-extended-health-under-test \
           ${metadata}/bin/seafile-metadata-probe-under-test \
           ${enablePublic}/bin/seafile-enable-public-health-under-test \
+          ${search}/bin/seafile-search-status-under-test \
           ${contractFile} \
           ${onlyOfficeDriver} \
           ${onlyOffice}/bin/seafile-onlyoffice-smoke-test-under-test
