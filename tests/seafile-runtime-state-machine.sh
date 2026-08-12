@@ -1023,6 +1023,10 @@ if [ "$1" = compose ]; then
     && [ "${STUB_FAIL_FINAL_ONCE:-0}" = 1 ] \
     && [ ! -e "${STUB_FAIL_ONCE_MARKER:?}" ]; then
     touch "$STUB_FAIL_ONCE_MARKER"
+    if [ "${STUB_FAIL_FINAL_LEAVES_RUNNING:-0}" = 1 ]; then
+      add_line "${STUB_CONTAINER_FILE:?}" seafile-mariadb
+      add_line "${STUB_RUNNING_FILE:?}" seafile-mariadb
+    fi
     exit 1
   fi
   if [ "${STUB_FAIL_RESTORE:-0}" = 1 ] \
@@ -1054,7 +1058,9 @@ if [ "$1" = compose ]; then
 fi
 case "$1" in
   kill)
-    remove_line "${STUB_RUNNING_FILE:?}" "${*: -1}"
+    if [ "${STUB_TERM_STUCK:-0}" != 1 ]; then
+      remove_line "${STUB_RUNNING_FILE:?}" "${*: -1}"
+    fi
     ;;
   logs)
     printf '%s\n' "${STUB_DOCKER_LOG_CONTENT:-}"
@@ -1116,28 +1122,35 @@ EOF
 	export STUB_INSPECT_ENV_KEYS="INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD"
 	export STUB_SYSTEMD_ACTIVE=0
 	unset STUB_CAPTURE_MAX_BYTES STUB_DOCKER_LOG_CONTENT STUB_DOCKER_LOG_PAD_BYTES \
-		STUB_FAIL_AUTO_DEPS STUB_FAIL_RESTORE STUB_FAIL_STAGE STUB_FAIL_FINAL_ONCE \
-		STUB_JOURNAL_CONTENT STUB_JOURNAL_PAD_BYTES
+		STUB_FAIL_AUTO_DEPS STUB_FAIL_FINAL_LEAVES_RUNNING STUB_FAIL_RESTORE \
+		STUB_FAIL_STAGE STUB_FAIL_FINAL_ONCE \
+		STUB_JOURNAL_CONTENT STUB_JOURNAL_PAD_BYTES STUB_OUTER_TIMEOUT \
+		STUB_STOP_TIMEOUT STUB_TERM_STUCK
 }
 
 run_stack_helper() {
-	env \
-		PATH="$stack_bin:$PATH" \
-		SEAFILE_STATE_DIR="$stack_state" \
-		SEAFILE_HOST_DIR="$stack_host" \
-		SEAFILE_APP_DIR="$stack_app" \
-		SEAFILE_METADATA_DIR="$stack_metadata" \
-		SEAFILE_MAINTENANCE_LOCK="$stack_lock" \
-		SEAFILE_LOCK_TIMEOUT=0 \
-		SEAFILE_WAIT_TIMEOUT=1 \
-		SEAFILE_STOP_TIMEOUT=1 \
-		SEAFILE_DOCKER_COMMAND="$stack_bin/docker" \
-		SEAFILE_SYSTEMCTL_COMMAND="$stack_bin/systemctl" \
-		SEAFILE_JOURNALCTL_COMMAND="$stack_bin/journalctl" \
-		SEAFILE_RECONCILE_COMMAND="$stack_bin/seafile-reconcile-runtime-config" \
-		SEAFILE_LOG_CAPTURE_MAX_BYTES="${STUB_CAPTURE_MAX_BYTES:-16777215}" \
-		SEAFILE_EXPECTED_OWNER="$runtime_owner" \
-		"$compose_starter" "$@"
+	stack_environment=(
+		PATH="$stack_bin:$PATH"
+		SEAFILE_STATE_DIR="$stack_state"
+		SEAFILE_HOST_DIR="$stack_host"
+		SEAFILE_APP_DIR="$stack_app"
+		SEAFILE_METADATA_DIR="$stack_metadata"
+		SEAFILE_MAINTENANCE_LOCK="$stack_lock"
+		SEAFILE_LOCK_TIMEOUT=0
+		SEAFILE_WAIT_TIMEOUT=1
+		SEAFILE_STOP_TIMEOUT="${STUB_STOP_TIMEOUT:-1}"
+		SEAFILE_DOCKER_COMMAND="$stack_bin/docker"
+		SEAFILE_SYSTEMCTL_COMMAND="$stack_bin/systemctl"
+		SEAFILE_JOURNALCTL_COMMAND="$stack_bin/journalctl"
+		SEAFILE_RECONCILE_COMMAND="$stack_bin/seafile-reconcile-runtime-config"
+		SEAFILE_LOG_CAPTURE_MAX_BYTES="${STUB_CAPTURE_MAX_BYTES:-16777215}"
+		SEAFILE_EXPECTED_OWNER="$runtime_owner"
+	)
+	if [ -n "${STUB_OUTER_TIMEOUT:-}" ]; then
+		timeout "$STUB_OUTER_TIMEOUT" env "${stack_environment[@]}" "$compose_starter" "$@"
+	else
+		env "${stack_environment[@]}" "$compose_starter" "$@"
+	fi
 }
 
 # Fresh bootstrap is staged, reconciled under the inherited lock, stripped of
@@ -1211,6 +1224,27 @@ if run_stack_helper start >"$rollback_output" 2>&1; then
 	exit 1
 fi
 grep -F 'failure recovery could not restore the entry stack' "$rollback_output" >/dev/null
+
+# A container that ignores TERM produces one bounded failure and returns to
+# the caller; the rollback path must never turn the timeout into an endless loop.
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+export STUB_FAIL_FINAL_ONCE=1 STUB_FAIL_FINAL_LEAVES_RUNNING=1 \
+	STUB_TERM_STUCK=1 STUB_STOP_TIMEOUT=0 STUB_OUTER_TIMEOUT=3
+bounded_stop_output="$stack_root/bounded-stop-output"
+set +e
+run_stack_helper start >"$bounded_stop_output" 2>&1
+bounded_stop_status=$?
+set -e
+if [ "$bounded_stop_status" -ne 70 ]; then
+	echo "bounded rollback returned $bounded_stop_status instead of 70" >&2
+	exit 1
+fi
+if [ "$(grep -F -c 'containers did not stop after TERM within the bounded timeout' "$bounded_stop_output")" -ne 1 ]; then
+	echo "bounded stop did not report its timeout exactly once" >&2
+	exit 1
+fi
+grep -F 'failure recovery could not stop the attempted stack' "$bounded_stop_output" >/dev/null
 
 # An unrecognized project-labelled residue is refused and never deleted.
 reset_stack_fixture

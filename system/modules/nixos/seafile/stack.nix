@@ -145,8 +145,10 @@ let
         done
         running=("''${remaining[@]}")
         [ "''${#running[@]}" -eq 0 ] && return 0
-        [ "$SECONDS" -lt "$deadline" ] \
-          || fail_stack "containers did not stop after TERM within the bounded timeout"
+        if [ "$SECONDS" -ge "$deadline" ]; then
+          fail_stack "containers did not stop after TERM within the bounded timeout"
+          return 65
+        fi
         sleep 1
       done
     }

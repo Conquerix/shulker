@@ -293,6 +293,20 @@ in
       redisStartScriptUnderTest = pkgs.writeText "seafile-start-redis-under-test" (
         seafile.redisStartScriptText
       );
+      redisStartScriptRuntimeUnderTest = pkgs.writeText "seafile-start-redis-runtime-under-test" (
+        builtins.replaceStrings
+          [
+            "/run/redis"
+            "/usr/bin/setpriv"
+            "/usr/local/bin/redis-server"
+          ]
+          [
+            "$TMPDIR/redis-runtime"
+            "$TMPDIR/redis-stubs/setpriv"
+            "$TMPDIR/redis-stubs/redis-server"
+          ]
+          seafile.redisStartScriptText
+      );
     in
     assert compose.name == "seafile";
     assert
@@ -485,15 +499,68 @@ in
     assert !(builtins.elem seafile.port wardenConfig.networking.firewall.allowedTCPPorts);
     assert !(builtins.elem seafile.onlyOfficePort wardenConfig.networking.firewall.allowedTCPPorts);
     assert !(builtins.elem seafile.notificationPort wardenConfig.networking.firewall.allowedTCPPorts);
+    assert
+      services'.database.healthcheck.test == [
+        "CMD"
+        "/usr/bin/timeout"
+        "--signal=TERM"
+        "--kill-after=1s"
+        "4s"
+        "/usr/local/bin/healthcheck.sh"
+        "--connect"
+        "--mariadbupgrade"
+        "--innodb_initialized"
+      ];
+    assert services'.database.healthcheck.timeout == "8s";
     pkgs.runCommand "seafile-stack-contract" { } ''
       test "$(head -n 1 ${redisStartScriptUnderTest})" = '#!/bin/sh'
       ! grep -F '/nix/store' ${redisStartScriptUnderTest}
-      grep -F 'chown 999:1000' ${redisStartScriptUnderTest} >/dev/null
-      grep -F 'chmod 0700 /run/redis' ${redisStartScriptUnderTest} >/dev/null
-      grep -F 'chmod 0600 "$config"' ${redisStartScriptUnderTest} >/dev/null
-      grep -F 'su-exec 999:1000 test -r "$config"' ${redisStartScriptUnderTest} >/dev/null
-      grep -F 'unset REDIS_PASSWORD' ${redisStartScriptUnderTest} >/dev/null
-      grep -F 'exec su-exec 999:1000 redis-server /run/redis/redis.conf' ${redisStartScriptUnderTest} >/dev/null
+
+      redis_runtime_dir="$TMPDIR/redis-runtime"
+      redis_stub_dir="$TMPDIR/redis-stubs"
+      redis_tool_log="$TMPDIR/redis-tools.log"
+      mkdir -p "$redis_runtime_dir" "$redis_stub_dir"
+      : >"$redis_runtime_dir/redis.conf"
+      chmod 0777 "$redis_runtime_dir"
+      chmod 0666 "$redis_runtime_dir/redis.conf"
+      cat >"$redis_stub_dir/chown" <<'EOF'
+      #!${pkgs.runtimeShell}
+      set -eu
+      printf 'chown:%s\n' "$*" >>"$REDIS_TOOL_LOG"
+      EOF
+      cat >"$redis_stub_dir/setpriv" <<'EOF'
+      #!${pkgs.runtimeShell}
+      set -eu
+      test "$1" = --reuid
+      test "$2" = 999
+      test "$3" = --regid
+      test "$4" = 1000
+      test "$5" = --clear-groups
+      shift 5
+      printf 'setpriv:%s\n' "''${1##*/}" >>"$REDIS_TOOL_LOG"
+      exec "$@"
+      EOF
+      cat >"$redis_stub_dir/redis-server" <<'EOF'
+      #!${pkgs.runtimeShell}
+      set -eu
+      test "$#" -eq 1
+      test -r "$1"
+      test "''${REDIS_PASSWORD+x}" != x
+      grep -E '^requirepass .+$' "$1" >/dev/null
+      grep -F -x 'save ""' "$1" >/dev/null
+      grep -F -x 'appendonly no' "$1" >/dev/null
+      EOF
+      chmod +x "$redis_stub_dir/chown" "$redis_stub_dir/setpriv" "$redis_stub_dir/redis-server"
+      REDIS_TOOL_LOG="$redis_tool_log" \
+        REDIS_PASSWORD=fixture-redis-password \
+        PATH="$redis_stub_dir:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin" \
+        ${pkgs.runtimeShell} ${redisStartScriptRuntimeUnderTest}
+      test "$(grep -F -c 'setpriv:test' "$redis_tool_log")" -eq 1
+      test "$(grep -F -c 'setpriv:redis-server' "$redis_tool_log")" -eq 1
+      grep -F -x 'chown:999:1000 '$TMPDIR'/redis-runtime' "$redis_tool_log" >/dev/null
+      grep -F -x 'chown:999:1000 '$TMPDIR'/redis-runtime/redis.conf' "$redis_tool_log" >/dev/null
+      test "$(stat -c %a "$redis_runtime_dir")" = 700
+      test "$(stat -c %a "$redis_runtime_dir/redis.conf")" = 600
       touch "$out"
     '';
 

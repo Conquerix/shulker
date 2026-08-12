@@ -45,10 +45,14 @@ let
     } >"$config"
     chown ${toString redisUid}:${toString redisGid} "$config"
     chmod 0600 "$config"
-    su-exec ${toString redisUid}:${toString redisGid} test -r "$config"
+    /usr/bin/setpriv \
+      --reuid ${toString redisUid} --regid ${toString redisGid} --clear-groups \
+      test -r "$config"
     unset REDIS_PASSWORD
     trap - EXIT HUP INT TERM
-    exec su-exec ${toString redisUid}:${toString redisGid} redis-server /run/redis/redis.conf
+    exec /usr/bin/setpriv \
+      --reuid ${toString redisUid} --regid ${toString redisGid} --clear-groups \
+      /usr/local/bin/redis-server /run/redis/redis.conf
   '';
   redisStartScript = pkgs.writeTextFile {
     name = "seafile-start-redis";
@@ -116,6 +120,10 @@ let
         healthcheck = {
           test = [
             "CMD"
+            "/usr/bin/timeout"
+            "--signal=TERM"
+            "--kill-after=1s"
+            "4s"
             "/usr/local/bin/healthcheck.sh"
             "--connect"
             "--mariadbupgrade"
@@ -123,7 +131,7 @@ let
           ];
           interval = "20s";
           start_period = "30s";
-          timeout = "5s";
+          timeout = "8s";
           retries = 10;
         };
       };
