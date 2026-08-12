@@ -184,6 +184,9 @@ in
     assert pkgs.lib.any (
       package: (package.pname or package.name) == "diffutils"
     ) seafile.validateStateRuntimeInputs;
+    assert pkgs.lib.any (
+      package: (package.pname or package.name) == "diffutils"
+    ) seafile.parseEnvironmentRuntimeInputs;
     assert
       wardenConfig.services.onepassword-secrets.secrets.seafileEnv.services == [
         "seafile-config"

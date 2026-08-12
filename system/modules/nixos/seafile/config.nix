@@ -183,9 +183,13 @@ let
     done
     chmod 0400 "$output_file"
   '';
+  parseEnvironmentRuntimeInputs = [
+    pkgs.coreutils
+    pkgs.diffutils
+  ];
   parseEnvironment = pkgs.writeShellApplication {
     name = "seafile-parse-environment";
-    runtimeInputs = [ pkgs.coreutils ];
+    runtimeInputs = parseEnvironmentRuntimeInputs;
     text = parseEnvironmentScript;
   };
   renderRuntimeConfigScript = ''
@@ -684,6 +688,12 @@ in
       internal = true;
       description = "Packaged strict Seafile environment parser.";
     };
+    parseEnvironmentRuntimeInputs = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
+      readOnly = true;
+      internal = true;
+      description = "Runtime closure for the packaged Seafile environment parser.";
+    };
     renderRuntimeConfigScript = lib.mkOption {
       type = lib.types.lines;
       readOnly = true;
@@ -730,6 +740,7 @@ in
 
     shulker.system.modules.seafile = {
       inherit
+        parseEnvironmentRuntimeInputs
         parseEnvironmentScript
         reconcileRuntimeConfigScript
         renderRuntimeConfigScript
