@@ -401,6 +401,71 @@ in
           done
         '';
       };
+      seasearchEntrypointText = ''
+        #!/bin/bash
+        cd "$SEASEARCH_TEST_DIR"
+        ./seasearch
+        echo idle
+      '';
+      seasearchEntrypointUnderTest = pkgs.writeText "seafile-seasearch-entrypoint-under-test" seasearchEntrypointText;
+      seasearchHashDriftEntrypointUnderTest =
+        pkgs.writeText "seafile-seasearch-hash-drift-entrypoint-under-test"
+          (seasearchEntrypointText + "# upstream drift\n");
+      seasearchStartScriptUnderTest = pkgs.writeText "seafile-start-seasearch-under-test" (
+        seafile.seasearchStartScriptText
+      );
+      seasearchStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-seasearch-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [
+              "/opt/scripts/entrypoint.sh"
+              seafile.seasearchEntrypointHash
+              "/bin/bash"
+            ]
+            [
+              (toString seasearchEntrypointUnderTest)
+              (builtins.hashString "sha256" seasearchEntrypointText)
+              "${pkgs.bash}/bin/bash"
+            ]
+            seafile.seasearchStartScriptText;
+      };
+      seasearchHashDriftStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-seasearch-hash-drift-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [
+              "/opt/scripts/entrypoint.sh"
+              "/bin/bash"
+            ]
+            [
+              (toString seasearchHashDriftEntrypointUnderTest)
+              "${pkgs.bash}/bin/bash"
+            ]
+            seafile.seasearchStartScriptText;
+      };
+      seasearchServerUnderTest = pkgs.writeTextFile {
+        name = "seasearch-under-test";
+        executable = true;
+        text = ''
+          #!${pkgs.bash}/bin/bash
+          trap 'sleep 1; printf completed >"$SEASEARCH_TEST_DIR/completed"; exit 0' TERM
+          printf ready >"$SEASEARCH_TEST_DIR/ready"
+          while :; do
+            sleep 1
+          done
+        '';
+      };
+      seasearchFailingServerUnderTest = pkgs.writeTextFile {
+        name = "seasearch-failing-under-test";
+        executable = true;
+        text = ''
+          #!${pkgs.bash}/bin/bash
+          exit 23
+        '';
+      };
     in
     assert compose.name == "seafile";
     assert
@@ -478,6 +543,13 @@ in
     assert
       services'.seasearch.volumes == [
         "/storage/flash/seafile/search:/opt/seasearch/data"
+        {
+          type = "bind";
+          source = toString seafile.seasearchStartScript;
+          target = "/usr/local/sbin/seafile-start-seasearch";
+          read_only = true;
+          bind.create_host_path = false;
+        }
       ];
     assert
       services'.notification.volumes == [
@@ -546,14 +618,25 @@ in
         "SEAF_SERVER_STORAGE_TYPE"
       ];
     assert !(builtins.hasAttr "MYSQL_ROOT_PASSWORD" services'.database.environment);
-    assert !(builtins.hasAttr "SS_FIRST_ADMIN_USER" services'.seasearch.environment);
-    assert !(builtins.hasAttr "SS_FIRST_ADMIN_PASSWORD" services'.seasearch.environment);
+    assert
+      environmentKeys services'.seasearch == [
+        "SS_FIRST_ADMIN_PASSWORD"
+        "SS_FIRST_ADMIN_USER"
+        "SS_LOG_LEVEL"
+        "SS_LOG_TO_STDOUT"
+        "SS_MAX_OBJ_CACHE_SIZE"
+        "SS_STORAGE_TYPE"
+      ];
+    assert
+      services'.seasearch.environment.SS_FIRST_ADMIN_USER
+      == "\${INIT_SS_ADMIN_USER:?INIT_SS_ADMIN_USER is required}";
+    assert
+      services'.seasearch.environment.SS_FIRST_ADMIN_PASSWORD
+      == "\${INIT_SS_ADMIN_PASSWORD:?INIT_SS_ADMIN_PASSWORD is required}";
     assert
       seafile.bootstrapComposeConfig.services.database.environment.MYSQL_ROOT_PASSWORD
       == "\${INIT_SEAFILE_MYSQL_ROOT_PASSWORD:?INIT_SEAFILE_MYSQL_ROOT_PASSWORD is required}";
-    assert
-      seafile.bootstrapComposeConfig.services.seasearch.environment.SS_FIRST_ADMIN_USER
-      == "\${INIT_SS_ADMIN_USER:?INIT_SS_ADMIN_USER is required}";
+    assert !(builtins.hasAttr "seasearch" seafile.bootstrapComposeConfig.services);
     assert
       services'.onlyoffice.environment.EXAMPLE_ENABLED == "false"
       && services'.onlyoffice.environment.JWT_ENABLED == "true";
@@ -630,11 +713,25 @@ in
     assert
       seafile.metadataEntrypointHash
       == "cd9a0609e3928af93c4601a9565ea9e0e3795915c206d1bd6375eb6e55649f98";
+    assert services'.seasearch.init;
+    assert services'.seasearch.command == [ "/usr/local/sbin/seafile-start-seasearch" ];
+    assert
+      services'.seasearch.healthcheck.test == [
+        "CMD"
+        "/bin/bash"
+        "-ec"
+        "token=$$(printf '%s:%s' \"$$SS_FIRST_ADMIN_USER\" \"$$SS_FIRST_ADMIN_PASSWORD\" | /usr/bin/base64 | /usr/bin/tr -d '\\n'); exec 3<>/dev/tcp/127.0.0.1/4080; printf 'GET /api/permissions HTTP/1.0\\r\\nHost: 127.0.0.1\\r\\nAuthorization: Basic %s\\r\\nConnection: close\\r\\n\\r\\n' \"$$token\" >&3; IFS= read -r -u 3 status; [[ \"$$status\" == HTTP/*\" 200 \"* ]]"
+      ];
+    assert
+      seafile.seasearchEntrypointHash
+      == "6e091fbbe7453bb577f2243b85bbae36735a8a22339677ad9d1a052ef3304995";
     pkgs.runCommand "seafile-stack-contract" { } ''
       test "$(head -n 1 ${redisStartScriptUnderTest})" = '#!/bin/sh'
       ! grep -F '/nix/store' ${redisStartScriptUnderTest}
       test "$(head -n 1 ${metadataStartScriptUnderTest})" = '#!/bin/bash'
       grep -F -x 'exec /bin/bash "$patched_entrypoint"' ${metadataStartScriptUnderTest} >/dev/null
+      test "$(head -n 1 ${seasearchStartScriptUnderTest})" = '#!/bin/bash'
+      grep -F -x 'exec /bin/bash "$patched_entrypoint"' ${seasearchStartScriptUnderTest} >/dev/null
 
       redis_runtime_dir="$TMPDIR/redis-runtime"
       redis_stub_dir="$TMPDIR/redis-stubs"
@@ -732,6 +829,51 @@ in
       wait "$metadata_pid"
       test -e "$metadata_test_dir/completed"
       trap - EXIT
+
+      seasearch_test_dir="$TMPDIR/seasearch-wrapper"
+      mkdir -p "$seasearch_test_dir"
+      ln -s ${seasearchServerUnderTest} "$seasearch_test_dir/seasearch"
+      if SEASEARCH_TEST_DIR="$seasearch_test_dir" \
+        ${seasearchHashDriftStartScriptRuntimeUnderTest} >seasearch-hash-drift.output 2>&1
+      then
+        echo "SeaSearch wrapper accepted an unexpected upstream entrypoint hash" >&2
+        exit 1
+      fi
+      grep -F 'SeaSearch entrypoint does not match the pinned image' seasearch-hash-drift.output >/dev/null
+
+      ${
+        if pkgs.stdenv.hostPlatform.isLinux then
+          ''TINI_SUBREAPER=1 SEASEARCH_TEST_DIR="$seasearch_test_dir" ${pkgs.tini}/bin/tini -- ${pkgs.bash}/bin/bash ${seasearchStartScriptRuntimeUnderTest}''
+        else
+          ''SEASEARCH_TEST_DIR="$seasearch_test_dir" ${pkgs.bash}/bin/bash ${seasearchStartScriptRuntimeUnderTest}''
+      } &
+      seasearch_pid=$!
+      cleanup_seasearch_fixture() {
+        kill -KILL "$seasearch_pid" 2>/dev/null || true
+        wait "$seasearch_pid" 2>/dev/null || true
+      }
+      trap cleanup_seasearch_fixture EXIT
+      for _ in $(seq 1 500); do
+        test ! -e "$seasearch_test_dir/ready" || break
+        sleep 0.01
+      done
+      test -e "$seasearch_test_dir/ready"
+      kill -TERM "$seasearch_pid"
+      wait "$seasearch_pid"
+      test -e "$seasearch_test_dir/completed"
+      trap - EXIT
+
+      seasearch_failure_dir="$TMPDIR/seasearch-wrapper-failure"
+      mkdir -p "$seasearch_failure_dir"
+      ln -s ${seasearchFailingServerUnderTest} "$seasearch_failure_dir/seasearch"
+      set +e
+      SEASEARCH_TEST_DIR="$seasearch_failure_dir" \
+        ${pkgs.bash}/bin/bash ${seasearchStartScriptRuntimeUnderTest} \
+        >seasearch-immediate-failure.output 2>&1
+      seasearch_failure_status=$?
+      set -e
+      test "$seasearch_failure_status" -eq 23
+      ! grep -F -x idle seasearch-immediate-failure.output
       touch "$out"
     '';
 
@@ -1052,6 +1194,8 @@ in
     assert !(pkgs.lib.hasInfix "$INIT_SS_ADMIN_USER" contract);
     assert !(pkgs.lib.hasInfix "$INIT_SS_ADMIN_PASSWORD" contract);
     assert pkgs.lib.hasInfix "load_search_token" contract;
+    assert pkgs.lib.hasInfix "http://seafile-seasearch:4080/api/permissions" contract;
+    assert !(pkgs.lib.hasInfix "seafile-seasearch curl --config" contract);
     pkgs.runCommand "seafile-maintenance-contract"
       {
         nativeBuildInputs = [

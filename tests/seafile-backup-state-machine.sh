@@ -224,12 +224,14 @@ mkdir -p "$host_dir" "$app_dir" "$metadata_dir"
 cp "$source_file" "$host_dir/bootstrap.environment"
 grep -Ev '^(INIT_SEAFILE_MYSQL_ROOT_PASSWORD|INIT_SS_ADMIN_USER|INIT_SS_ADMIN_PASSWORD)=' \
 	"$source_file" >"$host_dir/environment"
+cp "$host_dir/environment" "$host_dir/compose.environment"
+grep -E '^INIT_SS_ADMIN_(USER|PASSWORD)=' "$source_file" >>"$host_dir/compose.environment"
 cp "$host_dir/environment" "$app_dir/seafile.env"
 for file in seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
 	printf 'restore fixture\n' >"$app_dir/$file"
 done
 cp "$app_dir/seafile.conf" "$metadata_dir/seafile.conf"
-chmod 0400 "$host_dir/bootstrap.environment" "$host_dir/environment" \
+chmod 0400 "$host_dir/bootstrap.environment" "$host_dir/compose.environment" "$host_dir/environment" \
 	"$app_dir/seafile.env" "$app_dir/seahub_settings.py" "$app_dir/seafevents.conf"
 chmod 0444 "$app_dir/seafile.conf" "$app_dir/seafdav.conf" "$metadata_dir/seafile.conf"
 EOF
@@ -539,7 +541,7 @@ grep -F -- 'render:' "$events" >/dev/null
 grep -F -- '--container-project seafile-restore' "$events" >/dev/null
 test "$(wc -l <"$restore_runtime/source.environment")" -eq 12
 test "$(stat -c %a "$restore_runtime/source.environment")" = 600
-test "$(wc -l <"$restore_runtime/compose.environment")" -eq 11
+test "$(wc -l <"$restore_runtime/compose.environment")" -eq 13
 session_invocation="$(sed -n 's/^invocation=//p' "$restore_runtime/rehearsal-session")"
 test "$(awk -v invocation="$session_invocation" '$4 == invocation && $5 == "false" {count++} END {print count+0}' "$restore_container_state")" -eq 8
 

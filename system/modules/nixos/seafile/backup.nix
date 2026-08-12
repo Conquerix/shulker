@@ -479,7 +479,7 @@ let
     validate_logical_command="''${SEAFILE_VALIDATE_LOGICAL_BACKUP_COMMAND:-seafile-validate-logical-backup}"
     validate_state_command="''${SEAFILE_VALIDATE_STATE_COMMAND:-${lib.getExe cfg.validateStatePackage}}"
     compose_file="''${SEAFILE_COMPOSE_FILE:-${cfg.composeFile}}"
-    compose_environment="''${SEAFILE_COMPOSE_ENVIRONMENT:-/run/seafile-host/environment}"
+    compose_environment="''${SEAFILE_COMPOSE_ENVIRONMENT:-/run/seafile-host/compose.environment}"
     compose_established() {
       "$docker_command" compose --project-name seafile --file "$compose_file" \
         --env-file "$compose_environment" "$@"
@@ -913,7 +913,7 @@ let
     compose_environment="$runtime/compose.environment"
     {
       printf 'SEAFILE_RESTORE_TARGET=%s\nSEAFILE_RESTORE_RUNTIME=%s\n' "$target" "$runtime"
-      cat "$runtime/host/environment"
+      cat "$runtime/host/compose.environment"
     } >"$compose_environment"
     chmod 0600 "$compose_environment"
 

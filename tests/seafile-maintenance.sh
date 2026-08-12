@@ -157,7 +157,7 @@ if [ "${1:-}" = exec ]; then
 			[ "${STUB_FAIL:-}" != redis ] || exit 1
 			printf '%s\n' PONG
 			;;
-		*' seafile-seasearch '*curl*)
+		*' seafile '*curl*)
 			[ "${STUB_FAIL:-}" != seasearch ] || exit 1
 			printf '%s\n' '{}'
 			;;
@@ -491,7 +491,11 @@ fi
 
 : >"$calls"
 run_search >/dev/null
-grep -F 'docker exec --interactive seafile-seasearch curl --config -' "$calls" >/dev/null
+grep -F 'docker exec --interactive seafile curl --config -' "$calls" >/dev/null
+if grep -F 'docker exec --interactive seafile-seasearch curl' "$calls" >/dev/null; then
+	echo 'maintenance used curl missing from the pinned SeaSearch image' >&2
+	exit 1
+fi
 for value in \
 	fixture-root-password \
 	fixture-search-user \

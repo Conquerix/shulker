@@ -290,7 +290,7 @@ let
           done < <(find "$path" -mindepth 1 -maxdepth 1 -print0)
         }
 
-        reject_unexpected_paths "$host_dir" bootstrap.environment environment
+        reject_unexpected_paths "$host_dir" bootstrap.environment compose.environment environment
         reject_unexpected_paths "$app_dir" \
           seafile.env seahub_settings.py seafevents.conf seafile.conf seafdav.conf
         reject_unexpected_paths "$metadata_dir" seafile.conf
@@ -311,6 +311,7 @@ let
         }
 
         validate_existing_destination "$host_dir/bootstrap.environment" 400
+        validate_existing_destination "$host_dir/compose.environment" 400
         validate_existing_destination "$host_dir/environment" 400
         validate_existing_destination "$app_dir/seafile.env" 400
         validate_existing_destination "$app_dir/seahub_settings.py" 400
@@ -321,6 +322,7 @@ let
 
         normalized="$(mktemp "$host_dir/.validated.XXXXXX")"
         host_bootstrap="$(mktemp "$host_dir/.bootstrap.environment.XXXXXX")"
+        compose_environment="$(mktemp "$host_dir/.compose.environment.XXXXXX")"
         host_environment="$(mktemp "$host_dir/.environment.XXXXXX")"
         app_environment="$(mktemp "$app_dir/.seafile.env.XXXXXX")"
         seahub_settings="$(mktemp "$app_dir/.seahub_settings.py.XXXXXX")"
@@ -331,7 +333,7 @@ let
         metadata_open=0
 
         cleanup_render() {
-          rm -f -- "$normalized" "$host_bootstrap" "$host_environment" \
+          rm -f -- "$normalized" "$host_bootstrap" "$compose_environment" "$host_environment" \
             "$app_environment" "$seahub_settings" "$seafevents" \
             "$seafile_conf" "$seafdav_conf" "''${metadata_conf:-}"
           if [ "$metadata_open" -eq 1 ]; then
@@ -373,6 +375,9 @@ let
         : >"$host_environment"
         for key in "''${established_keys[@]}"; do emit_key "$host_environment" "$key"; done
         cp "$host_environment" "$app_environment"
+        cp "$host_environment" "$compose_environment"
+        printf '%s=%s\n' INIT_SS_ADMIN_USER "''${values[INIT_SS_ADMIN_USER]}" >>"$compose_environment"
+        printf '%s=%s\n' INIT_SS_ADMIN_PASSWORD "''${values[INIT_SS_ADMIN_PASSWORD]}" >>"$compose_environment"
         cat >>"$app_environment" <<'EOF'
     SEAFILE_SERVER_PROTOCOL=https
     SEAFILE_MYSQL_DB_HOST=database
@@ -417,7 +422,7 @@ let
     enabled = false
     EOF
 
-        chmod 0400 "$normalized" "$host_bootstrap" "$host_environment" \
+        chmod 0400 "$normalized" "$host_bootstrap" "$compose_environment" "$host_environment" \
           "$app_environment" "$seahub_settings" "$seafevents"
         chmod 0444 "$seafile_conf" "$seafdav_conf"
 
@@ -425,6 +430,8 @@ let
           || fail_render "bootstrap environment has an unexpected key count"
         [ "$(wc -l <"$host_environment")" -eq 9 ] \
           || fail_render "established environment has an unexpected key count"
+        [ "$(wc -l <"$compose_environment")" -eq 11 ] \
+          || fail_render "Compose environment has an unexpected key count"
         grep -F -x '[SEASEARCH]' "$seafevents" >/dev/null \
           || fail_render "SeaSearch configuration is incomplete"
         grep -F -x '[INDEX FILES]' "$seafevents" >/dev/null \
@@ -441,6 +448,7 @@ let
         chmod 0444 "$metadata_conf"
 
         mv -fT -- "$host_bootstrap" "$host_dir/bootstrap.environment"
+        mv -fT -- "$compose_environment" "$host_dir/compose.environment"
         mv -fT -- "$host_environment" "$host_dir/environment"
         mv -fT -- "$app_environment" "$app_dir/seafile.env"
         mv -fT -- "$seahub_settings" "$app_dir/seahub_settings.py"

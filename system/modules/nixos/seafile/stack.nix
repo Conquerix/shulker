@@ -96,7 +96,7 @@ let
 
     compose_established() {
       "$docker_command" compose --project-name seafile --file "$compose_file" \
-        --env-file "$host_dir/environment" "$@"
+        --env-file "$host_dir/compose.environment" "$@"
     }
 
     compose_bootstrap() {
@@ -224,6 +224,17 @@ let
           ! grep -F -x "$forbidden" <<<"$keys" >/dev/null \
             || fail_stack "an established container retains a removable initialization key"
         done
+        if [ "$name" = seafile-seasearch ]; then
+          for required_key in SS_FIRST_ADMIN_USER SS_FIRST_ADMIN_PASSWORD; do
+            grep -F -x "$required_key" <<<"$keys" >/dev/null \
+              || fail_stack "SeaSearch is missing a required pinned-image runtime key"
+          done
+        else
+          for forbidden in SS_FIRST_ADMIN_USER SS_FIRST_ADMIN_PASSWORD; do
+            ! grep -F -x "$forbidden" <<<"$keys" >/dev/null \
+              || fail_stack "a non-SeaSearch container received a SeaSearch runtime key"
+          done
+        fi
         if [ "$name" != seafile ]; then
           for forbidden in INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD; do
             ! grep -F -x "$forbidden" <<<"$keys" >/dev/null \
@@ -244,7 +255,7 @@ let
     }
 
     scan_sensitive_output() (
-      local patterns docker_output journal_output line value candidate
+      local patterns docker_output journal_output line value candidate log_container
       local log_tree entry_count oversized_count captured_size
       case "$log_capture_max_bytes" in
         "" | *[!0-9]*) fail_stack "log capture bound is invalid" ;;
@@ -264,14 +275,16 @@ let
         "$(read_environment_value INIT_SS_ADMIN_PASSWORD "$host_dir/bootstrap.environment")" \
         | base64 | tr -d '\n' >>"$patterns"
       printf '\n' >>"$patterns"
-      "$docker_command" logs seafile >"$docker_output" 2>&1 \
-        || fail_stack "Docker log output could not be captured"
-      captured_size="$(wc -c <"$docker_output")"
-      [ "$captured_size" -le "$log_capture_max_bytes" ] \
-        || fail_stack "Docker log output exceeded its capture bound"
-      if grep -F -q -f "$patterns" -- "$docker_output"; then
-        fail_stack "sensitive material was detected in Seafile container logs"
-      fi
+      for log_container in seafile seafile-seasearch; do
+        "$docker_command" logs "$log_container" >"$docker_output" 2>&1 \
+          || fail_stack "Docker log output could not be captured"
+        captured_size="$(wc -c <"$docker_output")"
+        [ "$captured_size" -le "$log_capture_max_bytes" ] \
+          || fail_stack "Docker log output exceeded its capture bound"
+        if grep -F -q -f "$patterns" -- "$docker_output"; then
+          fail_stack "sensitive material was detected in Seafile container logs"
+        fi
+      done
       "$journalctl_command" --unit seafile-compose.service --no-pager \
         >"$journal_output" 2>&1 \
         || fail_stack "Compose unit journal output could not be captured"
@@ -407,7 +420,7 @@ let
     text = composeStartScript;
   };
   composeCommand = "${pkgs.docker-compose}/bin/docker-compose --project-name seafile";
-  establishedCompose = "${composeCommand} --file ${stack.composeFile} --env-file /run/seafile-host/environment";
+  establishedCompose = "${composeCommand} --file ${stack.composeFile} --env-file /run/seafile-host/compose.environment";
 in
 {
   options.shulker.system.modules.seafile = {
@@ -446,6 +459,24 @@ in
       readOnly = true;
       internal = true;
       description = "Source for the rootless-argv Redis entrypoint.";
+    };
+    seasearchEntrypointHash = lib.mkOption {
+      type = lib.types.str;
+      readOnly = true;
+      internal = true;
+      description = "Expected upstream SeaSearch entrypoint hash for the pinned image.";
+    };
+    seasearchStartScript = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      internal = true;
+      description = "Fail-closed SeaSearch entrypoint wrapper for graceful shutdown.";
+    };
+    seasearchStartScriptText = lib.mkOption {
+      type = lib.types.lines;
+      readOnly = true;
+      internal = true;
+      description = "Source for the fail-closed SeaSearch entrypoint wrapper.";
     };
     metadataEntrypointHash = lib.mkOption {
       type = lib.types.str;
@@ -498,6 +529,9 @@ in
         onlyOfficeConfig
         redisStartScript
         redisStartScriptText
+        seasearchEntrypointHash
+        seasearchStartScript
+        seasearchStartScriptText
         ;
       inherit composeStartScript;
       composeStartPackage = composeStart;

@@ -256,9 +256,9 @@ let
         unset REDISCLI_AUTH
         [ "$redis_result" = PONG ] || fail_maintenance "Redis"
 
-        if ! printf 'silent = true\nshow-error = false\nfail = true\nmax-time = 10\nheader = "Authorization: Basic %s"\nurl = "http://127.0.0.1:4080/api/permissions"\n' \
+        if ! printf 'silent = true\nshow-error = false\nfail = true\nmax-time = 10\nheader = "Authorization: Basic %s"\nurl = "http://seafile-seasearch:4080/api/permissions"\n' \
           "$search_token" \
-          | "$docker_command" exec --interactive seafile-seasearch curl --config - >/dev/null 2>&1
+          | "$docker_command" exec --interactive seafile curl --config - >/dev/null 2>&1
         then
           fail_maintenance "SeaSearch"
         fi
@@ -826,8 +826,8 @@ let
     ${credentialPrelude}
     ${requireActiveStack}
     load_search_token
-    if ! printf 'silent = true\nshow-error = false\nfail = true\nmax-time = 30\nheader = "Authorization: Basic %s"\nurl = "http://127.0.0.1:4080/api/permissions"\n' \
-      "$search_token" | "$docker_command" exec --interactive seafile-seasearch curl --config - \
+    if ! printf 'silent = true\nshow-error = false\nfail = true\nmax-time = 30\nheader = "Authorization: Basic %s"\nurl = "http://seafile-seasearch:4080/api/permissions"\n' \
+      "$search_token" | "$docker_command" exec --interactive seafile curl --config - \
       >/dev/null 2>&1
     then
       fail_maintenance "SeaSearch"

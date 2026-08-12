@@ -85,6 +85,32 @@ let
     executable = true;
     text = metadataStartScriptText;
   };
+  seasearchEntrypointHash = "6e091fbbe7453bb577f2243b85bbae36735a8a22339677ad9d1a052ef3304995";
+  seasearchStartScriptText = ''
+    #!/bin/bash
+    set -euo pipefail
+
+    source_entrypoint=/opt/scripts/entrypoint.sh
+    expected_hash=${seasearchEntrypointHash}
+    actual_hash="$(sha256sum -- "$source_entrypoint")"
+    [ "''${actual_hash%% *}" = "$expected_hash" ] || {
+      echo "SeaSearch entrypoint does not match the pinned image" >&2
+      exit 70
+    }
+    [ "$(grep -Fxc -- './seasearch' "$source_entrypoint")" -eq 1 ] || {
+      echo "SeaSearch entrypoint server launch is ambiguous" >&2
+      exit 70
+    }
+    patched_entrypoint="$(mktemp /tmp/seafile-seasearch-entrypoint.XXXXXX)"
+    sed 's|^\./seasearch$|exec ./seasearch|' \
+      "$source_entrypoint" >"$patched_entrypoint"
+    exec /bin/bash "$patched_entrypoint"
+  '';
+  seasearchStartScript = pkgs.writeTextFile {
+    name = "seafile-start-seasearch";
+    executable = true;
+    text = seasearchStartScriptText;
+  };
   onlyOfficeConfig = (pkgs.formats.json { }).generate "local-production-linux.json" {
     services.CoAuthoring.autoAssembly = {
       enable = true;
@@ -222,20 +248,38 @@ let
       seasearch = {
         container_name = containerNames.seasearch;
         image = images.seasearch;
+        init = true;
         restart = "no";
         labels = serviceLabels;
         networks = privateNetwork;
         environment = {
+          # The pinned entrypoint requires these on every start. Protected
+          # seafevents.conf retains the equivalent Basic material so they are
+          # also required for authenticated health and self-healing.
+          SS_FIRST_ADMIN_USER = required "INIT_SS_ADMIN_USER";
+          SS_FIRST_ADMIN_PASSWORD = required "INIT_SS_ADMIN_PASSWORD";
           SS_MAX_OBJ_CACHE_SIZE = "10GB";
           SS_STORAGE_TYPE = "disk";
           SS_LOG_TO_STDOUT = "true";
           SS_LOG_LEVEL = "info";
         };
-        volumes = [ "${stateDir}/search:/opt/seasearch/data" ];
+        command = [ "/usr/local/sbin/seafile-start-seasearch" ];
+        volumes = [
+          "${stateDir}/search:/opt/seasearch/data"
+          {
+            type = "bind";
+            source = toString seasearchStartScript;
+            target = "/usr/local/sbin/seafile-start-seasearch";
+            read_only = true;
+            bind.create_host_path = false;
+          }
+        ];
         healthcheck = {
           test = [
-            "CMD-SHELL"
-            "kill -0 1"
+            "CMD"
+            "/bin/bash"
+            "-ec"
+            "token=$$(printf '%s:%s' \"$$SS_FIRST_ADMIN_USER\" \"$$SS_FIRST_ADMIN_PASSWORD\" | /usr/bin/base64 | /usr/bin/tr -d '\\n'); exec 3<>/dev/tcp/127.0.0.1/4080; printf 'GET /api/permissions HTTP/1.0\\r\\nHost: 127.0.0.1\\r\\nAuthorization: Basic %s\\r\\nConnection: close\\r\\n\\r\\n' \"$$token\" >&3; IFS= read -r -u 3 status; [[ \"$$status\" == HTTP/*\" 200 \"* ]]"
           ];
           interval = "30s";
           timeout = "5s";
@@ -406,10 +450,6 @@ let
   bootstrapComposeConfig.services = {
     database.environment.MYSQL_ROOT_PASSWORD = required "INIT_SEAFILE_MYSQL_ROOT_PASSWORD";
     seafile.environment.INIT_SEAFILE_MYSQL_ROOT_PASSWORD = required "INIT_SEAFILE_MYSQL_ROOT_PASSWORD";
-    seasearch.environment = {
-      SS_FIRST_ADMIN_USER = required "INIT_SS_ADMIN_USER";
-      SS_FIRST_ADMIN_PASSWORD = required "INIT_SS_ADMIN_PASSWORD";
-    };
   };
 in
 {
@@ -422,6 +462,9 @@ in
     onlyOfficeConfig
     redisStartScript
     redisStartScriptText
+    seasearchEntrypointHash
+    seasearchStartScript
+    seasearchStartScriptText
     ;
   composeFile = (pkgs.formats.yaml { }).generate "${projectName}-compose.yml" composeConfig;
   bootstrapComposeFile =

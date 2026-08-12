@@ -658,6 +658,7 @@ assert_runtime_modes() {
 	test "$($real_stat -c %a "$runtime_app")" = 700
 	test "$($real_stat -c %a "$runtime_metadata")" = 555
 	test "$($real_stat -c %a "$runtime_host/bootstrap.environment")" = 400
+	test "$($real_stat -c %a "$runtime_host/compose.environment")" = 400
 	test "$($real_stat -c %a "$runtime_host/environment")" = 400
 	test "$($real_stat -c %a "$runtime_app/seafile.env")" = 400
 	test "$($real_stat -c %a "$runtime_app/seahub_settings.py")" = 400
@@ -669,7 +670,7 @@ assert_runtime_path_sets() {
 	actual="$runtime_root/actual-host-paths"
 	expected="$runtime_root/expected-host-paths"
 	find "$runtime_host" -mindepth 1 -maxdepth 1 -printf '%f\n' | LC_ALL=C sort >"$actual"
-	printf '%s\n' bootstrap.environment environment >"$expected"
+	printf '%s\n' bootstrap.environment compose.environment environment >"$expected"
 	cmp "$expected" "$actual"
 
 	actual="$runtime_root/actual-app-paths"
@@ -687,10 +688,14 @@ assert_runtime_path_sets() {
 
 assert_environment_separation() {
 	local bootstrap="$runtime_host/bootstrap.environment"
+	local compose="$runtime_host/compose.environment"
 	local established="$runtime_host/environment"
 	test "$(wc -l <"$bootstrap")" -eq 12
 	test "$(cut -d= -f1 "$bootstrap" | LC_ALL=C sort -u | wc -l)" -eq 12
+	test "$(wc -l <"$compose")" -eq 11
+	test "$(cut -d= -f1 "$compose" | LC_ALL=C sort -u | wc -l)" -eq 11
 	test "$(wc -l <"$established")" -eq 9
+	test "$(wc -l <"$runtime_app/seafile.env")" -eq 15
 	for bootstrap_only in \
 		INIT_SEAFILE_MYSQL_ROOT_PASSWORD \
 		INIT_SS_ADMIN_USER \
@@ -701,6 +706,28 @@ assert_environment_separation() {
 			exit 1
 		fi
 	done
+	grep -F -x -- 'INIT_SS_ADMIN_USER=seasearch-adminA' "$compose" >/dev/null
+	grep -F -x -- 'INIT_SS_ADMIN_PASSWORD=SeaSearchPassword0123456789abcdef0A' "$compose" >/dev/null
+	if grep -F -x -- 'INIT_SEAFILE_MYSQL_ROOT_PASSWORD' <(cut -d= -f1 "$compose") >/dev/null; then
+		echo "database root credential entered the Compose environment" >&2
+		exit 1
+	fi
+	{
+		cut -d= -f1 "$established"
+		printf '%s\n' INIT_SS_ADMIN_USER INIT_SS_ADMIN_PASSWORD
+	} | LC_ALL=C sort >"$runtime_root/expected-compose-keys"
+	cut -d= -f1 "$compose" | LC_ALL=C sort >"$runtime_root/actual-compose-keys"
+	cmp "$runtime_root/expected-compose-keys" "$runtime_root/actual-compose-keys"
+	if grep -E '^INIT_SS_ADMIN_(USER|PASSWORD)=' \
+		"$established" >/dev/null; then
+		echo "SeaSearch credentials entered the maintenance runtime environment" >&2
+		exit 1
+	fi
+	if grep -E '^INIT_SS_ADMIN_(USER|PASSWORD)=' \
+		"$runtime_app/seafile.env" >/dev/null; then
+		echo "SeaSearch credentials entered the Seafile application environment" >&2
+		exit 1
+	fi
 	grep -F -- 'REDIS_PASSWORD=Allowed._~!@%+,/:=-Allowed._~!@%+,/:=-A' "$established" >/dev/null
 	grep -F -- 'os.environ["SEAFILE_OAUTH_CLIENT_SECRET"]' "$runtime_app/seahub_settings.py" >/dev/null
 	grep -F -- '[SEASEARCH]' "$runtime_app/seafevents.conf" >/dev/null
@@ -918,6 +945,7 @@ reset_stack_fixture() {
 		"$stack_state/shared/seafile/conf" \
 		"$stack_host" "$stack_app" "$stack_metadata" "$stack_bin"
 	cp "$runtime_host/bootstrap.environment" "$stack_host/bootstrap.environment"
+	cp "$runtime_host/compose.environment" "$stack_host/compose.environment"
 	cp "$runtime_host/environment" "$stack_host/environment"
 	cp -R "$runtime_app/." "$stack_app/"
 	cp -R "$runtime_metadata/." "$stack_metadata/"
@@ -1070,7 +1098,11 @@ case "$1" in
     fi
     ;;
   logs)
-    printf '%s\n' "${STUB_DOCKER_LOG_CONTENT:-}"
+    if [ "${*: -1}" = seafile-seasearch ]; then
+      printf '%s\n' "${STUB_SEASEARCH_LOG_CONTENT:-${STUB_DOCKER_LOG_CONTENT:-}}"
+    else
+      printf '%s\n' "${STUB_DOCKER_LOG_CONTENT:-}"
+    fi
     if [ "${STUB_DOCKER_LOG_PAD_BYTES:-0}" -gt 0 ]; then
       head -c "$STUB_DOCKER_LOG_PAD_BYTES" /dev/zero | tr '\000' x
     fi
@@ -1105,7 +1137,14 @@ case "$1" in
     ;;
   inspect)
     if [[ " $* " == *"Config.Env"* ]]; then
-      printf '%s\n' "${STUB_INSPECT_ENV_KEYS:-INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD}"
+      keys="${STUB_INSPECT_ENV_KEYS:-}"
+      if [ "${*: -1}" = seafile ]; then
+        keys="$keys INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD"
+      fi
+      if [ "${*: -1}" = seafile-seasearch ]; then
+        keys="$keys SS_FIRST_ADMIN_USER SS_FIRST_ADMIN_PASSWORD"
+      fi
+      printf '%s\n' $keys
     elif [[ " $* " == *"State.Health.Status"* ]]; then
       printf '%s\n' healthy
     else
@@ -1126,12 +1165,13 @@ EOF
 	export STUB_RECONCILE_LOCK="$stack_root/reconciler.lock"
 	export STUB_STACK_LOCK="$stack_lock"
 	export STUB_PROJECT_CONTAINERS=""
-	export STUB_INSPECT_ENV_KEYS="INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD"
+	export STUB_INSPECT_ENV_KEYS=""
 	export STUB_SYSTEMD_ACTIVE=0
 	unset STUB_CAPTURE_MAX_BYTES STUB_DOCKER_LOG_CONTENT STUB_DOCKER_LOG_PAD_BYTES \
 		STUB_FAIL_AUTO_DEPS STUB_FAIL_FINAL_LEAVES_RUNNING STUB_FAIL_RESTORE \
 		STUB_FAIL_STAGE STUB_FAIL_FINAL_ONCE \
 		STUB_JOURNAL_CONTENT STUB_JOURNAL_PAD_BYTES STUB_OUTER_TIMEOUT \
+		STUB_SEASEARCH_LOG_CONTENT \
 		STUB_STOP_TIMEOUT STUB_TERM_STUCK
 }
 
@@ -1174,7 +1214,7 @@ for managed in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf
 	test -L "$stack_state/shared/seafile/conf/$managed"
 done
 grep -F -- '--force-recreate database seasearch' "$stack_log" >/dev/null
-grep -F -- '--env-file '"$stack_host/environment" "$stack_log" >/dev/null
+grep -F -- '--env-file '"$stack_host/compose.environment" "$stack_log" >/dev/null
 
 # Rollback restores an exact running set without Compose dependency traversal.
 # With only Seafile running on entry, MariaDB and Redis remain stopped.
@@ -1263,7 +1303,7 @@ if grep -E 'docker:(rm|kill).*seafile-foreign' "$stack_log"; then
 	exit 1
 fi
 
-# Established state never uses the bootstrap interpolation file.
+# Established state uses only the protected minimal Compose interpolation file.
 reset_stack_fixture
 printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
 run_stack_helper start
@@ -1271,6 +1311,7 @@ if grep -F -- '--env-file '"$stack_host/bootstrap.environment" "$stack_log" >/de
 	echo "established startup exposed bootstrap interpolation" >&2
 	exit 1
 fi
+grep -F -- '--env-file '"$stack_host/compose.environment" "$stack_log" >/dev/null
 grep -F -x -- 'docker-project-running:' "$stack_log" >/dev/null
 
 # Only the exact protected JSON residue produced by pinned start.py is removed.
@@ -1306,6 +1347,20 @@ if run_stack_helper start >"$docker_scan_output" 2>&1; then
 fi
 if grep -F -- "$stack_secret" "$docker_scan_output" >/dev/null; then
 	echo "Docker log scan exposed the sensitive match" >&2
+	exit 1
+fi
+
+stack_search_secret="$(sed -n 's/^INIT_SS_ADMIN_PASSWORD=//p' "$runtime_host/bootstrap.environment")"
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+export STUB_DOCKER_LOG_CONTENT=public STUB_SEASEARCH_LOG_CONTENT="$stack_search_secret"
+seasearch_scan_output="$stack_root/seasearch-scan-output"
+if run_stack_helper start >"$seasearch_scan_output" 2>&1; then
+	echo "startup missed sensitive SeaSearch Docker log output" >&2
+	exit 1
+fi
+if grep -F -- "$stack_search_secret" "$seasearch_scan_output" >/dev/null; then
+	echo "SeaSearch Docker log scan exposed the sensitive match" >&2
 	exit 1
 fi
 
