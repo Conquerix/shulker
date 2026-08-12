@@ -1049,6 +1049,9 @@ in
     assert !(pkgs.lib.hasInfix "/storage/flash/immich" contract);
     assert !(pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_PASSWORD=" contract);
     assert !(pkgs.lib.hasInfix "INIT_SS_ADMIN_PASSWORD=" contract);
+    assert !(pkgs.lib.hasInfix "$INIT_SS_ADMIN_USER" contract);
+    assert !(pkgs.lib.hasInfix "$INIT_SS_ADMIN_PASSWORD" contract);
+    assert pkgs.lib.hasInfix "load_search_token" contract;
     pkgs.runCommand "seafile-maintenance-contract"
       {
         nativeBuildInputs = [
