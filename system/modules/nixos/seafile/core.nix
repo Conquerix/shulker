@@ -448,14 +448,16 @@ let
     validate_path control 700
 
   '';
+  validateStateRuntimeInputs = [
+    config.boot.zfs.package
+    pkgs.coreutils
+    pkgs.diffutils
+    pkgs.findutils
+    pkgs.util-linux
+  ];
   validateState = pkgs.writeShellApplication {
     name = "seafile-validate-state";
-    runtimeInputs = [
-      config.boot.zfs.package
-      pkgs.coreutils
-      pkgs.findutils
-      pkgs.util-linux
-    ];
+    runtimeInputs = validateStateRuntimeInputs;
     text = validateStateScript;
   };
 in
@@ -717,6 +719,13 @@ in
       internal = true;
       description = "Packaged Seafile state validator.";
     };
+
+    validateStateRuntimeInputs = lib.mkOption {
+      type = lib.types.listOf lib.types.package;
+      readOnly = true;
+      internal = true;
+      description = "Runtime closure for the packaged Seafile state validator.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -725,7 +734,7 @@ in
       notificationPublicUrl = "${cfg.publicUrl}/notification";
       notificationInternalUrl = "http://seafile-notification:8083";
       onlyOfficeApiUrl = "${cfg.onlyOfficePublicUrl}/web-apps/apps/api/documents/api.js";
-      inherit releaseVersions validateStateScript;
+      inherit releaseVersions validateStateRuntimeInputs validateStateScript;
       validateStatePackage = validateState;
     };
 

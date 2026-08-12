@@ -181,6 +181,9 @@ in
     ];
     assert builtins.hasAttr "seafile-state" services;
     assert seafileStateService.unitConfig.RequiresMountsFor == seafile.stateDir;
+    assert pkgs.lib.any (
+      package: (package.pname or package.name) == "diffutils"
+    ) seafile.validateStateRuntimeInputs;
     assert
       wardenConfig.services.onepassword-secrets.secrets.seafileEnv.services == [
         "seafile-config"
