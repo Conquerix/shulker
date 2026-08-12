@@ -160,7 +160,14 @@ set -euo pipefail
 printf 'curl %s\n' "$*" >>"${STUB_CALLS:?}"
 case " $* " in
 	*':23239/'*) [ "${STUB_FAIL:-}" != seafile ] || exit 1 ;;
-	*':23241/ping'*) [ "${STUB_FAIL:-}" != notification ] || exit 1 ;;
+	*':23241/ping'*)
+		[ "${STUB_FAIL:-}" != notification ] || exit 1
+		if [ "${STUB_FAIL:-}" = notification-body ]; then
+			printf '%s\n' '{"ret": "wrong"}'
+		else
+			printf '%s\n' '{"ret": "pong"}'
+		fi
+		;;
 	*':23240/healthcheck'*)
 		[ "${STUB_FAIL:-}" != onlyoffice ] || exit 1
 		printf '%s\n' true
@@ -394,10 +401,19 @@ expect_failure sql 'Seafile SQL probe failed'
 expect_failure redis 'Seafile Redis probe failed'
 expect_failure seafile 'Seafile HTTP probe failed'
 expect_failure notification 'Seafile Notification probe failed'
+expect_failure notification-body 'Seafile Notification probe failed'
 expect_failure seasearch 'Seafile SeaSearch probe failed'
 expect_failure metadata 'Seafile Metadata probe failed'
 expect_failure onlyoffice 'Seafile OnlyOffice probe failed'
 expect_failure dataset 'Seafile dataset probe failed'
+
+: >"$calls"
+run_health >/dev/null
+grep -F 'curl --fail --silent --show-error --max-time 10 http://127.0.0.1:23241/ping' "$calls" >/dev/null
+if grep -F 'docker exec seafile-notification curl' "$calls" >/dev/null; then
+	echo 'health used an unavailable in-container Notification curl probe' >&2
+	exit 1
+fi
 
 : >"$calls"
 busy_output="$(STUB_LOCK_BUSY=1 run_health)"

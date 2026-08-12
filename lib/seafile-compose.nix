@@ -221,7 +221,7 @@ let
         image = images.notification;
         restart = "no";
         labels = serviceLabels;
-        networks = privateNetwork;
+        networks = applicationNetworks;
         ports =
           if publishApplicationPorts then
             [ "${bindAddress}:${toString ports.notification}:8083/tcp" ]
@@ -245,8 +245,10 @@ let
         };
         healthcheck = {
           test = [
-            "CMD-SHELL"
-            "curl --fail --silent http://127.0.0.1:8083/ping >/dev/null"
+            "CMD"
+            "/bin/bash"
+            "-ec"
+            "exec 3<>/dev/tcp/127.0.0.1/8083; printf 'GET /ping HTTP/1.0\\r\\nHost: 127.0.0.1\\r\\nConnection: close\\r\\n\\r\\n' >&3; IFS= read -r -u 3 status; [[ \"$$status\" == HTTP/*\" 200 \"* ]]; while IFS= read -r -u 3 header; do [[ \"$$header\" != $$'\\r' ]] || break; done; body=; IFS= read -r -u 3 body || [[ -n \"$$body\" ]]; [[ \"$$body\" == '{\"ret\": \"pong\"}' ]]"
           ];
           interval = "30s";
           timeout = "5s";

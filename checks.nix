@@ -307,6 +307,23 @@ in
           ]
           seafile.redisStartScriptText
       );
+      notificationHealthCommand = builtins.elemAt services'.notification.healthcheck.test 3;
+      notificationHealthProbeUnderTest = pkgs.writeTextFile {
+        name = "seafile-notification-health-probe-under-test";
+        executable = true;
+        text = ''
+          #!${pkgs.bash}/bin/bash
+          set -e
+          ${builtins.replaceStrings [ "$$" ] [ "$" ] (
+            builtins.replaceStrings
+              [
+                "exec 3<>/dev/tcp/127.0.0.1/8083; printf 'GET /ping HTTP/1.0\\r\\nHost: 127.0.0.1\\r\\nConnection: close\\r\\n\\r\\n' >&3; "
+              ]
+              [ ''exec 3<"$1"; '' ]
+              notificationHealthCommand
+          )}
+        '';
+      };
     in
     assert compose.name == "seafile";
     assert
@@ -350,11 +367,15 @@ in
         "seafile-net"
         "seafile-net-egress"
       ];
+    assert
+      services'.notification.networks == [
+        "seafile-net"
+        "seafile-net-egress"
+      ];
     assert pkgs.lib.all (name: services'.${name}.networks == [ "seafile-net" ]) [
       "database"
       "redis"
       "seasearch"
-      "notification"
       "metadata"
     ];
     assert
@@ -512,6 +533,13 @@ in
         "--innodb_initialized"
       ];
     assert services'.database.healthcheck.timeout == "8s";
+    assert
+      services'.notification.healthcheck.test == [
+        "CMD"
+        "/bin/bash"
+        "-ec"
+        "exec 3<>/dev/tcp/127.0.0.1/8083; printf 'GET /ping HTTP/1.0\\r\\nHost: 127.0.0.1\\r\\nConnection: close\\r\\n\\r\\n' >&3; IFS= read -r -u 3 status; [[ \"$$status\" == HTTP/*\" 200 \"* ]]; while IFS= read -r -u 3 header; do [[ \"$$header\" != $$'\\r' ]] || break; done; body=; IFS= read -r -u 3 body || [[ -n \"$$body\" ]]; [[ \"$$body\" == '{\"ret\": \"pong\"}' ]]"
+      ];
     pkgs.runCommand "seafile-stack-contract" { } ''
       test "$(head -n 1 ${redisStartScriptUnderTest})" = '#!/bin/sh'
       ! grep -F '/nix/store' ${redisStartScriptUnderTest}
@@ -561,6 +589,16 @@ in
       grep -F -x 'chown:999:1000 '$TMPDIR'/redis-runtime/redis.conf' "$redis_tool_log" >/dev/null
       test "$(stat -c %a "$redis_runtime_dir")" = 700
       test "$(stat -c %a "$redis_runtime_dir/redis.conf")" = 600
+
+      printf 'HTTP/1.0 200 OK\r\nContent-Length: 16\r\n\r\n{"ret": "pong"}\n' \
+        >notification-good.response
+      printf 'HTTP/1.0 200 OK\r\nContent-Length: 17\r\n\r\n{"ret": "wrong"}\n' \
+        >notification-wrong.response
+      ${notificationHealthProbeUnderTest} notification-good.response
+      if ${notificationHealthProbeUnderTest} notification-wrong.response; then
+        echo "Notification health probe accepted an unexpected response body" >&2
+        exit 1
+      fi
       touch "$out"
     '';
 

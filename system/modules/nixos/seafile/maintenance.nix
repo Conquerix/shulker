@@ -137,10 +137,11 @@ let
           http://${cfg.bindAddress}:${toString cfg.port}/ >/dev/null; then
           fail_maintenance "HTTP"
         fi
-        if ! "$curl_command" --fail --silent --show-error --max-time 10 \
-          http://${cfg.bindAddress}:${toString cfg.notificationPort}/ping >/dev/null; then
-          fail_maintenance "Notification"
-        fi
+        notification_health="$({
+          "$curl_command" --fail --silent --show-error --max-time 10 \
+            http://${cfg.bindAddress}:${toString cfg.notificationPort}/ping
+        } 2>/dev/null)" || fail_maintenance "Notification"
+        [ "$notification_health" = '{"ret": "pong"}' ] || fail_maintenance "Notification"
         onlyoffice_health="$({
           "$curl_command" --fail --silent --show-error --max-time 10 \
             http://${cfg.bindAddress}:${toString cfg.onlyOfficePort}/healthcheck
@@ -173,11 +174,6 @@ let
           fail_maintenance "SeaSearch"
         fi
 
-        if ! "$docker_command" exec seafile-notification \
-          curl --fail --silent --max-time 10 http://127.0.0.1:8083/ping >/dev/null 2>&1
-        then
-          fail_maintenance "Notification"
-        fi
         if ! "$docker_command" exec seafile-metadata sh -ec \
           'test -r /run/seafile/seafile.conf && test -d /shared/seafile/md-data && kill -0 1' \
           >/dev/null 2>&1
