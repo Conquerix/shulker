@@ -360,12 +360,23 @@ let
         validate_state_command="''${SEAFILE_VALIDATE_STATE_COMMAND:-seafile-validate-state}"
         "$validate_state_command" >/dev/null 2>&1 || fail_maintenance "dataset"
 
-        account_count="$({
-          "$docker_command" exec --interactive seafile ${pythonCommand} <<'PY'
-    from seahub.base.accounts import User
-    print(User.objects.filter(is_active=True).count())
+        account_output="$({
+          timeout 30 "$docker_command" exec --interactive seafile ${pythonCommand} <<'PY'
+    from seaserv import ccnet_api
+    active_count = sum(
+        1 for user in ccnet_api.get_emailusers("DB", -1, -1) if user.is_active
+    )
+    print(f"SHULKER_SEAFILE_ACTIVE_USER_COUNT={active_count}")
     PY
         } 2>/dev/null)" || fail_maintenance "account count"
+        [ "''${#account_output}" -le 256 ] || fail_maintenance "account count"
+        mapfile -t account_lines <<<"$account_output"
+        [ "''${#account_lines[@]}" -eq 3 ] \
+          && [ -z "''${account_lines[0]}" ] \
+          && [[ "''${account_lines[1]}" == SHULKER_SEAFILE_ACTIVE_USER_COUNT=* ]] \
+          && [ "''${account_lines[2]}" = Done. ] \
+          || fail_maintenance "account count"
+        account_count="''${account_lines[1]#SHULKER_SEAFILE_ACTIVE_USER_COUNT=}"
         [[ "$account_count" =~ ^[0-9]+$ ]] || fail_maintenance "account count"
         [ "$account_count" -le ${toString cfg.licenseUserLimit} ] || fail_maintenance "account count"
 

@@ -172,8 +172,40 @@ if [ "${1:-}" = exec ]; then
 			[ "${STUB_FAIL:-}" != metadata ] || exit 1
 			;;
 		*' seafile '*python*)
-			[ "${STUB_FAIL:-}" != account ] || exit 1
-			printf '%s\n' 3
+			python_source="$(cat)"
+			grep -F -- 'from seaserv import ccnet_api' <<<"$python_source" >/dev/null
+			grep -F -- 'ccnet_api.get_emailusers("DB", -1, -1)' <<<"$python_source" >/dev/null
+			grep -F -- 'if user.is_active' <<<"$python_source" >/dev/null
+			grep -F -- 'SHULKER_SEAFILE_ACTIVE_USER_COUNT=' <<<"$python_source" >/dev/null
+			if grep -F -- 'User.objects.filter' <<<"$python_source" >/dev/null; then
+				exit 65
+			fi
+			case "${STUB_FAIL:-}" in
+				account)
+					# The pinned seahub.sh wrapper masks its child status and still
+					# prints a blank and this completion line after a failed child.
+					printf '%s\n' '' 'Done.'
+					;;
+				account-output)
+					printf '%s\n' \
+						'' \
+						'unexpected output' \
+						'SHULKER_SEAFILE_ACTIVE_USER_COUNT=3' \
+						'Done.'
+					;;
+				account-reversed)
+					printf '%s\n' \
+						'' \
+						'Done.' \
+						'SHULKER_SEAFILE_ACTIVE_USER_COUNT=3'
+					;;
+				*)
+					printf '%s\n' \
+						'' \
+						'SHULKER_SEAFILE_ACTIVE_USER_COUNT=3' \
+						'Done.'
+					;;
+			esac
 			;;
 		*) exit 0 ;;
 	esac
@@ -486,6 +518,9 @@ expect_failure seasearch 'Seafile SeaSearch probe failed'
 expect_failure metadata 'Seafile Metadata probe failed'
 expect_failure onlyoffice 'Seafile OnlyOffice probe failed'
 expect_failure dataset 'Seafile dataset probe failed'
+expect_failure account 'Seafile account count probe failed'
+expect_failure account-output 'Seafile account count probe failed'
+expect_failure account-reversed 'Seafile account count probe failed'
 
 : >"$calls"
 run_health >/dev/null
