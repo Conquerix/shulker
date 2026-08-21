@@ -139,6 +139,7 @@ let
     REDIS_PASSWORD = required "REDIS_PASSWORD";
     SEAFILE_SERVER_HOSTNAME = urls.hostname;
     SEAFILE_SERVER_PROTOCOL = "https";
+    SEAFILE_LOG_TO_STDOUT = "true";
     TIME_ZONE = "Europe/Paris";
     ENABLE_GO_FILESERVER = "true";
     ENABLE_SEADOC = "false";

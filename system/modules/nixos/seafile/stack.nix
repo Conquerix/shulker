@@ -211,7 +211,7 @@ let
     }
 
     verify_exact_stack() {
-      local actual expected name keys forbidden
+      local actual expected name keys forbidden stdout_values
       actual="$(project_names)"
       expected="$(printf '%s\n' "''${expected_names[@]}" | LC_ALL=C sort)"
       [ "$actual" = "$expected" ] || fail_stack "final stack does not contain exactly seven intended containers"
@@ -240,6 +240,13 @@ let
             ! grep -F -x "$forbidden" <<<"$keys" >/dev/null \
               || fail_stack "a non-Seafile container received a native administrator key"
           done
+        else
+          stdout_values="$(
+            "$docker_command" inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$name" \
+              | sed -n 's/^SEAFILE_LOG_TO_STDOUT=//p'
+          )"
+          [ "$stdout_values" = true ] \
+            || fail_stack "Seafile is not configured for exact stdout logging"
         fi
       done
     }
@@ -255,7 +262,7 @@ let
     }
 
     scan_sensitive_output() (
-      local patterns docker_output journal_output line value candidate log_container
+      local patterns docker_output journal_output line value candidate log_container grep_status
       local log_tree entry_count oversized_count captured_size
       case "$log_capture_max_bytes" in
         "" | *[!0-9]*) fail_stack "log capture bound is invalid" ;;
@@ -283,6 +290,9 @@ let
           || fail_stack "Docker log output exceeded its capture bound"
         if grep -F -q -f "$patterns" -- "$docker_output"; then
           fail_stack "sensitive material was detected in Seafile container logs"
+        else
+          grep_status="$?"
+          [ "$grep_status" -eq 1 ] || fail_stack "Docker log output could not be scanned"
         fi
       done
       "$journalctl_command" --unit seafile-compose.service --no-pager \
@@ -293,6 +303,9 @@ let
         || fail_stack "Compose unit journal output exceeded its capture bound"
       if grep -F -q -f "$patterns" -- "$journal_output"; then
         fail_stack "sensitive material was detected in the Compose unit journal"
+      else
+        grep_status="$?"
+        [ "$grep_status" -eq 1 ] || fail_stack "Compose unit journal could not be scanned"
       fi
       for log_tree in "$state_dir/shared/logs" "$state_dir/shared/seafile/logs"; do
         [ -e "$log_tree" ] || continue
@@ -300,11 +313,19 @@ let
           || fail_stack "persistent log tree is unsafe"
         entry_count="$(find "$log_tree" -mindepth 1 -printf . | wc -c)"
         [ "$entry_count" -le 10000 ] || fail_stack "persistent log tree exceeds its entry bound"
-        oversized_count="$(find "$log_tree" -type f -size +16777215c -printf . | wc -c)"
+        oversized_count="$(
+          find "$log_tree" -type f \
+            \( \( -path "$state_dir/shared/seafile/logs/seafile-monitor.log" -size +67108864c \) \
+              -o \( ! -path "$state_dir/shared/seafile/logs/seafile-monitor.log" -size +16777215c \) \) \
+            -printf . | wc -c
+        )"
         [ "$oversized_count" -eq 0 ] || fail_stack "persistent log tree contains an oversized file"
         while IFS= read -r -d "" candidate; do
           if grep -F -q -f "$patterns" -- "$candidate"; then
             fail_stack "sensitive material was detected in persistent logs"
+          else
+            grep_status="$?"
+            [ "$grep_status" -eq 1 ] || fail_stack "persistent log could not be scanned"
           fi
         done < <(find "$log_tree" -type f -print0)
       done

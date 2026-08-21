@@ -621,9 +621,13 @@ let
     done
 
     scan_file() {
-      local candidate="$1"
+      local candidate="$1" grep_status
       if grep -F -q -f "$patterns" -- "$candidate" 2>/dev/null; then
         fail_reconcile "persistent configuration contains sensitive runtime material"
+      else
+        grep_status="$?"
+        [ "$grep_status" -eq 1 ] \
+          || fail_reconcile "persistent configuration could not be scanned"
       fi
     }
     while IFS= read -r -d "" candidate; do
@@ -646,7 +650,12 @@ let
         unsafe_entry_count="$(find "$log_tree" -mindepth 1 ! -type d ! -type f -printf . | wc -c)"
         [ "$unsafe_entry_count" -eq 0 ] \
           || fail_reconcile "persistent log tree contains an unsafe entry"
-        oversized_count="$(find "$log_tree" -type f -size +16777215c -printf . | wc -c)"
+        oversized_count="$(
+          find "$log_tree" -type f \
+            \( \( -path "$state_dir/shared/seafile/logs/seafile-monitor.log" -size +67108864c \) \
+              -o \( ! -path "$state_dir/shared/seafile/logs/seafile-monitor.log" -size +16777215c \) \) \
+            -printf . | wc -c
+        )"
         [ "$oversized_count" -eq 0 ] \
           || fail_reconcile "persistent log tree contains an oversized file"
       fi

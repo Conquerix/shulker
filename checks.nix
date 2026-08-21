@@ -504,6 +504,7 @@ in
         "seafile-net"
         "seafile-net-egress"
       ];
+    assert services'.seafile.environment.SEAFILE_LOG_TO_STDOUT == "true";
     assert
       services'.onlyoffice.networks == [
         "seafile-net"

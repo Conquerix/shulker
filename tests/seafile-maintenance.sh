@@ -571,6 +571,37 @@ if grep -F -- fixture-root-password <<<"$output" >/dev/null; then
 fi
 rm -f "$state/shared/logs/bootstrap-secret.log"
 
+monitor_log="$state/shared/seafile/logs/seafile-monitor.log"
+truncate -s 56623104 "$monitor_log"
+run_health >/dev/null
+
+printf '%s\n' fixture-root-password >>"$monitor_log"
+if output="$(run_health 2>&1)"; then
+	echo 'health skipped a secret beyond 16 MiB in seafile-monitor.log' >&2
+	exit 1
+fi
+grep -F -- 'Seafile persistent log probe failed' <<<"$output" >/dev/null
+if grep -F -- fixture-root-password <<<"$output" >/dev/null; then
+	echo 'health exposed a secret from seafile-monitor.log' >&2
+	exit 1
+fi
+
+: >"$monitor_log"
+truncate -s 67108865 "$monitor_log"
+if run_health >/dev/null 2>&1; then
+	echo 'health accepted seafile-monitor.log above 64 MiB' >&2
+	exit 1
+fi
+rm -f "$monitor_log"
+
+other_log="$state/shared/seafile/logs/other.log"
+truncate -s 16777216 "$other_log"
+if run_health >/dev/null 2>&1; then
+	echo 'health accepted a non-monitor log above 16 MiB' >&2
+	exit 1
+fi
+rm -f "$other_log"
+
 : >"$calls"
 busy_output="$(STUB_LOCK_BUSY=1 run_health)"
 [ "$busy_output" = 'Seafile maintenance in progress' ]

@@ -893,22 +893,64 @@ test ! -L "$config_dir/seafile.conf"
 # Persistent secret residue is detected without printing the matching value.
 echo "runtime fixture: persistent secret scan"
 run_reconciler
-mkdir -p "$runtime_state/shared/logs"
-oversized_pattern="$runtime_root/oversized-pattern"
-grep '^JWT_PRIVATE_KEY=' "$runtime_source" | cut -d= -f2- >"$oversized_pattern"
-oversized_log="$runtime_state/shared/logs/oversized.log"
-cp "$oversized_pattern" "$oversized_log"
-truncate -s 16777216 "$oversized_log"
-oversized_output="$runtime_root/oversized-output"
-if run_reconciler >"$oversized_output" 2>&1; then
-	echo "reconciler silently skipped an oversized persistent log" >&2
+mkdir -p "$runtime_state/shared/logs" "$runtime_state/shared/seafile/logs"
+persistent_pattern="$runtime_root/persistent-pattern"
+grep '^JWT_PRIVATE_KEY=' "$runtime_source" | cut -d= -f2- >"$persistent_pattern"
+monitor_log="$runtime_state/shared/seafile/logs/seafile-monitor.log"
+
+# The pinned image leaves this exact sparse monitor log outside its own
+# rotation policy. Reconciliation scans it completely through 64 MiB.
+truncate -s 56623104 "$monitor_log"
+run_reconciler
+
+cat "$persistent_pattern" >>"$monitor_log"
+monitor_secret_output="$runtime_root/monitor-secret-output"
+if run_reconciler >"$monitor_secret_output" 2>&1; then
+	echo "reconciler skipped a secret beyond 16 MiB in seafile-monitor.log" >&2
 	exit 1
 fi
-if grep -F -f "$oversized_pattern" "$oversized_output" >/dev/null; then
-	echo "reconciler exposed content from an oversized persistent log" >&2
+grep -F 'persistent configuration contains sensitive runtime material' \
+	"$monitor_secret_output" >/dev/null
+if grep -F -f "$persistent_pattern" "$monitor_secret_output" >/dev/null; then
+	echo "reconciler exposed a secret from seafile-monitor.log" >&2
 	exit 1
 fi
-rm "$oversized_log"
+
+: >"$monitor_log"
+truncate -s 67108865 "$monitor_log"
+monitor_oversized_output="$runtime_root/monitor-oversized-output"
+if run_reconciler >"$monitor_oversized_output" 2>&1; then
+	echo "reconciler accepted seafile-monitor.log above 64 MiB" >&2
+	exit 1
+fi
+grep -F 'persistent log tree contains an oversized file' \
+	"$monitor_oversized_output" >/dev/null
+rm "$monitor_log"
+
+other_log="$runtime_state/shared/seafile/logs/other.log"
+truncate -s 16777216 "$other_log"
+other_oversized_output="$runtime_root/other-oversized-output"
+if run_reconciler >"$other_oversized_output" 2>&1; then
+	echo "reconciler accepted a non-monitor log above 16 MiB" >&2
+	exit 1
+fi
+grep -F 'persistent log tree contains an oversized file' \
+	"$other_oversized_output" >/dev/null
+rm "$other_log"
+
+unreadable_log="$runtime_state/shared/seafile/logs/unreadable.log"
+printf '%s\n' harmless >"$unreadable_log"
+chmod 000 "$unreadable_log"
+unreadable_output="$runtime_root/unreadable-output"
+if run_reconciler >"$unreadable_output" 2>&1; then
+	chmod 0600 "$unreadable_log"
+	echo "reconciler accepted an unreadable persistent log" >&2
+	exit 1
+fi
+chmod 0600 "$unreadable_log"
+grep -F 'persistent configuration could not be scanned' \
+	"$unreadable_output" >/dev/null
+rm "$unreadable_log"
 
 secret_residue="$runtime_state/shared/foreign.conf"
 grep '^JWT_PRIVATE_KEY=' "$runtime_source" | cut -d= -f2- >"$secret_residue"
@@ -1089,6 +1131,13 @@ if [ "$1" = compose ]; then
       printf '13.0.25\n' >"$STUB_STACK_STATE/shared/seafile/seafile-data/current_version"
     fi
   done
+  if [ "${STUB_CREATE_UNREADABLE_LOG:-0}" = 1 ] \
+    && [[ " $* " == *" --wait "* ]] \
+    && [ ! -e "$STUB_STACK_STATE/shared/seafile/logs/unreadable.log" ]; then
+    mkdir -p "$STUB_STACK_STATE/shared/seafile/logs"
+    printf '%s\n' harmless >"$STUB_STACK_STATE/shared/seafile/logs/unreadable.log"
+    chmod 000 "$STUB_STACK_STATE/shared/seafile/logs/unreadable.log"
+  fi
   exit 0
 fi
 case "$1" in
@@ -1140,6 +1189,9 @@ case "$1" in
       keys="${STUB_INSPECT_ENV_KEYS:-}"
       if [ "${*: -1}" = seafile ]; then
         keys="$keys INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD"
+        if [ "${STUB_SEAFILE_LOG_TO_STDOUT+x}" = x ]; then
+          keys="$keys SEAFILE_LOG_TO_STDOUT=$STUB_SEAFILE_LOG_TO_STDOUT"
+        fi
       fi
       if [ "${*: -1}" = seafile-seasearch ]; then
         keys="$keys SS_FIRST_ADMIN_USER SS_FIRST_ADMIN_PASSWORD"
@@ -1166,8 +1218,10 @@ EOF
 	export STUB_STACK_LOCK="$stack_lock"
 	export STUB_PROJECT_CONTAINERS=""
 	export STUB_INSPECT_ENV_KEYS=""
+	export STUB_SEAFILE_LOG_TO_STDOUT=true
 	export STUB_SYSTEMD_ACTIVE=0
 	unset STUB_CAPTURE_MAX_BYTES STUB_DOCKER_LOG_CONTENT STUB_DOCKER_LOG_PAD_BYTES \
+		STUB_CREATE_UNREADABLE_LOG \
 		STUB_FAIL_AUTO_DEPS STUB_FAIL_FINAL_LEAVES_RUNNING STUB_FAIL_RESTORE \
 		STUB_FAIL_STAGE STUB_FAIL_FINAL_ONCE \
 		STUB_JOURNAL_CONTENT STUB_JOURNAL_PAD_BYTES STUB_OUTER_TIMEOUT \
@@ -1215,6 +1269,35 @@ for managed in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf
 done
 grep -F -- '--force-recreate database seasearch' "$stack_log" >/dev/null
 grep -F -- '--env-file '"$stack_host/compose.environment" "$stack_log" >/dev/null
+
+# Final verification requires the exact stdout setting from the live Seafile
+# container, not merely the presence of its environment key.
+for stdout_state in false missing; do
+	reset_stack_fixture
+	printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+	if [ "$stdout_state" = missing ]; then
+		unset STUB_SEAFILE_LOG_TO_STDOUT
+	else
+		export STUB_SEAFILE_LOG_TO_STDOUT=false
+	fi
+	stdout_output="$stack_root/stdout-$stdout_state-output"
+	if run_stack_helper start >"$stdout_output" 2>&1; then
+		echo "stack accepted SEAFILE_LOG_TO_STDOUT=$stdout_state" >&2
+		exit 1
+	fi
+done
+
+reset_stack_fixture
+printf '13.0.25\n' >"$stack_state/shared/seafile/seafile-data/current_version"
+export STUB_CREATE_UNREADABLE_LOG=1
+unreadable_stack_output="$stack_root/unreadable-stack-output"
+if run_stack_helper start >"$unreadable_stack_output" 2>&1; then
+	chmod 0600 "$stack_state/shared/seafile/logs/unreadable.log"
+	echo "stack accepted an unreadable persistent log" >&2
+	exit 1
+fi
+chmod 0600 "$stack_state/shared/seafile/logs/unreadable.log"
+grep -F 'persistent log could not be scanned' "$unreadable_stack_output" >/dev/null
 
 # Rollback restores an exact running set without Compose dependency traversal.
 # With only Seafile running on entry, MariaDB and Redis remain stopped.

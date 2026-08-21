@@ -292,7 +292,12 @@ let
             unsafe_count="$({ timeout 30 find "$log_tree" -mindepth 1 ! -type d ! -type f -printf . | wc -c; } 2>/dev/null)" \
               || fail_maintenance "persistent log"
             [ "$unsafe_count" -eq 0 ] || fail_maintenance "persistent log"
-            oversized_count="$({ timeout 30 find "$log_tree" -type f -size +16777215c -printf . | wc -c; } 2>/dev/null)" \
+            oversized_count="$({
+              timeout 30 find "$log_tree" -type f \
+                \( \( -path "$state_dir/shared/seafile/logs/seafile-monitor.log" -size +67108864c \) \
+                  -o \( ! -path "$state_dir/shared/seafile/logs/seafile-monitor.log" -size +16777215c \) \) \
+                -printf . | wc -c
+            } 2>/dev/null)" \
               || fail_maintenance "persistent log"
             [ "$oversized_count" -eq 0 ] || fail_maintenance "persistent log"
             while IFS= read -r -d "" candidate; do
