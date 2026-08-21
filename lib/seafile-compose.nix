@@ -238,7 +238,7 @@ let
         healthcheck = {
           test = [
             "CMD-SHELL"
-            "curl --fail --silent http://127.0.0.1:80/ >/dev/null"
+            "pgrep -f '[s]eafevents.main' >/dev/null && curl --fail --silent http://127.0.0.1:80/ >/dev/null"
           ];
           interval = "30s";
           timeout = "10s";

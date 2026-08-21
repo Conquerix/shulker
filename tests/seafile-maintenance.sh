@@ -35,6 +35,7 @@ state="$root/state"
 runtime_host="$root/run-host"
 runtime_app="$root/run-app"
 runtime_metadata="$root/run-metadata"
+runtime_container=/run/seafile
 lock="$root/maintenance.lock"
 calls="$root/calls"
 mkdir -p "$bin" "$state/shared/logs" "$state/shared/seafile/logs" \
@@ -80,13 +81,13 @@ for name in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; d
 	[ "$name" != .env ] || target=seafile.env
 	: >"$runtime_app/$target"
 	chmod 0444 "$runtime_app/$target"
-	ln -s "$runtime_app/$target" "$state/shared/seafile/conf/$name"
+	ln -s "$runtime_container/$target" "$state/shared/seafile/conf/$name"
 done
 chmod 0600 "$runtime_app/seafevents.conf"
 cat >"$runtime_app/seafevents.conf" <<'EOF'
 [SEASEARCH]
 enabled = true
-authorization = Basic Zml4dHVyZS1zZWFyY2gtdXNlcjpmaXh0dXJlLXNlYXJjaC1wYXNzd29yZA==
+seasearch_token = Zml4dHVyZS1zZWFyY2gtdXNlcjpmaXh0dXJlLXNlYXJjaC1wYXNzd29yZA==
 EOF
 chmod 0400 "$runtime_app/seafevents.conf"
 : >"$runtime_metadata/seafile.conf"
@@ -160,6 +161,9 @@ if [ "${1:-}" = exec ]; then
 		*' seafile '*curl*)
 			[ "${STUB_FAIL:-}" != seasearch ] || exit 1
 			printf '%s\n' '{}'
+			;;
+		*' seafile '*pgrep*'[s]eafevents.main'*)
+			[ "${STUB_FAIL:-}" != seafevents ] || exit 1
 			;;
 		*' seafile-notification '*curl*)
 			[ "${STUB_FAIL:-}" != notification-internal ] || exit 1
@@ -399,6 +403,7 @@ run_health() {
 		SEAFILE_STATE_DIR="$state" \
 		SEAFILE_HOST_DIR="$runtime_host" \
 		SEAFILE_APP_DIR="$runtime_app" \
+		SEAFILE_CONTAINER_CONFIG_DIR="$runtime_container" \
 		SEAFILE_METADATA_DIR="$runtime_metadata" \
 		SEAFILE_EXPECTED_OWNER="$expected_owner" \
 		SEAFILE_MAINTENANCE_LOCK="$lock" \
@@ -474,6 +479,7 @@ expect_failure compose 'Seafile does not have exactly seven running Compose serv
 expect_failure sql 'Seafile SQL probe failed'
 expect_failure redis 'Seafile Redis probe failed'
 expect_failure seafile 'Seafile HTTP probe failed'
+expect_failure seafevents 'Seafile events worker probe failed'
 expect_failure notification 'Seafile Notification probe failed'
 expect_failure notification-body 'Seafile Notification probe failed'
 expect_failure seasearch 'Seafile SeaSearch probe failed'
@@ -484,6 +490,7 @@ expect_failure dataset 'Seafile dataset probe failed'
 : >"$calls"
 run_health >/dev/null
 grep -F 'curl --fail --silent --show-error --max-time 10 http://127.0.0.1:23241/ping' "$calls" >/dev/null
+grep -F "docker exec seafile pgrep -f [s]eafevents.main" "$calls" >/dev/null
 if grep -F 'docker exec seafile-notification curl' "$calls" >/dev/null; then
 	echo 'health used an unavailable in-container Notification curl probe' >&2
 	exit 1
@@ -507,6 +514,16 @@ for value in \
 	fi
 done
 
+rm "$state/shared/seafile/conf/seafile.conf"
+ln -s "$runtime_app/seafile.conf" "$state/shared/seafile/conf/seafile.conf"
+if output="$(run_health 2>&1)"; then
+	echo 'health accepted a persistent link to the host runtime namespace' >&2
+	exit 1
+fi
+grep -F -- 'Seafile runtime configuration probe failed' <<<"$output" >/dev/null
+rm "$state/shared/seafile/conf/seafile.conf"
+ln -s "$runtime_container/seafile.conf" "$state/shared/seafile/conf/seafile.conf"
+
 cp "$runtime_app/seafevents.conf" "$runtime_app/seafevents.conf.saved"
 chmod 0600 "$runtime_app/seafevents.conf"
 : >"$runtime_app/seafevents.conf"
@@ -516,7 +533,7 @@ mv -f "$runtime_app/seafevents.conf.saved" "$runtime_app/seafevents.conf"
 
 cp "$runtime_app/seafevents.conf" "$runtime_app/seafevents.conf.saved"
 chmod 0600 "$runtime_app/seafevents.conf"
-printf '%s\n' 'authorization = Basic %%%' >"$runtime_app/seafevents.conf"
+printf '%s\n' 'seasearch_token = %%%' >"$runtime_app/seafevents.conf"
 chmod 0400 "$runtime_app/seafevents.conf"
 expect_search_auth_failure malformed
 mv -f "$runtime_app/seafevents.conf.saved" "$runtime_app/seafevents.conf"
@@ -524,7 +541,7 @@ mv -f "$runtime_app/seafevents.conf.saved" "$runtime_app/seafevents.conf"
 cp "$runtime_app/seafevents.conf" "$runtime_app/seafevents.conf.saved"
 chmod 0600 "$runtime_app/seafevents.conf"
 printf '%s\n' \
-	'authorization = Basic Zml4dHVyZS1zZWFyY2gtdXNlcjpmaXh0dXJlLXNlYXJjaC1wYXNzd29yZA==' \
+	'seasearch_token = Zml4dHVyZS1zZWFyY2gtdXNlcjpmaXh0dXJlLXNlYXJjaC1wYXNzd29yZA==' \
 	>>"$runtime_app/seafevents.conf"
 chmod 0400 "$runtime_app/seafevents.conf"
 expect_search_auth_failure duplicate

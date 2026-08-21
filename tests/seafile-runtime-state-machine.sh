@@ -587,6 +587,7 @@ runtime_state="$runtime_root/state"
 runtime_host="$runtime_root/run-host"
 runtime_app="$runtime_root/run-app"
 runtime_metadata="$runtime_root/run-metadata"
+runtime_container="$runtime_root/container-config"
 runtime_lock="$runtime_root/maintenance.lock"
 runtime_source="$runtime_root/source.env"
 runtime_stub_dir="$runtime_root/bin"
@@ -647,7 +648,7 @@ run_reconciler() {
 		--source "$runtime_source" \
 		--app-dir "$runtime_app" \
 		--state-dir "$runtime_state" \
-		--container-config-dir "$runtime_app" \
+		--container-config-dir "$runtime_container" \
 		--lock-file "$runtime_lock" \
 		--lock-timeout 0 \
 		--wait-timeout 0
@@ -732,7 +733,13 @@ assert_environment_separation() {
 	grep -F -- 'os.environ["SEAFILE_OAUTH_CLIENT_SECRET"]' "$runtime_app/seahub_settings.py" >/dev/null
 	grep -F -- '[SEASEARCH]' "$runtime_app/seafevents.conf" >/dev/null
 	grep -F -- 'enabled = true' "$runtime_app/seafevents.conf" >/dev/null
-	grep -F -- 'url = http://seafile-seasearch:4080' "$runtime_app/seafevents.conf" >/dev/null
+	grep -F -- 'seasearch_url = http://seafile-seasearch:4080' "$runtime_app/seafevents.conf" >/dev/null
+	grep -F -x -- 'seasearch_token = c2Vhc2VhcmNoLWFkbWluQTpTZWFTZWFyY2hQYXNzd29yZDAxMjM0NTY3ODlhYmNkZWYwQQ==' \
+		"$runtime_app/seafevents.conf" >/dev/null
+	if grep -E '^(url|authorization) = ' "$runtime_app/seafevents.conf" >/dev/null; then
+		echo 'renderer emitted unsupported SeaSearch configuration keys' >&2
+		exit 1
+	fi
 	grep -F -- 'interval = 600' "$runtime_app/seafevents.conf" >/dev/null
 	grep -F -- 'index_office_pdf = true' "$runtime_app/seafevents.conf" >/dev/null
 	grep -F -- '[INDEX FILES]' "$runtime_app/seafevents.conf" >/dev/null
@@ -859,7 +866,8 @@ run_reconciler
 for managed in .env seahub_settings.py seafevents.conf seafile.conf seafdav.conf; do
 	test -L "$config_dir/$managed"
 done
-test "$(readlink "$config_dir/.env")" = "$runtime_app/seafile.env"
+test "$(readlink "$config_dir/.env")" = "$runtime_container/seafile.env"
+test "$(readlink "$config_dir/seafevents.conf")" = "$runtime_container/seafevents.conf"
 run_reconciler
 
 # A foreign symlink, unsafe mode, or unexpected owner is never adopted.

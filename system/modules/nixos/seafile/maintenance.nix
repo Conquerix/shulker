@@ -37,11 +37,13 @@ let
     state_dir="''${SEAFILE_STATE_DIR:-${cfg.stateDir}}"
     host_dir="''${SEAFILE_HOST_DIR:-/run/seafile-host}"
     app_dir="''${SEAFILE_APP_DIR:-/run/seafile-app}"
+    container_config_dir="''${SEAFILE_CONTAINER_CONFIG_DIR:-/run/seafile}"
     metadata_dir="''${SEAFILE_METADATA_DIR:-/run/seafile-metadata}"
     lock_file="''${SEAFILE_MAINTENANCE_LOCK:-${maintenanceLock}}"
     environment_file="$host_dir/environment"
     : "$systemctl_command" "$docker_command" "$curl_command" "$flock_command" \
-      "$id_command" "$state_dir" "$host_dir" "$app_dir" "$metadata_dir" "$lock_file" \
+      "$id_command" "$state_dir" "$host_dir" "$app_dir" "$container_config_dir" \
+      "$metadata_dir" "$lock_file" \
       "$environment_file"
 
     fail_maintenance() {
@@ -117,21 +119,21 @@ let
     }
 
     load_search_token() {
-      local line authorization_count=0
+      local line token_count=0
       validate_protected_maintenance_file "$seafevents_file" 400 "SeaSearch credentials"
       search_token=
       while IFS= read -r line || [ -n "$line" ]; do
         case "$line" in
-          "authorization = Basic "*)
-            authorization_count="$((authorization_count + 1))"
-            search_token="''${line#authorization = Basic }"
+          "seasearch_token = "*)
+            token_count="$((token_count + 1))"
+            search_token="''${line#seasearch_token = }"
             [[ "$search_token" =~ ^[A-Za-z0-9+/]+={0,2}$ ]] \
               || fail_maintenance "SeaSearch credentials"
             ;;
-          authorization*) fail_maintenance "SeaSearch credentials" ;;
+          seasearch_token*) fail_maintenance "SeaSearch credentials" ;;
         esac
       done <"$seafevents_file"
-      [ "$authorization_count" -eq 1 ] \
+      [ "$token_count" -eq 1 ] \
         || fail_maintenance "SeaSearch credentials"
       printf '%s' "$search_token" | base64 --decode >/dev/null 2>&1 \
         || fail_maintenance "SeaSearch credentials"
@@ -240,6 +242,12 @@ let
         load_runtime_environment
         load_search_token
 
+        if ! "$docker_command" exec seafile pgrep -f '[s]eafevents.main' \
+          >/dev/null 2>&1
+        then
+          fail_maintenance "events worker"
+        fi
+
         export MYSQL_PWD="$SEAFILE_MYSQL_DB_PASSWORD"
         sql_result="$({
           "$docker_command" exec --env MYSQL_PWD seafile-mariadb \
@@ -314,7 +322,14 @@ let
 
         expected_owner="''${SEAFILE_EXPECTED_OWNER:-0:0}"
         config_dir="$state_dir/shared/seafile/conf"
-        declare -A expected_targets=(
+        declare -A expected_link_targets=(
+          [.env]="$container_config_dir/seafile.env"
+          [seahub_settings.py]="$container_config_dir/seahub_settings.py"
+          [seafevents.conf]="$container_config_dir/seafevents.conf"
+          [seafile.conf]="$container_config_dir/seafile.conf"
+          [seafdav.conf]="$container_config_dir/seafdav.conf"
+        )
+        declare -A expected_host_targets=(
           [.env]="$app_dir/seafile.env"
           [seahub_settings.py]="$app_dir/seahub_settings.py"
           [seafevents.conf]="$app_dir/seafevents.conf"
@@ -324,16 +339,17 @@ let
         symlink_count=0
         while IFS= read -r -d "" linked; do
           name="''${linked##*/}"
-          [ "''${expected_targets[$name]+present}" = present ] || fail_maintenance "runtime configuration"
+          [ "''${expected_link_targets[$name]+present}" = present ] \
+            || fail_maintenance "runtime configuration"
           [ "$linked" = "$config_dir/$name" ] || fail_maintenance "runtime configuration"
-          [ "$(readlink "$linked")" = "''${expected_targets[$name]}" ] \
+          [ "$(readlink "$linked")" = "''${expected_link_targets[$name]}" ] \
             || fail_maintenance "runtime configuration"
           [ "$(stat --format '%u:%g' -- "$linked")" = "$expected_owner" ] \
             || fail_maintenance "runtime configuration"
           symlink_count="$((symlink_count + 1))"
         done < <(find "$config_dir" -mindepth 1 -maxdepth 1 -type l -print0)
         [ "$symlink_count" -eq 5 ] || fail_maintenance "runtime configuration"
-        for target in "''${expected_targets[@]}" "$metadata_dir/seafile.conf"; do
+        for target in "''${expected_host_targets[@]}" "$metadata_dir/seafile.conf"; do
           [ -f "$target" ] && [ ! -L "$target" ] || fail_maintenance "runtime configuration"
           case "$(stat --format '%a' -- "$target")" in
             400 | 440 | 444) ;;

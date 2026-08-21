@@ -398,10 +398,10 @@ let
         cat >"$seafevents" <<EOF
     [SEASEARCH]
     enabled = true
-    url = http://seafile-seasearch:4080
+    seasearch_url = http://seafile-seasearch:4080
     interval = 600
     index_office_pdf = true
-    authorization = Basic $basic_token
+    seasearch_token = $basic_token
 
     [INDEX FILES]
     enabled = false
@@ -434,6 +434,21 @@ let
           || fail_render "Compose environment has an unexpected key count"
         grep -F -x '[SEASEARCH]' "$seafevents" >/dev/null \
           || fail_render "SeaSearch configuration is incomplete"
+        grep -F -x 'seasearch_url = http://seafile-seasearch:4080' "$seafevents" >/dev/null \
+          || fail_render "SeaSearch URL configuration is incomplete"
+        rendered_search_token=
+        rendered_search_token_count=0
+        while IFS= read -r line || [ -n "$line" ]; do
+          case "$line" in
+            "seasearch_token = "*)
+              rendered_search_token_count="$((rendered_search_token_count + 1))"
+              rendered_search_token="''${line#seasearch_token = }"
+              ;;
+          esac
+        done <"$seafevents"
+        [ "$rendered_search_token_count" -eq 1 ] \
+          && [ "$rendered_search_token" = "$basic_token" ] \
+          || fail_render "SeaSearch token configuration is incomplete"
         grep -F -x '[INDEX FILES]' "$seafevents" >/dev/null \
           || fail_render "legacy index configuration is incomplete"
         grep -F -x 'enabled = false' "$seafevents" >/dev/null \

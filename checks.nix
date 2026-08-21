@@ -506,6 +506,11 @@ in
       ];
     assert services'.seafile.environment.SEAFILE_LOG_TO_STDOUT == "true";
     assert
+      services'.seafile.healthcheck.test == [
+        "CMD-SHELL"
+        "pgrep -f '[s]eafevents.main' >/dev/null && curl --fail --silent http://127.0.0.1:80/ >/dev/null"
+      ];
+    assert
       services'.onlyoffice.networks == [
         "seafile-net"
         "seafile-net-egress"
