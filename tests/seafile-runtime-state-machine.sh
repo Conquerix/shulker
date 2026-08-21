@@ -17,6 +17,7 @@ renderer="$2"
 reconciler="$3"
 compose_starter="$4"
 database_managed_owner="999:999"
+onlyoffice_managed_owner="101:102"
 
 fixture_root="$TMPDIR/seafile-state-fixture"
 state_dir="$fixture_root/state"
@@ -519,19 +520,43 @@ export STUB_STAT_OVERRIDE_OWNER="$database_managed_owner"
 export STUB_STAT_OVERRIDE_MODE="700"
 run_validator
 
-# No post-start OnlyOffice chown is proven, so every bind source remains root-owned.
-for managed_path in \
-	onlyoffice/logs \
-	onlyoffice/data \
-	onlyoffice/lib; do
-	reset_state
-	run_validator --initialize
-	export STUB_STAT_OVERRIDE_PATH="$state_dir/$managed_path"
-	export STUB_STAT_OVERRIDE_OWNER="0:0"
-	run_validator
-	export STUB_STAT_OVERRIDE_OWNER="4242:4242"
-	expect_failure run_validator
-done
+# The pinned OnlyOffice image retains its log root but assigns the exact data
+# and library bind roots to its ds service account with distinct safe modes.
+reset_state
+run_validator --initialize
+export STUB_STAT_OVERRIDE_PATH="$state_dir/onlyoffice/logs"
+export STUB_STAT_OVERRIDE_OWNER="0:0"
+export STUB_STAT_OVERRIDE_MODE="750"
+run_validator
+export STUB_STAT_OVERRIDE_OWNER="$onlyoffice_managed_owner"
+expect_failure run_validator
+
+reset_state
+run_validator --initialize
+export STUB_STAT_OVERRIDE_PATH="$state_dir/onlyoffice/data"
+export STUB_STAT_OVERRIDE_OWNER="$onlyoffice_managed_owner"
+export STUB_STAT_OVERRIDE_MODE="750"
+run_validator
+export STUB_STAT_OVERRIDE_OWNER="4242:4242"
+expect_failure run_validator
+export STUB_STAT_OVERRIDE_OWNER="$onlyoffice_managed_owner"
+export STUB_STAT_OVERRIDE_MODE="755"
+expect_failure run_validator
+
+reset_state
+run_validator --initialize
+export STUB_STAT_OVERRIDE_PATH="$state_dir/onlyoffice/lib"
+export STUB_STAT_OVERRIDE_OWNER="$onlyoffice_managed_owner"
+export STUB_STAT_OVERRIDE_MODE="755"
+run_validator
+export STUB_STAT_OVERRIDE_OWNER="4242:4242"
+expect_failure run_validator
+export STUB_STAT_OVERRIDE_OWNER="$onlyoffice_managed_owner"
+export STUB_STAT_OVERRIDE_MODE="750"
+expect_failure run_validator
+export STUB_STAT_OVERRIDE_OWNER="0:0"
+export STUB_STAT_OVERRIDE_MODE="755"
+expect_failure run_validator
 
 # The mount and every required ZFS invariant are checked independently.
 reset_state

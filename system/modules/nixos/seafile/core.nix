@@ -419,6 +419,7 @@ let
       local relative_path="$1"
       local expected_mode="$2"
       local allowed_managed_owner="''${3:-}"
+      local allowed_managed_mode="''${4:-$expected_mode}"
       local path="$state_dir/$relative_path"
       local actual_owner actual_mode
 
@@ -426,15 +427,17 @@ let
         || fail_state "$relative_path is missing, symlinked, or not a directory"
 
       actual_owner="$(stat --format %u:%g -- "$path")"
-      if [ "$actual_owner" != 0:0 ] \
-        && { [ -z "$allowed_managed_owner" ] || [ "$actual_owner" != "$allowed_managed_owner" ]; }
-      then
+      actual_mode="$(stat --format %a -- "$path")"
+      if [ "$actual_owner" = 0:0 ]; then
+        [ "$actual_mode" = "$expected_mode" ] \
+          || fail_state "$relative_path has an unsafe or unexpected mode"
+      elif [ -n "$allowed_managed_owner" ] \
+        && [ "$actual_owner" = "$allowed_managed_owner" ]; then
+        [ "$actual_mode" = "$allowed_managed_mode" ] \
+          || fail_state "$relative_path has an unsafe or unexpected managed mode"
+      else
         fail_state "$relative_path has an unexpected owner or group"
       fi
-
-      actual_mode="$(stat --format %a -- "$path")"
-      [ "$actual_mode" = "$expected_mode" ] \
-        || fail_state "$relative_path has an unsafe or unexpected mode"
     }
 
     validate_path shared 750
@@ -442,8 +445,8 @@ let
     validate_path search 750
     validate_path onlyoffice 750
     validate_path onlyoffice/logs 750
-    validate_path onlyoffice/data 750
-    validate_path onlyoffice/lib 750
+    validate_path onlyoffice/data 750 101:102 750
+    validate_path onlyoffice/lib 750 101:102 755
     validate_path backups 700
     validate_path control 700
 
