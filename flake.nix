@@ -220,6 +220,7 @@
             data = infrastructureData;
             inherit infrastructureDiagram;
             inherit lib pkgs;
+            wikiSourceDir = ./docs/wiki;
           };
         }
         // lib.optionalAttrs pkgs.stdenv.isLinux {

@@ -3,6 +3,7 @@
   infrastructureDiagram,
   lib,
   pkgs,
+  wikiSourceDir,
 }:
 
 let
@@ -253,13 +254,12 @@ let
 
     | Page | Use it for |
     | --- | --- |
-    | [Fleet](Fleet) | Every managed machine, role, platform, profile, and report |
-    | [Services](Services) | Service ownership, placement, endpoints, and dependencies |
-    | [Public services](Public-Services) | Sanitized Pangolin sites, domains, and published resources |
-    | [Infrastructure topology](Infrastructure) | Management and public-access diagrams |
-    | [Servers](Servers) | Detailed evaluated reports for server-profile hosts |
-    | [Operations](Operations) | Validation, deployment, health checks, backups, and rollback |
-    | [Automation](Automation) | Documentation pipeline and GitHub Actions routines |
+    | [Overview](Home) | This introduction and its source of truth |
+    | Infrastructure: [Fleet](Fleet), [Topology](Infrastructure), [Public services](Public-Services) | Fleet inventory, diagrams, and sanitized public routing |
+    | Hosts: [Servers](Servers) and generated host pages | Server index and evaluated per-host reports |
+    | Services: [catalog](Services) and [Hermes WebUI](Service-Hermes-WebUI), [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV), [Seafile](Service-Seafile), [OpenCloud](Service-OpenCloud), [Immich](Service-Immich), and [Paperless](Service-Paperless) runbooks | Service ownership, placement, and operations |
+    | Operations: [runbook](Operations), [Backup and restore](Operations-Backup-and-Restore), [Security and recovery](Operations-Security-and-Recovery), [Automation](Automation) | Safe changes, recovery, and publishing routines |
+    | Project: [Development](Project-Development) and [source repository](https://github.com/Conquerix/shulker) | Contribution workflow and declarative source |
 
     ## Source of truth
 
@@ -316,6 +316,15 @@ let
     ## Host coverage
 
     ${markdownTable [ "Host" "Services" ] serviceCoverageRows}
+
+    ## Service runbooks
+
+    - [Hermes WebUI](Service-Hermes-WebUI)
+    - [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV)
+    - [Seafile](Service-Seafile)
+    - [OpenCloud](Service-OpenCloud)
+    - [Immich](Service-Immich)
+    - [Paperless](Service-Paperless)
 
     ## Local component dependencies
 
@@ -425,6 +434,10 @@ let
     is separate and destructive; validate the extracted backup before changing
     a live database.
 
+    See [Backup and restore](Operations-Backup-and-Restore) for the detailed
+    runbook, and [Security and recovery](Operations-Security-and-Recovery) for
+    login and recovery controls.
+
     ## Rollback
 
     ```sh
@@ -476,6 +489,10 @@ let
     Pangolin enrichment uses repository variables `PANGOLIN_API_ENDPOINT` and
     `PANGOLIN_ORG_ID`, plus the secret `PANGOLIN_TOPOLOGY_API_KEY`. Secret values
     and raw API responses are never published.
+
+    [Development](Project-Development) covers the project workflow and the
+    [source repository](https://github.com/Conquerix/shulker) remains the
+    declarative source of truth.
   '';
 
   sidebar = ''
@@ -484,28 +501,38 @@ let
     - [Overview](Home)
     - **Infrastructure**
       - [Fleet](Fleet)
-      - [Services](Services)
-      - [Public services](Public-Services)
       - [Topology](Infrastructure)
-    - **Operations**
-      - [Runbook](Operations)
-      - [Automation](Automation)
-    - **Host reports**
-      - _Servers_
+      - [Public services](Public-Services)
+    - **Hosts**
+      - [Servers](Servers)
+      - _Generated host pages_
     ${concatMapStringsSep "\n" (host: "    - [${host.name}](Host-${host.name})") serverHosts}
-      - _Other hosts_
     ${concatMapStringsSep "\n" (host: "    - [${host.name}](Host-${host.name})") (
       desktopHosts ++ darwinHosts
     )}
-
-    [Source repository](https://github.com/Conquerix/shulker)
+    - **Services**
+      - [Catalog](Services)
+      - [Hermes WebUI](Service-Hermes-WebUI)
+      - [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV)
+      - [Seafile](Service-Seafile)
+      - [OpenCloud](Service-OpenCloud)
+      - [Immich](Service-Immich)
+      - [Paperless](Service-Paperless)
+    - **Operations**
+      - [Runbook](Operations)
+      - [Backup and restore](Operations-Backup-and-Restore)
+      - [Security and recovery](Operations-Security-and-Recovery)
+      - [Automation](Automation)
+    - **Project**
+      - [Development](Project-Development)
+      - [Source repository](https://github.com/Conquerix/shulker)
   '';
 
   footer = ''
     Generated from [Conquerix/shulker](https://github.com/Conquerix/shulker) at ${revisionText}. Pangolin snapshot: ${collectionText}.
   '';
 
-  files = {
+  generatedPages = {
     "Home.md" = pkgs.writeText "Home.md" home;
     "Fleet.md" = pkgs.writeText "Fleet.md" fleet;
     "Servers.md" = pkgs.writeText "Servers.md" servers;
@@ -513,15 +540,34 @@ let
     "Public-Services.md" = pkgs.writeText "Public-Services.md" publicServices;
     "Operations.md" = pkgs.writeText "Operations.md" operations;
     "Automation.md" = pkgs.writeText "Automation.md" automation;
+    "Infrastructure.md" = infrastructureDiagram + "/Infrastructure.md";
     "_Sidebar.md" = pkgs.writeText "_Sidebar.md" sidebar;
     "_Footer.md" = pkgs.writeText "_Footer.md" footer;
   };
+
+  authoredPages = {
+    "Service-Hermes-WebUI.md" = wikiSourceDir + "/services/hermes-webui.md";
+    "Service-GrapheneOS-WebDAV.md" = wikiSourceDir + "/services/grapheneos-webdav.md";
+    "Service-Seafile.md" = wikiSourceDir + "/services/seafile.md";
+    "Service-OpenCloud.md" = wikiSourceDir + "/services/opencloud.md";
+    "Service-Immich.md" = wikiSourceDir + "/services/immich.md";
+    "Service-Paperless.md" = wikiSourceDir + "/services/paperless.md";
+    "Operations-Backup-and-Restore.md" = wikiSourceDir + "/operations/backup-and-restore.md";
+    "Operations-Security-and-Recovery.md" = wikiSourceDir + "/operations/security-and-recovery.md";
+    "Project-Development.md" = wikiSourceDir + "/project/development.md";
+  };
+
+  reservedPageNames = builtins.attrNames generatedPages;
+  authoredPageNames = builtins.attrNames authoredPages;
+  pages = generatedPages // authoredPages;
+  pageNames = sort builtins.lessThan (builtins.attrNames pages);
+  pageManifest = pkgs.writeText "wiki-pages.txt" (concatStringsSep "\n" pageNames + "\n");
 in
+assert lib.intersectLists reservedPageNames authoredPageNames == [ ];
+assert lib.all (name: !lib.hasPrefix "Host-" name) authoredPageNames;
 pkgs.runCommand "wiki-docs" { } ''
   mkdir -p "$out"
-  ${concatMapStringsSep "\n" (name: "cp ${files.${name}} \"$out/${name}\"") (
-    builtins.attrNames files
-  )}
-  cp ${infrastructureDiagram}/Infrastructure.md "$out/Infrastructure.md"
+  ${concatMapStringsSep "\n" (name: "cp ${pages.${name}} \"$out/${name}\"") pageNames}
+  cp ${pageManifest} "$out/wiki-pages.txt"
   cp ${infrastructureDiagram}/infrastructure.json "$out/infrastructure.json"
 ''
