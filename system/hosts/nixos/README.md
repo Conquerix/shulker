@@ -27,13 +27,19 @@ nix build .#server-docs
 ls result/*.md
 ```
 
-Build the aggregate Wiki navigation, fleet and service catalogs, public-service
-inventory, diagrams, and runbooks with:
+Build the aggregate non-host Wiki output with:
 
 ```sh
 nix build .#wiki-docs
 ls result/*.md
 ```
+
+`wiki-docs` combines the reviewed authored pages under `docs/wiki/` with
+evaluated navigation, fleet and service catalogs, public-service inventory,
+diagrams, operations, and automation pages. The `docs/wiki/` tree is the source
+boundary for hand-maintained runbooks; generated pages and host reports do not
+belong there. `host-docs` remains a separate evaluated output that the Wiki
+publisher merges with this non-host bundle.
 
 The generator lives in [`lib/server-docs.nix`](../../../lib/server-docs.nix).
 It derives enabled profiles and modules, service endpoints, firewall and

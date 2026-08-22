@@ -730,8 +730,8 @@ let
           ```
 
           Immich's off-host backup source is `${immichSnapshotPath}`. Follow the
-          repository README for the guarded bootstrap and disposable restore
-          rehearsal.
+          [Immich service Wiki](https://github.com/Conquerix/shulker/wiki/Service-Immich)
+          for the guarded bootstrap and disposable restore rehearsal.
         ''
       else
         ""
@@ -758,9 +758,10 @@ let
           uses Pocket ID; exactly one password-capable native break-glass
           administrator is retained; Pangolin-authenticated /admin protects
           recovery; and administrator-only public /share bearer links are enabled.
-          The scanner listener remains intentionally disabled. Follow the repository
-          README for bootstrap, Fastmail routing, path-rule ordering, and isolated
-          restore rehearsal.
+          The scanner listener remains intentionally disabled. Follow the
+          [Paperless service Wiki](https://github.com/Conquerix/shulker/wiki/Service-Paperless)
+          for bootstrap, Fastmail routing, path-rule ordering, and isolated restore
+          rehearsal.
         ''
       else
         ""
@@ -806,9 +807,10 @@ let
           off-host Borg sources are `${builtins.elemAt seafileBackupSources 0}`
           and `${builtins.elemAt seafileBackupSources 1}`. Restore helpers do not
           restore data automatically and preserve the restored target after
-          teardown. Follow the repository README for dataset setup, routing,
-          bootstrap, backup ordering, archive extraction, restore rehearsal,
-          acceptance, and the OpenCloud rollback gate.
+          teardown. Follow the
+          [Seafile service Wiki](https://github.com/Conquerix/shulker/wiki/Service-Seafile)
+          for dataset setup, routing, bootstrap, backup ordering, archive extraction,
+          restore rehearsal, acceptance, and the OpenCloud rollback gate.
         ''
       else
         ""

@@ -1,9 +1,16 @@
 # Agent instructions
 
-Read [`README.md`](README.md) before making changes. It is the source of truth
-for the repository layout, operating and recovery model, validation commands,
-maintenance conventions, generated documentation, and automation. Follow the
-more specific README files linked from it when working in those areas.
+Read [`README.md`](README.md) before making changes. It is the repository entry
+point and summarizes the layout, operating model, and safety boundaries.
+
+## Documentation routing
+
+- Service runbooks: [`docs/wiki/services/`](docs/wiki/services/)
+- Security and recovery: [`docs/wiki/operations/security-and-recovery.md`](docs/wiki/operations/security-and-recovery.md)
+- Backup and restore: [`docs/wiki/operations/backup-and-restore.md`](docs/wiki/operations/backup-and-restore.md)
+- Development and validation: [`docs/wiki/project/development.md`](docs/wiki/project/development.md)
+- Evaluated host documentation: [`system/hosts/nixos/README.md`](system/hosts/nixos/README.md)
+- Automation and Wiki publication: [`.github/README.md`](.github/README.md)
 
 ## Agent behavior
 
