@@ -1,11 +1,18 @@
 # Shulker
 
-Personal, flake-based Nix configuration for NixOS and nix-darwin. It manages
-hosts, reusable system profiles and services, Home Manager configuration, and
-1Password-backed secrets.
+## What this repository is
 
-This repository is tailored to Conquerix's machines. Treat it as a reference,
-not a drop-in configuration.
+Shulker is the infrastructure-as-code source of truth for Conquerix's personal
+fleet: eight NixOS machines and one macOS machine managed with nix-darwin. A
+single Nix flake declares their operating systems, hardware-specific settings,
+packages, user environments, desktop and gaming roles, and self-hosted services.
+
+The repository also contains reusable modules and profiles, Home Manager
+configuration, 1Password-backed secret wiring, deployment validation,
+automation, and backup and recovery runbooks. Its purpose is to make the fleet
+reproducible and its services operable from one reviewed configuration. It is
+personal infrastructure rather than an application or reusable Nix
+distribution, so treat it as a reference rather than a drop-in configuration.
 
 ## Layout and hosts
 
