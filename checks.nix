@@ -67,6 +67,34 @@ let
   infrastructureData = self.packages.${system}.infrastructure-data;
   infrastructureDiagram = self.packages.${system}.infrastructure-diagram;
   wikiDocs = self.packages.${system}.wiki-docs;
+  wikiSyncWardenReport = pkgs.writeTextDir "warden.md" "# Warden\n";
+  wikiSyncDecoyReport = pkgs.writeTextDir "shulker.md" "# Shulker\n";
+  wikiSyncWardenReportName = builtins.baseNameOf (toString wikiSyncWardenReport);
+  wikiSyncWrongOutputName = pkgs.runCommand "not-host-docs" { } ''
+    mkdir "$out"
+    ln -s ${wikiSyncWardenReport}/warden.md "$out/warden.md"
+  '';
+  wikiSyncMismatchedReport = pkgs.runCommand "host-docs" { } ''
+    mkdir "$out"
+    ln -s ${wikiSyncDecoyReport}/shulker.md "$out/warden.md"
+  '';
+  wikiSyncNoncanonicalReport = pkgs.runCommand "host-docs" { } ''
+    mkdir "$out"
+    ln -s ${wikiSyncWardenReport}/../${wikiSyncWardenReportName}/warden.md "$out/warden.md"
+  '';
+  wikiSyncEscapingReport = pkgs.runCommand "host-docs" { } ''
+    mkdir "$out"
+    ln -s /etc/passwd "$out/warden.md"
+  '';
+  wikiSyncRelativeReport = pkgs.runCommand "host-docs" { } ''
+    mkdir "$out"
+    ln -s ../${wikiSyncWardenReportName}/warden.md "$out/warden.md"
+  '';
+  wikiSyncLineBreakReport = pkgs.runCommand "host-docs" { } ''
+    mkdir "$out"
+    report_target=${wikiSyncWardenReport}/warden.md
+    ln -s "$report_target"$'\r\n' "$out/warden.md"
+  '';
 in
 {
 
@@ -404,7 +432,15 @@ in
         ];
       }
       ''
-        bash ${./tests/wiki-sync.sh} ${./scripts/sync-server-wiki.sh}
+        bash ${./tests/wiki-sync.sh} \
+          ${./scripts/sync-server-wiki.sh} \
+          ${self.packages.${system}.host-docs} \
+          ${wikiSyncWrongOutputName} \
+          ${wikiSyncMismatchedReport} \
+          ${wikiSyncNoncanonicalReport} \
+          ${wikiSyncEscapingReport} \
+          ${wikiSyncRelativeReport} \
+          ${wikiSyncLineBreakReport}
         touch "$out"
       '';
 

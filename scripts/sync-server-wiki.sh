@@ -24,46 +24,42 @@ if [ ! -d "$reports_dir" ]; then
 	exit 1
 fi
 
-# `host-docs` is a Nix out-link to a symlinkJoin. Only that top-level link
-# enables child report links, and their canonical targets stay in its store root.
-reports_source_dir="$reports_dir"
-reports_store_parent=""
-reports_link_farm=false
-if [ -L "$reports_dir" ]; then
-	if [ "$(readlink "$reports_dir" | wc -l | tr -d '[:space:]')" -ne 1 ]; then
-		echo "refusing unsafe generated reports out-link: $reports_dir" >&2
-		exit 1
-	fi
-	reports_link_target="$(readlink "$reports_dir")"
-	case "$reports_link_target" in
-	/*) ;;
-	*)
-		echo "refusing unsafe generated reports out-link: $reports_dir" >&2
-		exit 1
-		;;
-	esac
-	case "$reports_link_target" in
-	*$'\n'* | *$'\r'*)
-		echo "refusing unsafe generated reports out-link: $reports_dir" >&2
-		exit 1
-		;;
-	esac
-	if ! reports_source_dir="$(realpath "$reports_dir")" || [ ! -d "$reports_source_dir" ]; then
-		echo "refusing unsafe generated reports out-link: $reports_dir" >&2
-		exit 1
-	fi
-	case "$reports_source_dir" in
-	*$'\n'* | *$'\r'*)
-		echo "refusing unsafe generated reports out-link: $reports_dir" >&2
-		exit 1
-		;;
-	esac
-	reports_store_parent="$(dirname "$reports_source_dir")"
-	if [ "$reports_store_parent" = / ]; then
-		echo "refusing unsafe generated reports out-link: $reports_dir" >&2
-		exit 1
-	fi
-	reports_link_farm=true
+refuse_unsafe_reports_out_link() {
+	echo "refusing unsafe generated reports out-link: $reports_dir" >&2
+	exit 1
+}
+
+# The workflow passes an absolute out-link to the immutable `host-docs`
+# symlinkJoin. Accept only that exact, direct Nix store producer shape.
+case "$reports_dir" in
+/*) ;;
+*) refuse_unsafe_reports_out_link ;;
+esac
+if [ ! -L "$reports_dir" ]; then
+	refuse_unsafe_reports_out_link
+fi
+if [ "$(readlink "$reports_dir" | wc -l | tr -d '[:space:]')" -ne 1 ]; then
+	refuse_unsafe_reports_out_link
+fi
+reports_link_target="$(readlink "$reports_dir")"
+case "$reports_link_target" in
+/*) ;;
+*) refuse_unsafe_reports_out_link ;;
+esac
+case "$reports_link_target" in
+*$'\n'* | *$'\r'*) refuse_unsafe_reports_out_link ;;
+esac
+if ! reports_source_dir="$(realpath "$reports_dir")" || [ ! -d "$reports_source_dir" ]; then
+	refuse_unsafe_reports_out_link
+fi
+case "$reports_source_dir" in
+*$'\n'* | *$'\r'*) refuse_unsafe_reports_out_link ;;
+esac
+if [ "$reports_link_target" != "$reports_source_dir" ]; then
+	refuse_unsafe_reports_out_link
+fi
+if [[ ! $reports_source_dir =~ ^/nix/store/[0-9abcdfghijklmnpqrsvwxyz]{32}-host-docs$ ]]; then
+	refuse_unsafe_reports_out_link
 fi
 
 if [ ! -d "$wiki_dir/.git" ]; then
@@ -182,57 +178,53 @@ done <"$manifest_names"
 
 report_count=0
 for report in "$reports_source_dir"/*.md; do
-	if [ -L "$report" ]; then
-		report_name="$(basename "$report")"
-		report_display="$reports_dir/$report_name"
-		if [ "$reports_link_farm" != true ]; then
-			refuse_symlinked_host_report "$report_display"
-		fi
-		case "$report" in
-		*$'\n'* | *$'\r'*)
-			refuse_symlinked_host_report "$report_display"
-			;;
-		esac
-		if [ "$(readlink "$report" | wc -l | tr -d '[:space:]')" -ne 1 ]; then
-			refuse_symlinked_host_report "$report_display"
-		fi
-		report_link_target="$(readlink "$report")"
-		case "$report_link_target" in
-		/*) ;;
-		*) refuse_symlinked_host_report "$report_display" ;;
-		esac
-		case "$report_link_target" in
-		*$'\n'* | *$'\r'*)
-			refuse_symlinked_host_report "$report_display"
-			;;
-		esac
-		if ! resolved_report="$(realpath "$report")"; then
-			refuse_symlinked_host_report "$report_display"
-		fi
-		case "$resolved_report" in
-		*$'\n'* | *$'\r'*)
-			refuse_symlinked_host_report "$report_display"
-			;;
-		esac
-		if [ -L "$resolved_report" ] || [ ! -f "$resolved_report" ]; then
-			refuse_symlinked_host_report "$report_display"
-		fi
-		case "$resolved_report" in
-		"$reports_store_parent"/*) ;;
-		*) refuse_symlinked_host_report "$report_display" ;;
-		esac
-	fi
-
-	if [ ! -e "$report" ]; then
+	if [ ! -e "$report" ] && [ ! -L "$report" ]; then
 		continue
 	fi
 
-	report_count=$((report_count + 1))
-	host="$(basename "$report" .md)"
+	report_name="$(basename "$report")"
+	report_display="$reports_dir/$report_name"
+	host="${report_name%.md}"
 	if [[ ! $host =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]]; then
 		echo "invalid host report name: $report" >&2
 		exit 1
 	fi
+	if [ ! -L "$report" ]; then
+		refuse_symlinked_host_report "$report_display"
+	fi
+	case "$report" in
+	*$'\n'* | *$'\r'*) refuse_symlinked_host_report "$report_display" ;;
+	esac
+	if [ "$(readlink "$report" | wc -l | tr -d '[:space:]')" -ne 1 ]; then
+		refuse_symlinked_host_report "$report_display"
+	fi
+	report_link_target="$(readlink "$report")"
+	case "$report_link_target" in
+	/*) ;;
+	*) refuse_symlinked_host_report "$report_display" ;;
+	esac
+	case "$report_link_target" in
+	*$'\n'* | *$'\r'*) refuse_symlinked_host_report "$report_display" ;;
+	esac
+	if ! resolved_report="$(realpath "$report")"; then
+		refuse_symlinked_host_report "$report_display"
+	fi
+	case "$resolved_report" in
+	*$'\n'* | *$'\r'*) refuse_symlinked_host_report "$report_display" ;;
+	esac
+	if [ "$report_link_target" != "$resolved_report" ] ||
+		[ -L "$resolved_report" ] ||
+		[ ! -f "$resolved_report" ]; then
+		refuse_symlinked_host_report "$report_display"
+	fi
+	if [ "$(basename "$resolved_report")" != "$report_name" ]; then
+		refuse_symlinked_host_report "$report_display"
+	fi
+	if [[ ! $resolved_report =~ ^/nix/store/[0-9abcdfghijklmnpqrsvwxyz]{32}-${host}[.]md/${host}[.]md$ ]]; then
+		refuse_symlinked_host_report "$report_display"
+	fi
+
+	report_count=$((report_count + 1))
 	assert_managed_or_absent "$wiki_dir/Host-$host.md"
 	assert_no_legacy_staging_symlink "$wiki_dir/Host-$host.md"
 done
