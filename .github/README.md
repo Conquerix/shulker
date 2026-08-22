@@ -61,14 +61,30 @@ request, deploys, or mutates a host. The regular checks and flake-update validat
 the build-backed `seafile-contract-suite`; all live changes remain separate,
 reviewed operator actions.
 
-## Server Wiki
+## Repository Wiki
 
-[`workflows/wiki.yml`](workflows/wiki.yml) rebuilds the host reports after
-relevant changes reach the default branch, every Monday as a self-healing run,
-and on demand. It publishes these generated Wiki pages:
+[`workflows/wiki.yml`](workflows/wiki.yml) republishes the documentation after
+relevant configuration or `docs/wiki/**` changes reach the default branch,
+every Monday as a self-healing run, and on demand.
+
+The repository Wiki is publication output, not an authoring surface.
+
+Authored runbooks come from `docs/wiki/` and are copied to these flat Wiki
+filenames:
+
+- `Service-Hermes-WebUI.md`;
+- `Service-GrapheneOS-WebDAV.md`;
+- `Service-Seafile.md`;
+- `Service-OpenCloud.md`;
+- `Service-Immich.md`;
+- `Service-Paperless.md`;
+- `Operations-Backup-and-Restore.md`;
+- `Operations-Security-and-Recovery.md`;
+- `Project-Development.md`.
+
+Evaluated pages are built from Nix configuration and include:
 
 - `Servers.md`, the generated index;
-- `Host-<host>.md`, one evaluated report for every NixOS and nix-darwin host;
 - `Home.md`, `Fleet.md`, and `Services.md`, the fleet overview and service
   catalog;
 - `Public-Services.md` and `Infrastructure.md`, the sanitized Pangolin inventory
@@ -77,6 +93,13 @@ and on demand. It publishes these generated Wiki pages:
   pipeline;
 - `_Sidebar.md` and `_Footer.md`, persistent Wiki navigation and provenance.
 
+Host pages come from evaluated host reports: `Host-<host>.md` provides one
+report for every NixOS and nix-darwin host.
+
+`wiki-pages.txt` is the non-host page inventory. The three-input synchronizer
+uses that inventory together with the host-report directory to publish the
+complete owned page set.
+
 The synchronization script refuses to overwrite a page without its generated
 marker. The original minimal Shulker `Home.md` is recognized as a one-time
 migration source. Unrelated manual Wiki pages are preserved, and stale generated
@@ -84,7 +107,7 @@ pages are removed.
 
 The workflow uses its short-lived, repository-scoped `GITHUB_TOKEN` with
 `contents: write`; no long-lived Wiki credential is stored. Enable the repository
-Wiki, then run **Publish infrastructure Wiki** manually once and confirm the generated
+Wiki, then run **Publish repository Wiki** manually once and confirm the generated
 `Home` and `Fleet` pages.
 
 ### Pangolin topology enrichment

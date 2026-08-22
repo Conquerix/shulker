@@ -1,9 +1,10 @@
-name: Publish infrastructure Wiki
+name: Publish repository Wiki
 
 on:
   push:
     paths:
       - ".github/workflows/wiki.yml"
+      - "docs/wiki/**"
       - "flake.lock"
       - "flake.nix"
       - "lib/**"
@@ -68,7 +69,7 @@ jobs:
 
           git -C wiki config user.name "github-actions[bot]"
           git -C wiki config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C wiki commit -m "docs: update generated server reports"
+          git -C wiki commit -m "docs: publish repository Wiki"
 
           basic_auth="$(printf 'x-access-token:%s' "$WIKI_TOKEN" | base64 --wrap=0)"
           git -c http.extraheader="AUTHORIZATION: basic $basic_auth" -C wiki push origin HEAD

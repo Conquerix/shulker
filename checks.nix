@@ -86,6 +86,9 @@ in
         root_readme=${./README.md}
         agents=${./AGENTS.md}
         server_docs_source=${./lib/server-docs.nix}
+        wiki_workflow=${./.github/workflows/wiki.yml}
+        check_workflow=${./.github/workflows/check.yml}
+        automation_guide=${./.github/README.md}
 
         readme_lines="$(wc -l < "$root_readme")"
         if [ "$readme_lines" -ge 200 ]; then
@@ -109,6 +112,48 @@ in
         do
           grep -F -- "]($source)" "$root_readme" >/dev/null
         done
+
+        if ! grep -F -x -- 'name: Publish repository Wiki' "$wiki_workflow" >/dev/null; then
+          echo 'Wiki workflow name is not Publish repository Wiki' >&2
+          exit 1
+        fi
+        if ! grep -F -x -- '      - "docs/wiki/**"' "$wiki_workflow" >/dev/null; then
+          echo 'Wiki workflow does not publish changes under docs/wiki/**' >&2
+          exit 1
+        fi
+        if ! grep -F -x -- '          git -C wiki commit -m "docs: publish repository Wiki"' "$wiki_workflow" >/dev/null; then
+          echo 'Wiki workflow uses the wrong publication commit subject' >&2
+          exit 1
+        fi
+        if ! grep -F -x -- '          cp -L wiki-docs-result/wiki-pages.txt generated-wiki-docs/' "$check_workflow" >/dev/null; then
+          echo 'Checks workflow omits wiki-pages.txt from the generated artifact' >&2
+          exit 1
+        fi
+
+        grep -F -- 'The repository Wiki is publication output, not an authoring surface.' "$automation_guide" >/dev/null
+        grep -F -- 'Authored runbooks come from `docs/wiki/`' "$automation_guide" >/dev/null
+        grep -F -- 'Evaluated pages are built from Nix configuration' "$automation_guide" >/dev/null
+        grep -F -- 'Host pages come from evaluated host reports' "$automation_guide" >/dev/null
+        grep -F -- '`wiki-pages.txt` is the non-host page inventory.' "$automation_guide" >/dev/null
+
+        for authored_output in \
+          Service-Hermes-WebUI.md \
+          Service-GrapheneOS-WebDAV.md \
+          Service-Seafile.md \
+          Service-OpenCloud.md \
+          Service-Immich.md \
+          Service-Paperless.md \
+          Operations-Backup-and-Restore.md \
+          Operations-Security-and-Recovery.md \
+          Project-Development.md
+        do
+          grep -F -- "\`$authored_output\`" "$automation_guide" >/dev/null
+        done
+
+        grep -F -- '`GITHUB_TOKEN`' "$automation_guide" >/dev/null
+        grep -F -- '`contents: write`' "$automation_guide" >/dev/null
+        grep -F -- '`PANGOLIN_TOPOLOGY_API_KEY`' "$automation_guide" >/dev/null
+        grep -F -- 'raw API responses in a private temporary directory' "$automation_guide" >/dev/null
 
         for former_heading in \
           '## Hermes WebUI and native clients' \
