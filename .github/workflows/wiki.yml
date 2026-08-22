@@ -57,7 +57,7 @@ jobs:
           git -c http.extraheader="AUTHORIZATION: basic $basic_auth" \
             clone "https://github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
       - name: Synchronize generated pages
-        run: bash scripts/sync-server-wiki.sh host-docs-result wiki wiki-docs-result
+        run: bash scripts/sync-server-wiki.sh "$GITHUB_WORKSPACE/host-docs-result" wiki wiki-docs-result
       - name: Publish changed pages
         env:
           WIKI_TOKEN: ${{ github.token }}

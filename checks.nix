@@ -82,6 +82,14 @@ let
     mkdir "$out"
     ln -s ${wikiSyncWardenReport}/../${wikiSyncWardenReportName}/warden.md "$out/warden.md"
   '';
+  wikiSyncIntermediateWardenReport = pkgs.runCommand "warden.md" { } ''
+    mkdir "$out"
+    ln -s ${wikiSyncWardenReport}/warden.md "$out/warden.md"
+  '';
+  wikiSyncChainedReport = pkgs.runCommand "host-docs" { } ''
+    mkdir "$out"
+    ln -s ${wikiSyncIntermediateWardenReport}/warden.md "$out/warden.md"
+  '';
   wikiSyncEscapingReport = pkgs.runCommand "host-docs" { } ''
     mkdir "$out"
     ln -s /etc/passwd "$out/warden.md"
@@ -164,6 +172,11 @@ in
         fi
         if ! grep -F -x -- '    if: github.ref_name == github.event.repository.default_branch' "$wiki_workflow" >/dev/null; then
           echo 'Wiki publication is not restricted to the default branch for every event' >&2
+          exit 1
+        fi
+        wiki_sync_run='        run: bash scripts/sync-server-wiki.sh "$GITHUB_WORKSPACE/host-docs-result" wiki wiki-docs-result'
+        if [ "$(grep -F -x -c -- "$wiki_sync_run" "$wiki_workflow")" -ne 1 ]; then
+          echo 'Wiki workflow does not pass the canonical absolute host-docs out-link to the synchronizer' >&2
           exit 1
         fi
 
@@ -438,6 +451,7 @@ in
           ${wikiSyncWrongOutputName} \
           ${wikiSyncMismatchedReport} \
           ${wikiSyncNoncanonicalReport} \
+          ${wikiSyncChainedReport} \
           ${wikiSyncEscapingReport} \
           ${wikiSyncRelativeReport} \
           ${wikiSyncLineBreakReport}
