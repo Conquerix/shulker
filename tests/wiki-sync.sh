@@ -32,6 +32,14 @@ write_standard_pages() {
 	printf 'Home.md\nServices.md\n' >"$wiki_docs_dir/wiki-pages.txt"
 }
 
+make_reports_out_link() {
+	generated_store="$case_dir/generated-store"
+	generated_reports_dir="$generated_store/host-docs"
+	mkdir -p "$generated_reports_dir"
+	reports_dir="$case_dir/host-docs-result"
+	ln -s "$generated_reports_dir" "$reports_dir"
+}
+
 run_sync() {
 	bash "$sync_script" "$reports_dir" "$wiki_dir" "$wiki_docs_dir" >"$case_dir/stdout" 2>"$case_dir/stderr"
 }
@@ -63,14 +71,20 @@ for page in "$wiki_dir"/*.md; do
 	[ "$(head -n 1 "$page")" = "$marker" ] || fail "managed page marker"
 done
 
-new_case generated-out-link
+new_case generated-workflow-out-links
 write_standard_pages
 generated_output="$wiki_docs_dir"
 wiki_docs_dir="$case_dir/wiki-docs-result"
 ln -s "$generated_output" "$wiki_docs_dir"
-expect_success "generated Wiki out-link"
+make_reports_out_link
+generated_report_dir="$generated_store/generated-warden.md"
+mkdir "$generated_report_dir"
+mv "$case_dir/reports/warden.md" "$generated_report_dir/warden.md"
+ln -s "$generated_report_dir/warden.md" "$generated_reports_dir/warden.md"
+expect_success "generated workflow out-links"
 [ "$(head -n 1 "$wiki_dir/Home.md")" = "$marker" ] || fail "out-link Home.md marker"
 [ "$(head -n 1 "$wiki_dir/Services.md")" = "$marker" ] || fail "out-link Services.md marker"
+[ "$(head -n 1 "$wiki_dir/Host-warden.md")" = "$marker" ] || fail "out-link Host-warden.md marker"
 
 new_case unlisted-rogue
 write_standard_pages
@@ -187,4 +201,32 @@ rm "$reports_dir/warden.md"
 printf '# External report\n' >"$case_dir/external-report.md"
 ln -s "$case_dir/external-report.md" "$reports_dir/warden.md"
 expect_failure "report symlink"
+expect_diagnostic "refusing symlinked host report: $reports_dir/warden.md"
+
+new_case generated-report-link-escape
+write_standard_pages
+make_reports_out_link
+printf '# External report\n' >"$case_dir/external-report.md"
+ln -s "$case_dir/external-report.md" "$generated_reports_dir/warden.md"
+expect_failure "generated report link escaping trusted root"
+expect_diagnostic "refusing symlinked host report: $reports_dir/warden.md"
+
+new_case generated-report-relative-link
+write_standard_pages
+make_reports_out_link
+generated_report_dir="$generated_store/generated-warden.md"
+mkdir "$generated_report_dir"
+printf '# Warden\n' >"$generated_report_dir/warden.md"
+ln -s '../generated-warden.md/warden.md' "$generated_reports_dir/warden.md"
+expect_failure "relative generated report link"
+expect_diagnostic "refusing symlinked host report: $reports_dir/warden.md"
+
+new_case generated-report-newline-link
+write_standard_pages
+make_reports_out_link
+generated_report_dir="$generated_store/generated-warden"$'\n'".md"
+mkdir "$generated_report_dir"
+printf '# Warden\n' >"$generated_report_dir/warden.md"
+ln -s "$generated_report_dir/warden.md" "$generated_reports_dir/warden.md"
+expect_failure "newline generated report link"
 expect_diagnostic "refusing symlinked host report: $reports_dir/warden.md"
