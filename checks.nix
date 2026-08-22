@@ -125,7 +125,7 @@ in
               remaining = $0
               while (match(remaining, /\]\([^)]*\)/)) {
                 target = substr(remaining, RSTART + 2, RLENGTH - 3)
-                if (target ~ /^\.\// || target ~ /^\.\.\// || (target !~ /^[[:alpha:]][[:alnum:]+.-]*:/ && target ~ /\.md([#?].*)?$/)) {
+                if (target !~ /^[[:alpha:]][[:alnum:]+.-]*:/) {
                   exit 1
                 }
                 remaining = substr(remaining, RSTART + RLENGTH)

@@ -341,9 +341,9 @@ expiry, and revocation tests. Scanner networking remains explicitly deferred.
 
 ## Related documentation
 
-- [Services](Services)
-- [Warden host report](Host-warden)
-- [Public services](Public-Services)
-- [Operations](Operations)
-- [Backup and restore](Operations-Backup-and-Restore)
-- [Security and recovery](Operations-Security-and-Recovery)
+- [Services](https://github.com/Conquerix/shulker/wiki/Services)
+- [Warden host report](https://github.com/Conquerix/shulker/wiki/Host-warden)
+- [Public services](https://github.com/Conquerix/shulker/wiki/Public-Services)
+- [Operations](https://github.com/Conquerix/shulker/wiki/Operations)
+- [Backup and restore](https://github.com/Conquerix/shulker/wiki/Operations-Backup-and-Restore)
+- [Security and recovery](https://github.com/Conquerix/shulker/wiki/Operations-Security-and-Recovery)

@@ -35,9 +35,9 @@ The browser interface is also installable directly as a PWA.
 
 ## Related documentation
 
-- [Services](Services)
-- [Shulker host report](Host-shulker)
-- [Public services](Public-Services)
-- [Operations](Operations)
-- [Backup and restore](Operations-Backup-and-Restore)
-- [Security and recovery](Operations-Security-and-Recovery)
+- [Services](https://github.com/Conquerix/shulker/wiki/Services)
+- [Shulker host report](https://github.com/Conquerix/shulker/wiki/Host-shulker)
+- [Public services](https://github.com/Conquerix/shulker/wiki/Public-Services)
+- [Operations](https://github.com/Conquerix/shulker/wiki/Operations)
+- [Backup and restore](https://github.com/Conquerix/shulker/wiki/Operations-Backup-and-Restore)
+- [Security and recovery](https://github.com/Conquerix/shulker/wiki/Operations-Security-and-Recovery)

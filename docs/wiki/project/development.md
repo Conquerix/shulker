@@ -86,6 +86,6 @@ permissions, and Wiki synchronization behavior.
 
 ## Related documentation
 
-- [Automation](Automation)
-- [Operations](Operations)
-- [Services](Services)
+- [Automation](https://github.com/Conquerix/shulker/wiki/Automation)
+- [Operations](https://github.com/Conquerix/shulker/wiki/Operations)
+- [Services](https://github.com/Conquerix/shulker/wiki/Services)

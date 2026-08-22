@@ -85,5 +85,5 @@ pgrep -f 'steamapps/[c]ommon'
 
 ## Related documentation
 
-- [Operations](Operations)
-- [Services](Services)
+- [Operations](https://github.com/Conquerix/shulker/wiki/Operations)
+- [Services](https://github.com/Conquerix/shulker/wiki/Services)
