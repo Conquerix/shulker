@@ -1,4 +1,4 @@
-# Repository automation
+# Repository automation guide
 
 The workflows in this directory keep the configuration validated, dependencies
 current, and the repository Wiki synchronized.

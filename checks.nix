@@ -125,7 +125,7 @@ in
         server_docs_source=${./lib/server-docs.nix}
         wiki_workflow=${./.github/workflows/wiki.yml}
         check_workflow=${./.github/workflows/check.yml}
-        automation_guide=${./.github/README.md}
+        automation_guide=${./.github/AUTOMATION.md}
         development_guide=${./docs/wiki/project/development.md}
         host_docs_guide=${./system/hosts/nixos/README.md}
         wiki_generator_source=${./lib/wiki-docs.nix}
@@ -134,6 +134,11 @@ in
         readme_lines="$(wc -l < "$root_readme")"
         if [ "$readme_lines" -ge 200 ]; then
           echo "README must remain below 200 lines; found $readme_lines" >&2
+          exit 1
+        fi
+
+        if [ -e "${./.}/.github/README.md" ]; then
+          echo '.github/README.md shadows the project README on GitHub' >&2
           exit 1
         fi
 
@@ -258,7 +263,7 @@ in
         grep -F -x -- '  scripts/configure-pangolin-integration-api.sh api.example.com' "$automation_guide" >/dev/null
 
         grep -F -- \
-          '[Pangolin topology operations](https://github.com/Conquerix/shulker/blob/dev/.github/README.md#pangolin-topology-enrichment)' \
+          '[Pangolin topology operations](https://github.com/Conquerix/shulker/blob/dev/.github/AUTOMATION.md#pangolin-topology-enrichment)' \
           "$development_guide" >/dev/null
 
         for expected in \
@@ -311,7 +316,7 @@ in
           docs/wiki/operations/backup-and-restore.md \
           docs/wiki/project/development.md \
           system/hosts/nixos/README.md \
-          .github/README.md > "$expected_agent_routes"
+          .github/AUTOMATION.md > "$expected_agent_routes"
         actual_agent_routes="$TMPDIR/actual-agent-routes.txt"
         awk '
           $0 == "## Documentation routing" { in_section = 1; next }
@@ -2313,7 +2318,7 @@ in
         check_workflow=${./.}/.github/workflows/check.yml
         update_workflow=${./.}/.github/workflows/update-flake.yml
         root_readme=${./README.md}
-        github_readme=${./.github/README.md}
+        github_readme=${./.github/AUTOMATION.md}
         wiki_automation_source=${./lib/wiki-docs.nix}
         wiki_automation=${wikiDocs}/Automation.md
 

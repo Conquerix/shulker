@@ -10,7 +10,7 @@ point and summarizes the layout, operating model, and safety boundaries.
 - Backup and restore: [`docs/wiki/operations/backup-and-restore.md`](docs/wiki/operations/backup-and-restore.md)
 - Development and validation: [`docs/wiki/project/development.md`](docs/wiki/project/development.md)
 - Evaluated host documentation: [`system/hosts/nixos/README.md`](system/hosts/nixos/README.md)
-- Automation and Wiki publication: [`.github/README.md`](.github/README.md)
+- Automation and Wiki publication: [`.github/AUTOMATION.md`](.github/AUTOMATION.md)
 
 ## Agent behavior
 

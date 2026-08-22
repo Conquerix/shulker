@@ -49,7 +49,7 @@ the repository so changes remain reviewable with the configuration:
 - [Development and validation](docs/wiki/project/development.md)
 
 The [server documentation guide](system/hosts/nixos/README.md) explains the
-evaluated per-host reports. The [automation guide](.github/README.md) documents
+evaluated per-host reports. The [automation guide](.github/AUTOMATION.md) documents
 workflow permissions and synchronization behavior. Do not edit generated
 Markdown; change its authored source, host/module configuration, or generator.
 

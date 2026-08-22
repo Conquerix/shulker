@@ -83,10 +83,10 @@ release matrix with their reviewed upstream release lines, then maintains one
 marker-owned compatibility-review issue. It never edits pins, commits, pushes,
 opens a pull request, deploys, or mutates a host.
 
-See the [automation guide](https://github.com/Conquerix/shulker/blob/dev/.github/README.md) for workflow triggers,
+See the [automation guide](https://github.com/Conquerix/shulker/blob/dev/.github/AUTOMATION.md) for workflow triggers,
 permissions, and Wiki synchronization behavior.
 
-[Pangolin topology operations](https://github.com/Conquerix/shulker/blob/dev/.github/README.md#pangolin-topology-enrichment)
+[Pangolin topology operations](https://github.com/Conquerix/shulker/blob/dev/.github/AUTOMATION.md#pangolin-topology-enrichment)
 documents the sanitized boundary, manual collector, Integration API bootstrap,
 and restart and rollback behavior.
 
