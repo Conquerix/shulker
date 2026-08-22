@@ -63,6 +63,15 @@ for page in "$wiki_dir"/*.md; do
 	[ "$(head -n 1 "$page")" = "$marker" ] || fail "managed page marker"
 done
 
+new_case generated-out-link
+write_standard_pages
+generated_output="$wiki_docs_dir"
+wiki_docs_dir="$case_dir/wiki-docs-result"
+ln -s "$generated_output" "$wiki_docs_dir"
+expect_success "generated Wiki out-link"
+[ "$(head -n 1 "$wiki_dir/Home.md")" = "$marker" ] || fail "out-link Home.md marker"
+[ "$(head -n 1 "$wiki_dir/Services.md")" = "$marker" ] || fail "out-link Services.md marker"
+
 new_case unlisted-rogue
 write_standard_pages
 printf '# Rogue\n' >"$wiki_docs_dir/Rogue.md"

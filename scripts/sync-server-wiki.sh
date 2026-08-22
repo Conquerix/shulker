@@ -81,7 +81,7 @@ if sort "$manifest_names" | uniq -d | grep -q .; then
 fi
 
 sort "$manifest_names" -o "$manifest_names"
-find "$wiki_docs_dir" -maxdepth 1 -type f -name '*.md' -exec basename {} \; | sort >"$markdown_names"
+find -H "$wiki_docs_dir" -maxdepth 1 -type f -name '*.md' -exec basename {} \; | sort >"$markdown_names"
 comm -3 "$manifest_names" "$markdown_names" >"$comparison_names"
 if [ -s "$comparison_names" ]; then
 	echo "Wiki page manifest does not match generated Markdown files" >&2
