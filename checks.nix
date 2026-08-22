@@ -209,6 +209,22 @@ in
         touch "$out"
       '';
 
+  wiki-sync-contract =
+    pkgs.runCommand "wiki-sync-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gitMinimal
+          pkgs.gnugrep
+        ];
+      }
+      ''
+        bash ${./tests/wiki-sync.sh} ${./scripts/sync-server-wiki.sh}
+        touch "$out"
+      '';
+
   backup-ssh-host-key-contract =
     assert builtins.hasAttr "hetzner-storage-box" storageBoxKnownHosts;
     assert builtins.elem "[u515568-sub4.your-storagebox.de]:23"

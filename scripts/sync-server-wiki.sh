@@ -27,6 +27,54 @@ if [ ! -d "$wiki_docs_dir" ]; then
 	exit 1
 fi
 
+manifest="$wiki_docs_dir/wiki-pages.txt"
+if [ ! -f "$manifest" ] || [ ! -s "$manifest" ]; then
+	echo "Wiki page manifest does not exist" >&2
+	exit 1
+fi
+
+manifest_names="$(mktemp)"
+markdown_names="$(mktemp)"
+comparison_names="$(mktemp)"
+cleanup() {
+	rm -f -- "$manifest_names" "$markdown_names" "$comparison_names"
+}
+trap cleanup EXIT
+
+while IFS= read -r page_name || [ -n "$page_name" ]; do
+	case "$page_name" in
+	Host-*)
+		echo "reserved Wiki page name in manifest" >&2
+		exit 1
+		;;
+	esac
+
+	if [[ ! $page_name =~ ^(_Sidebar|_Footer|[A-Za-z0-9][A-Za-z0-9-]*)[.]md$ ]]; then
+		echo "invalid Wiki page name in manifest" >&2
+		exit 1
+	fi
+
+	if [ ! -f "$wiki_docs_dir/$page_name" ]; then
+		echo "Wiki page manifest does not match generated Markdown files" >&2
+		exit 1
+	fi
+
+	printf '%s\n' "$page_name" >>"$manifest_names"
+done <"$manifest"
+
+if sort "$manifest_names" | uniq -d | grep -q .; then
+	echo "duplicate Wiki page name in manifest" >&2
+	exit 1
+fi
+
+sort "$manifest_names" -o "$manifest_names"
+find "$wiki_docs_dir" -maxdepth 1 -type f -name '*.md' -exec basename {} \; | sort >"$markdown_names"
+comm -3 "$manifest_names" "$markdown_names" >"$comparison_names"
+if [ -s "$comparison_names" ]; then
+	echo "Wiki page manifest does not match generated Markdown files" >&2
+	exit 1
+fi
+
 assert_managed_or_absent() {
 	page="$1"
 	if [ ! -e "$page" ] || grep -Fqx "$marker" "$page"; then
@@ -34,8 +82,7 @@ assert_managed_or_absent() {
 	fi
 
 	if [ "$(basename "$page")" = "Home.md" ] &&
-		grep -Fqx "# Shulker infrastructure" "$page" &&
-		grep -Fqx "Repository: [Conquerix/shulker](https://github.com/Conquerix/shulker)" "$page"; then
+		[ "$(cat "$page")" = $'# Shulker infrastructure\nRepository: [Conquerix/shulker](https://github.com/Conquerix/shulker)' ]; then
 		return
 	fi
 
@@ -45,27 +92,9 @@ assert_managed_or_absent() {
 	fi
 }
 
-for required_page in Home Fleet Servers Services Public-Services Infrastructure Operations Automation _Sidebar _Footer; do
-	if [ ! -f "$wiki_docs_dir/$required_page.md" ]; then
-		echo "required generated Wiki page does not exist: $wiki_docs_dir/$required_page.md" >&2
-		exit 1
-	fi
-done
-
-wiki_doc_count=0
-for source_page in "$wiki_docs_dir"/*.md; do
-	if [ ! -e "$source_page" ]; then
-		continue
-	fi
-
-	wiki_doc_count=$((wiki_doc_count + 1))
-	assert_managed_or_absent "$wiki_dir/$(basename "$source_page")"
-done
-
-if [ "$wiki_doc_count" -eq 0 ]; then
-	echo "no generated Wiki pages found in: $wiki_docs_dir" >&2
-	exit 1
-fi
+while IFS= read -r page_name; do
+	assert_managed_or_absent "$wiki_dir/$page_name"
+done <"$manifest_names"
 
 report_count=0
 for report in "$reports_dir"/*.md; do
@@ -91,8 +120,8 @@ for page in "$wiki_dir"/*.md; do
 	fi
 done
 
-for source_page in "$wiki_docs_dir"/*.md; do
-	page_name="$(basename "$source_page")"
+while IFS= read -r page_name; do
+	source_page="$wiki_docs_dir/$page_name"
 	page="$wiki_dir/$page_name"
 	page_tmp="$wiki_dir/.$page_name.tmp"
 	{
@@ -101,7 +130,7 @@ for source_page in "$wiki_docs_dir"/*.md; do
 		cat "$source_page"
 	} >"$page_tmp"
 	mv -- "$page_tmp" "$page"
-done
+done <"$manifest_names"
 
 for report in "$reports_dir"/*.md; do
 	host="$(basename "$report" .md)"
