@@ -147,10 +147,31 @@ in
           fi
         done
 
+        for wiki_step in \
+          'Refresh sanitized Pangolin topology' \
+          'Validate Wiki publication contracts' \
+          'Build Wiki documentation' \
+          'Clone Wiki'
+        do
+          if [ "$(grep -F -x -c -- "      - name: $wiki_step" "$wiki_workflow")" -ne 1 ]; then
+            echo "Wiki workflow does not contain exactly one '$wiki_step' step" >&2
+            exit 1
+          fi
+        done
+
+        wiki_refresh_line="$(grep -F -x -n -- '      - name: Refresh sanitized Pangolin topology' "$wiki_workflow" | cut -d: -f1)"
+        wiki_validation_line="$(grep -F -x -n -- '      - name: Validate Wiki publication contracts' "$wiki_workflow" | cut -d: -f1)"
+        wiki_build_line="$(grep -F -x -n -- '      - name: Build Wiki documentation' "$wiki_workflow" | cut -d: -f1)"
         wiki_suite_line="$(grep -F -x -n -- "$publication_suite_run" "$wiki_workflow" | cut -d: -f1)"
         wiki_clone_line="$(grep -F -x -n -- '      - name: Clone Wiki' "$wiki_workflow" | cut -d: -f1)"
         check_suite_line="$(grep -F -x -n -- "$publication_suite_run" "$check_workflow" | cut -d: -f1)"
         artifact_build_line="$(grep -F -x -n -- '      - name: Build generated Wiki documentation' "$check_workflow" | cut -d: -f1)"
+        if ! test "$wiki_refresh_line" -lt "$wiki_validation_line" \
+          || ! test "$wiki_validation_line" -lt "$wiki_build_line" \
+          || ! test "$wiki_build_line" -lt "$wiki_clone_line"; then
+          echo 'Wiki workflow must refresh topology, validate contracts, build documentation, then clone the Wiki' >&2
+          exit 1
+        fi
         test "$wiki_suite_line" -lt "$wiki_clone_line"
         test "$check_suite_line" -lt "$artifact_build_line"
 

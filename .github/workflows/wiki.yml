@@ -30,8 +30,6 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
-      - name: Validate Wiki publication contracts
-        run: nix build --no-link .#checks.x86_64-linux.wiki-publication-contract-suite
       - name: Refresh sanitized Pangolin topology
         env:
           PANGOLIN_API_ENDPOINT: ${{ vars.PANGOLIN_API_ENDPOINT }}
@@ -44,6 +42,8 @@ jobs:
             exit 0
           fi
           bash scripts/fetch-pangolin-topology.sh
+      - name: Validate Wiki publication contracts
+        run: nix build --no-link .#checks.x86_64-linux.wiki-publication-contract-suite
       - name: Build Wiki documentation
         run: |
           nix build .#host-docs --out-link host-docs-result
