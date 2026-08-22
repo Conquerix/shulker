@@ -13,6 +13,8 @@ let
   snapshotPath = "${cfg.stateDir}/.zfs/snapshot/${cfg.backupSnapshotName}";
   restoreProxyImage = "docker.io/library/nginx:alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752";
   restoreIdentifyNativeAdminScript = ''
+    ${cfg.managementPythonPrelude}
+
     from seaserv import ccnet_api
     from seahub.auth.models import SocialAuthUser
 
@@ -43,11 +45,11 @@ let
     )
     if not valid:
         raise RuntimeError("Restored identity boundary is not safe for native recovery")
-    print(native_admins[0].email)
+    _shulker_finish(native_admins[0].email)
   '';
   restoreIdentifyNativeAdmin = pkgs.writeText "seafile-restore-identify-native-admin.py" restoreIdentifyNativeAdminScript;
   restoreVerifyNativeAdminScript = ''
-    import os
+    ${cfg.managementPythonPrelude}
 
     from seaserv import ccnet_api
     from seahub.auth.models import SocialAuthUser
@@ -86,10 +88,11 @@ let
     user = User.objects.get(email=native_email)
     if not user.check_password(os.environ["RESTORE_PASSWORD"]):
         raise RuntimeError("Native restore-only credential verification failed")
+    _shulker_finish()
   '';
   restoreVerifyNativeAdmin = pkgs.writeText "seafile-restore-verify-native-admin.py" restoreVerifyNativeAdminScript;
   restoreResetNativeAdminScript = ''
-    import os
+    ${cfg.managementPythonPrelude}
 
     from seahub.auth.models import SocialAuthUser
     from seahub.base.accounts import User
@@ -106,6 +109,7 @@ let
     refreshed = User.objects.get(email=native_email)
     if not refreshed.check_password(os.environ["RESTORE_PASSWORD"]):
         raise RuntimeError("Restore-only password update did not persist")
+    _shulker_finish()
   '';
   restoreResetNativeAdmin = pkgs.writeText "seafile-restore-reset-native-admin.py" restoreResetNativeAdminScript;
   composeFactory = import ../../../../lib/seafile-compose.nix { inherit pkgs; };
@@ -723,6 +727,7 @@ let
       "$free_command" "$df_command" "$zfs_command" "$render_command" \
       "$install_command" "$production_state" "$restore_project" "$restore_network" \
       "$restore_compose" "$restore_bootstrap_compose"
+
   '';
 
   restorePrepareScript = ''
@@ -1023,6 +1028,7 @@ let
 
   restoreVerifyScript = ''
     ${restoreCommonScript}
+    ${cfg.pythonResultProtocolShell}
     runtime=
     backup_set=
     while [ "$#" -gt 0 ]; do
@@ -1112,24 +1118,29 @@ let
 
     compose_restore_bootstrap up --detach --no-recreate --wait --wait-timeout 2100
     seafile_id="$(restore_field "$session" container_seafile)"
-    native_email="$("$docker_command" exec -i \
-      --env SEAFILE_RESTORE_NATIVE_MODE=identify "$seafile_id" \
+    native_email="$(run_seafile_python_command "$timeout_command" --kill-after=5 120 "$docker_command" exec -i \
+      --env SHULKER_SEAFILE_RESULT_TOKEN --env SEAFILE_RESTORE_NATIVE_MODE=identify "$seafile_id" \
       /opt/seafile/seafile-server-latest/seahub.sh python-env python - \
-      <${restoreIdentifyNativeAdmin})"
+      <${restoreIdentifyNativeAdmin})" \
+      || fail_restore "restored native administrator identification failed"
     [[ "$native_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]] \
       || fail_restore "restored native administrator could not be identified safely"
     restore_password="$(secret_value INIT_SEAFILE_ADMIN_PASSWORD)"
     RESTORE_NATIVE_EMAIL="$native_email"
     RESTORE_PASSWORD="$restore_password"
     export RESTORE_NATIVE_EMAIL RESTORE_PASSWORD
-    "$docker_command" exec -i --env RESTORE_NATIVE_EMAIL --env RESTORE_PASSWORD \
+    run_seafile_python_command "$timeout_command" --kill-after=5 120 "$docker_command" exec -i \
+      --env SHULKER_SEAFILE_RESULT_TOKEN --env RESTORE_NATIVE_EMAIL --env RESTORE_PASSWORD \
       --env SEAFILE_RESTORE_NATIVE_MODE=reset "$seafile_id" \
       /opt/seafile/seafile-server-latest/seahub.sh python-env python - \
-      <${restoreResetNativeAdmin} >/dev/null
-    "$docker_command" exec -i --env RESTORE_NATIVE_EMAIL --env RESTORE_PASSWORD \
+      <${restoreResetNativeAdmin} >/dev/null \
+      || fail_restore "restored native administrator reset failed"
+    run_seafile_python_command "$timeout_command" --kill-after=5 120 "$docker_command" exec -i \
+      --env SHULKER_SEAFILE_RESULT_TOKEN --env RESTORE_NATIVE_EMAIL --env RESTORE_PASSWORD \
       --env SEAFILE_RESTORE_NATIVE_MODE=verify "$seafile_id" \
       /opt/seafile/seafile-server-latest/seahub.sh python-env python - \
-      <${restoreVerifyNativeAdmin} >/dev/null
+      <${restoreVerifyNativeAdmin} >/dev/null \
+      || fail_restore "restored native administrator verification failed"
     unset RESTORE_NATIVE_EMAIL RESTORE_PASSWORD restore_password native_email
 
     "$docker_command" exec "$seafile_id" /opt/seafile/seafile-server-latest/seaf-fsck.sh --readonly
@@ -1210,7 +1221,10 @@ let
   backupStatus = mkBackupPackage "seafile-backup-status" backupStatusScript [ ];
   preUpgradeCheck = mkBackupPackage "seafile-pre-upgrade-check" preUpgradeCheckScript [ ];
   restorePrepare = mkBackupPackage "seafile-restore-prepare" restorePrepareScript [ ];
-  restoreVerify = mkBackupPackage "seafile-restore-verify" restoreVerifyScript [ pkgs.curl ];
+  restoreVerify = mkBackupPackage "seafile-restore-verify" restoreVerifyScript [
+    pkgs.curl
+    pkgs.gawk
+  ];
   restoreTeardown = mkBackupPackage "seafile-restore-teardown" restoreTeardownScript [ ];
   backupContractText = lib.concatStringsSep "\n" [
     logicalBackupScript

@@ -6,12 +6,18 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import os
 import runpy
 import sys
 import types
 import unittest
 from dataclasses import dataclass
 from unittest.mock import patch
+
+
+RESULT_TOKEN = "0123456789abcdef0123456789abcdef"
+RESULT_MARKER = f"SHULKER_SEAFILE_RESULT:{RESULT_TOKEN}"
+PAYLOAD_MARKER = f"SHULKER_SEAFILE_PAYLOAD:{RESULT_TOKEN}:"
 
 
 @dataclass
@@ -62,6 +68,8 @@ class SeafileFixture:
         self.social_auth_users = [FakeSocialAuthUser(user.email) for user in oauth_users]
 
     def modules(self) -> dict[str, types.ModuleType]:
+        django = self._package("django")
+        django.setup = lambda: None
         seaserv = types.ModuleType("seaserv")
         seaserv.ccnet_api = types.SimpleNamespace(
             get_emailusers=lambda source, start, limit: list(self.users)
@@ -75,6 +83,7 @@ class SeafileFixture:
         )
 
         return {
+            "django": django,
             "seaserv": seaserv,
             "seahub": seahub,
             "seahub.auth": seahub_auth,
@@ -89,8 +98,11 @@ class SeafileFixture:
 
     def run(self, script: str) -> str:
         with patch.dict(sys.modules, self.modules()):
-            with contextlib.redirect_stdout(io.StringIO()) as stdout:
-                runpy.run_path(script, run_name="__main__")
+            with patch.dict(
+                os.environ, {"SHULKER_SEAFILE_RESULT_TOKEN": RESULT_TOKEN}, clear=False
+            ):
+                with contextlib.redirect_stdout(io.StringIO()) as stdout:
+                    runpy.run_path(script, run_name="__main__")
         return stdout.getvalue()
 
 
@@ -108,8 +120,9 @@ class BootstrapIdentityStatusTest(unittest.TestCase):
 
                 self.assertEqual(
                     fixture.run(self.status_script),
-                    f"active={oauth_count + 1}\t"
-                    f"native_break_glass_admins=1\toauth={oauth_count}\tlimit=3\n",
+                    f"{PAYLOAD_MARKER}active={oauth_count + 1}\t"
+                    f"native_break_glass_admins=1\toauth={oauth_count}\tlimit=3\n"
+                    f"{RESULT_MARKER}\n",
                 )
 
     def test_native_only_boundary_is_rejected(self) -> None:
@@ -166,7 +179,9 @@ class BootstrapIdentityStatusTest(unittest.TestCase):
 
         self.assertEqual(
             fixture.run(self.status_script),
-            "active=2\tnative_break_glass_admins=1\toauth=1\tlimit=3\n",
+            f"{PAYLOAD_MARKER}active=2\t"
+            "native_break_glass_admins=1\toauth=1\tlimit=3\n"
+            f"{RESULT_MARKER}\n",
         )
 
 

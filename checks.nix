@@ -1373,13 +1373,49 @@ in
       settings = pkgs.writeText "seahub_settings.py" seafile.seahubSettingsText;
       status = pkgs.writeText "seafile-bootstrap-status.py" seafile.bootstrapStatusPython;
       contract = seafile.bootstrapContractText;
+      pythonResultProtocol = pkgs.writeShellApplication {
+        name = "seafile-python-result-protocol-under-test";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.gawk
+        ];
+        text = ''
+          ${seafile.pythonResultProtocolShell}
+          run_seafile_python_command "$@"
+        '';
+      };
+      pythonResultEmitter = pkgs.writeShellScript "seafile-python-result-emitter" ''
+        marker="SHULKER_SEAFILE_RESULT:''${SHULKER_SEAFILE_RESULT_TOKEN:?}"
+        payload="SHULKER_SEAFILE_PAYLOAD:''${SHULKER_SEAFILE_RESULT_TOKEN:?}:"
+        case "''${1:-}" in
+          success) printf '%s\n' "''${payload}fixture-result" "$marker" "" 'Done.' ;;
+          noisy-success)
+            printf '%s\n' \
+              'Load disk config: fixture commits' \
+              'Load disk config: fixture fs' \
+              'Load disk config: fixture blocks' \
+              "''${payload}fixture-result" "$marker" "" 'Done.'
+            ;;
+          empty) printf '%s\n' "$marker" "" 'Done.' ;;
+          masked-failure) printf '%s\n' 'Traceback: fixture child failure' "" 'Done.' ;;
+          nonzero) printf '%s\n' "''${payload}fixture-result" "$marker" "" 'Done.'; exit 7 ;;
+          reversed) printf '%s\n' "''${payload}fixture-result" 'Done.' "$marker" ;;
+          trailing) printf '%s\n' "''${payload}fixture-result" "$marker" unexpected 'Done.' ;;
+          duplicate) printf '%s\n' "''${payload}fixture-result" "$marker" "$marker" 'Done.' ;;
+          oversized)
+            head --bytes=1048577 /dev/zero | tr '\0' x
+            printf '%s\n' "$marker" "" 'Done.'
+            ;;
+          *) exit 64 ;;
+        esac
+      '';
       revokeStart = "from django.contrib.sessions.models import Session";
       revokeAfterStart = builtins.elemAt (pkgs.lib.splitString revokeStart contract) 1;
       revokeBody = builtins.unsafeDiscardStringContext (
         builtins.elemAt (pkgs.lib.splitString "\nfrom seaserv import ccnet_api" revokeAfterStart) 0
       );
       revokeScript = pkgs.writeText "seafile-revoke-oauth-admin.py" ''
-        import os
+        ${seafile.managementPythonPrelude}
 
         ${revokeStart}${revokeBody}
       '';
@@ -1398,6 +1434,10 @@ in
     assert pkgs.lib.hasInfix "reset-admin.sh" contract;
     assert pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_EMAIL" contract;
     assert pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_PASSWORD" contract;
+    assert pkgs.lib.hasInfix "DJANGO_SETTINGS_MODULE" seafile.managementPythonPrelude;
+    assert pkgs.lib.hasInfix "django.setup()" seafile.managementPythonPrelude;
+    assert pkgs.lib.hasInfix "SHULKER_SEAFILE_RESULT_TOKEN" contract;
+    assert pkgs.lib.hasInfix "run_seafile_python_command" contract;
     assert !(pkgs.lib.hasInfix "set_password(" contract);
     assert !(pkgs.lib.hasInfix "create_user(" contract);
     assert !(pkgs.lib.hasInfix "DISABLE_ADFS_USER_PWD_LOGIN" seafile.seahubSettingsText);
@@ -1478,6 +1518,22 @@ in
 
         python ${./tests/seafile-revoke-admin.py} ${revokeScript}
         python ${./tests/seafile-bootstrap-identity.py} --status ${status}
+
+        protocol=${pythonResultProtocol}/bin/seafile-python-result-protocol-under-test
+        emitter=${pythonResultEmitter}
+        test "$("$protocol" "$emitter" success)" = fixture-result
+        test "$("$protocol" "$emitter" noisy-success)" = fixture-result
+        test -z "$("$protocol" "$emitter" empty)"
+        for mode in masked-failure nonzero reversed trailing duplicate oversized; do
+          if "$protocol" "$emitter" "$mode" >protocol.stdout 2>protocol.stderr; then
+            echo "result protocol unexpectedly accepted $mode" >&2
+            exit 1
+          fi
+          grep -F 'Seafile management Python operation' protocol.stderr >/dev/null
+          ! grep -F 'Traceback: fixture child failure' protocol.stdout protocol.stderr
+        done
+        ! "$protocol" "$emitter" success \
+          | grep -E 'SHULKER_SEAFILE_(RESULT|PAYLOAD)|Done\.|Load disk config'
 
         touch "$out"
       '';
@@ -1661,6 +1717,7 @@ in
         mkBackupHelper "seafile-restore-prepare-under-test" seafile.restorePrepareScript
           [ ];
       restoreVerify = mkBackupHelper "seafile-restore-verify-under-test" restoreVerifyText [
+        pkgs.gawk
         restoreIdentify
         restoreReset
         restoreVerifyIdentity

@@ -15,6 +15,11 @@ from dataclasses import dataclass
 from unittest.mock import patch
 
 
+RESULT_TOKEN = "0123456789abcdef0123456789abcdef"
+RESULT_MARKER = f"SHULKER_SEAFILE_RESULT:{RESULT_TOKEN}"
+PAYLOAD_MARKER = f"SHULKER_SEAFILE_PAYLOAD:{RESULT_TOKEN}:"
+
+
 @dataclass
 class FakeUser:
     email: str
@@ -93,6 +98,8 @@ class SeafileFixture:
         self.social_auth_users = [FakeSocialAuthUser(username) for username in oauth_usernames]
 
     def modules(self) -> dict[str, types.ModuleType]:
+        django = self._package("django")
+        django.setup = lambda: None
         seaserv = types.ModuleType("seaserv")
         seaserv.ccnet_api = types.SimpleNamespace(
             get_emailusers=lambda source, start, limit: list(self.users)
@@ -109,6 +116,7 @@ class SeafileFixture:
         seahub_base_accounts.User = types.SimpleNamespace(objects=FakeUserManager(self.users))
 
         return {
+            "django": django,
             "seaserv": seaserv,
             "seahub": seahub,
             "seahub.auth": seahub_auth,
@@ -124,6 +132,7 @@ class SeafileFixture:
         return package
 
     def run(self, script: str, **environment: str) -> str:
+        environment.setdefault("SHULKER_SEAFILE_RESULT_TOKEN", RESULT_TOKEN)
         with patch.dict(sys.modules, self.modules()):
             with patch.dict(os.environ, environment, clear=False):
                 with contextlib.redirect_stdout(io.StringIO()) as stdout:
@@ -164,7 +173,10 @@ class RestoreIdentityHelpersTest(unittest.TestCase):
             with self.subTest(oauth_count=oauth_count):
                 fixture, native = valid_fixture(oauth_count=oauth_count)
 
-                self.assertEqual(fixture.run(self.identify_script), f"{native.email}\n")
+                self.assertEqual(
+                    fixture.run(self.identify_script),
+                    f"{PAYLOAD_MARKER}{native.email}\n{RESULT_MARKER}\n",
+                )
                 before_identity = id(native)
                 before_user_count = len(fixture.users)
                 fixture.run(
@@ -276,7 +288,10 @@ class RestoreIdentityHelpersTest(unittest.TestCase):
             FakeUser("disabled-history@example.test", "historical-password-hash", is_active=False)
         )
 
-        self.assertEqual(fixture.run(self.identify_script), f"{native.email}\n")
+        self.assertEqual(
+            fixture.run(self.identify_script),
+            f"{PAYLOAD_MARKER}{native.email}\n{RESULT_MARKER}\n",
+        )
         native.set_password("restore-only-secret")
         fixture.run(
             self.verify_script,

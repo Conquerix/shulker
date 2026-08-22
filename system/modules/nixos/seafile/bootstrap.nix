@@ -10,7 +10,91 @@ let
   environmentFile = "/run/seafile-host/environment";
   maintenanceLock = "/run/lock/seafile-maintenance.lock";
   pythonCommand = "/opt/seafile/seafile-server-latest/seahub.sh python-env python -";
+  managementPythonPrelude = ''
+    import os
+    import re
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "seahub.settings")
+    import django
+
+    django.setup()
+
+    _shulker_result_token = os.environ["SHULKER_SEAFILE_RESULT_TOKEN"]
+    if re.fullmatch(r"[0-9a-f]{32}", _shulker_result_token) is None:
+        raise RuntimeError("Seafile management result token is invalid")
+
+    def _shulker_emit(result):
+        result = str(result)
+        if "\n" in result or "\r" in result:
+            raise RuntimeError("Seafile management result contains a line break")
+        print(f"SHULKER_SEAFILE_PAYLOAD:{_shulker_result_token}:{result}")
+
+    def _shulker_finish(result=None):
+        if result is not None:
+            _shulker_emit(result)
+        print(f"SHULKER_SEAFILE_RESULT:{_shulker_result_token}")
+  '';
+  pythonResultProtocolShell = ''
+    run_seafile_python_command() (
+      umask 077
+      result_file="$(mktemp "''${TMPDIR:-/run}/seafile-python-result.XXXXXXXXXX")" || {
+        echo "Unable to create a protected Seafile result file" >&2
+        exit 70
+      }
+      trap 'rm -f -- "$result_file"' EXIT HUP INT TERM
+      chmod 0600 "$result_file"
+
+      result_token="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+      if [[ ! "$result_token" =~ ^[0-9a-f]{32}$ ]]; then
+        echo "Unable to create a Seafile result token" >&2
+        exit 70
+      fi
+      export SHULKER_SEAFILE_RESULT_TOKEN="$result_token"
+      result_marker="SHULKER_SEAFILE_RESULT:$result_token"
+      payload_marker="SHULKER_SEAFILE_PAYLOAD:$result_token:"
+      result_maximum=1048576
+
+      set +e
+      "$@" 2>&1 | head --bytes="$(( result_maximum + 1 ))" >"$result_file"
+      pipeline_status=( "''${PIPESTATUS[@]}" )
+      set -e
+      if [ "''${pipeline_status[0]}" -ne 0 ] \
+        || [ "''${pipeline_status[1]}" -ne 0 ] \
+        || [ "$(stat --format='%s' "$result_file")" -gt "$result_maximum" ]; then
+        echo "Seafile management Python operation failed" >&2
+        exit 70
+      fi
+
+      if ! awk -v marker="$result_marker" '
+        BEGIN { seen = 0; done = 0; invalid = 0 }
+        $0 == marker {
+          if (seen != 0 || done != 0) invalid = 1
+          seen += 1
+          next
+        }
+        seen == 0 {
+          if ($0 == "Done.") invalid = 1
+          next
+        }
+        $0 == "Done." { done += 1; next }
+        $0 != "" { invalid = 1 }
+        END {
+          if (invalid != 0 || seen != 1 || done != 1) exit 1
+        }
+      ' "$result_file"; then
+        echo "Seafile management Python operation did not prove completion" >&2
+        exit 70
+      fi
+
+      awk -v marker="$result_marker" -v payload="$payload_marker" '
+        $0 == marker { exit }
+        index($0, payload) == 1 { print substr($0, length(payload) + 1) }
+      ' "$result_file"
+    )
+  '';
   listUsersPython = ''
+    ${managementPythonPrelude}
+
     from seaserv import ccnet_api
     from seahub.auth.models import SocialAuthUser
 
@@ -19,13 +103,16 @@ let
         SocialAuthUser.objects.filter(provider="pocket-id").values_list("username", flat=True)
     )
     for user in users:
-        print(
+        _shulker_emit(
             f"id={user.id}\tactive={bool(user.is_active)}\tadmin={bool(user.is_staff)}"
             f"\tpassword={'passwordless' if user.password == '!' else 'capable'}"
             f"\toauth={'linked' if user.email in oauth_usernames else 'unlinked'}"
         )
+    _shulker_finish()
   '';
   licenseStatusPython = ''
+    ${managementPythonPrelude}
+
     from seaserv import ccnet_api
     from seahub.auth.models import SocialAuthUser
 
@@ -41,16 +128,17 @@ let
         user.email not in oauth_usernames and user.password != "!" for user in active_users
     )
     unclassified_count = active_user_count - oauth_count - native_count
-    print(
+    _shulker_emit(
         f"active={active_user_count}\tlimit={license_user_limit}"
         f"\tnative_break_glass={native_count}\toauth={oauth_count}"
         f"\tunclassified={unclassified_count}"
     )
     if active_user_count > license_user_limit:
         raise SystemExit("Seafile active named-user count exceeds the licensed limit")
+    _shulker_finish()
   '';
   promoteAdminPython = ''
-    import os
+    ${managementPythonPrelude}
 
     from django.db import transaction
     from seahub.auth.models import SocialAuthUser
@@ -74,10 +162,11 @@ let
     refreshed = User.objects.get(id=user_id)
     if not refreshed.is_staff or refreshed.enc_password != "!":
         raise RuntimeError("Administrator promotion did not preserve passwordless OAuth state")
-    print("OAuth administrator authority is present; passwordless state preserved")
+    _shulker_emit("OAuth administrator authority is present; passwordless state preserved")
+    _shulker_finish()
   '';
   revokeAdminPython = ''
-    import os
+    ${managementPythonPrelude}
 
     from django.contrib.sessions.models import Session
     from django.db import transaction
@@ -113,9 +202,12 @@ let
         if user.save() != 0:
             raise RuntimeError("Seafile refused the account disable")
 
-    print("OAuth administrator authority, sessions, and tokens revoked; account disabled")
+    _shulker_emit("OAuth administrator authority, sessions, and tokens revoked; account disabled")
+    _shulker_finish()
   '';
   bootstrapStatusPython = ''
+    ${managementPythonPrelude}
+
     from seaserv import ccnet_api
     from seahub.auth.models import SocialAuthUser
 
@@ -144,15 +236,16 @@ let
         and not disabled_oauth_users
         and recognized == active_user_count
     )
-    print(
+    _shulker_emit(
         f"active={active_user_count}\tnative_break_glass_admins={len(native_admins)}"
         f"\toauth={len(oauth_users)}\tlimit={license_user_limit}"
     )
     if not valid:
         raise SystemExit("Seafile identity boundary is not in the approved bootstrap state")
+    _shulker_finish()
   '';
   verifyStoredRecoveryPython = ''
-    import os
+    ${managementPythonPrelude}
 
     from seahub.auth.models import SocialAuthUser
     from seahub.base.accounts import User
@@ -166,7 +259,8 @@ let
         raise RuntimeError("Stored native administrator collides with an OAuth identity")
     if not user.check_password(native_password):
         raise RuntimeError("Stored native administrator credential did not survive restart")
-    print("Stored native administrator recovery verified after restart")
+    _shulker_emit("Stored native administrator recovery verified after restart")
+    _shulker_finish()
   '';
   commonShell = ''
     if [ "$(id -u)" -ne 0 ]; then
@@ -196,10 +290,13 @@ let
       fi
     }
     validate_seafile_container
+
+    ${pythonResultProtocolShell}
   '';
   managementRuntimeInputs = [
     config.virtualisation.docker.package
     pkgs.coreutils
+    pkgs.gawk
     pkgs.systemd
     pkgs.util-linux
   ];
@@ -210,7 +307,8 @@ let
   bootstrapStatusScript = pkgs.writeText "seafile-bootstrap-status.py" bootstrapStatusPython;
   verifyStoredRecoveryScript = pkgs.writeText "seafile-verify-stored-recovery.py" verifyStoredRecoveryPython;
   runPython = script: ''
-    docker exec -i seafile ${pythonCommand} <${script}
+    run_seafile_python_command timeout --kill-after=5 120 docker exec -i \
+      --env SHULKER_SEAFILE_RESULT_TOKEN seafile ${pythonCommand} <${script}
   '';
   listUsers = pkgs.writeShellApplication {
     name = "seafile-list-users";
@@ -238,8 +336,9 @@ let
       fi
       export SEAFILE_ADMIN_USER_ID="$1"
       ${commonShell}
-      docker exec -i --env SEAFILE_ADMIN_USER_ID seafile \
-        ${pythonCommand} <${promoteAdminScript}
+      run_seafile_python_command timeout --kill-after=5 120 docker exec -i \
+        --env SHULKER_SEAFILE_RESULT_TOKEN --env SEAFILE_ADMIN_USER_ID \
+        seafile ${pythonCommand} <${promoteAdminScript}
     '';
   };
   revokeAdmin = pkgs.writeShellApplication {
@@ -252,8 +351,9 @@ let
       fi
       export SEAFILE_ADMIN_USER_ID="$2"
       ${commonShell}
-      docker exec -i --env SEAFILE_ADMIN_USER_ID seafile \
-        ${pythonCommand} <${revokeAdminScript}
+      run_seafile_python_command timeout --kill-after=5 120 docker exec -i \
+        --env SHULKER_SEAFILE_RESULT_TOKEN --env SEAFILE_ADMIN_USER_ID \
+        seafile ${pythonCommand} <${revokeAdminScript}
     '';
   };
   bootstrapStatus = pkgs.writeShellApplication {
@@ -308,7 +408,8 @@ let
     done
     validate_seafile_container
     export INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD
-    docker exec -i \
+    run_seafile_python_command timeout --kill-after=5 120 docker exec -i \
+      --env SHULKER_SEAFILE_RESULT_TOKEN \
       --env INIT_SEAFILE_ADMIN_EMAIL \
       --env INIT_SEAFILE_ADMIN_PASSWORD \
       seafile ${pythonCommand} <${verifyStoredRecoveryScript}
@@ -361,9 +462,25 @@ in
     description = "Seafile bootstrap identity status source exposed for evaluation contracts.";
   };
 
+  options.shulker.system.modules.seafile.managementPythonPrelude = lib.mkOption {
+    type = lib.types.lines;
+    readOnly = true;
+    internal = true;
+    description = "Django initialization and completion protocol shared by Seafile management scripts.";
+  };
+
+  options.shulker.system.modules.seafile.pythonResultProtocolShell = lib.mkOption {
+    type = lib.types.lines;
+    readOnly = true;
+    internal = true;
+    description = "Bounded host-side verifier for Seafile's status-masking Python wrapper.";
+  };
+
   config = lib.mkIf cfg.enable {
     shulker.system.modules.seafile.bootstrapContractText = bootstrapContractText;
     shulker.system.modules.seafile.bootstrapStatusPython = bootstrapStatusPython;
+    shulker.system.modules.seafile.managementPythonPrelude = managementPythonPrelude;
+    shulker.system.modules.seafile.pythonResultProtocolShell = pythonResultProtocolShell;
 
     environment.systemPackages = [
       listUsers

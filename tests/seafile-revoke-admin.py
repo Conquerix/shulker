@@ -16,6 +16,9 @@ OTHER_SESSION = "other-session-secret"
 WEB_TOKEN = "web-token-secret"
 SYNC_TOKEN = "sync-token-secret"
 REPO_API_TOKEN = "repo-api-token-secret"
+RESULT_TOKEN = "0123456789abcdef0123456789abcdef"
+RESULT_MARKER = f"SHULKER_SEAFILE_RESULT:{RESULT_TOKEN}"
+PAYLOAD_MARKER = f"SHULKER_SEAFILE_PAYLOAD:{RESULT_TOKEN}:"
 
 
 def module(name, **attributes):
@@ -140,7 +143,7 @@ def inactive_user(username):
     state["repo_api_tokens"].clear()
 
 
-module("django", __path__=[])
+module("django", __path__=[], setup=lambda: None)
 module("django.contrib", __path__=[])
 module("django.contrib.sessions", __path__=[])
 module("django.contrib.sessions.models", Session=Session)
@@ -177,6 +180,7 @@ def reset(password="!", oauth_linked=True):
 
 def run_script():
     os.environ["SEAFILE_ADMIN_USER_ID"] = str(USER_ID)
+    os.environ["SHULKER_SEAFILE_RESULT_TOKEN"] = RESULT_TOKEN
     output = io.StringIO()
     with contextlib.redirect_stdout(output):
         runpy.run_path(SCRIPT, run_name="__main__")
@@ -196,7 +200,11 @@ assert state["repo_api_tokens"] == [REPO_API_TOKEN]
 
 reset()
 output = run_script()
-assert output == "OAuth administrator authority, sessions, and tokens revoked; account disabled\n"
+assert output == (
+    f"{PAYLOAD_MARKER}"
+    "OAuth administrator authority, sessions, and tokens revoked; account disabled\n"
+    f"{RESULT_MARKER}\n"
+)
 assert state["atomic_entries"] == 1
 assert state["atomic_depth"] == 0
 assert state["inactive_user_calls"] == [USERNAME]

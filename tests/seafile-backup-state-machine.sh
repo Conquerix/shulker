@@ -102,8 +102,31 @@ case "$1" in
 		if [[ "$*" == *'SELECT COUNT(*)'* ]]; then
 			printf '1\n'
 		fi
-		if [[ "$*" == *'SEAFILE_RESTORE_NATIVE_MODE=identify'* ]]; then
-			printf 'native-admin@restore.invalid\n'
+		if [[ "$*" == *'SEAFILE_RESTORE_NATIVE_MODE='* ]]; then
+			mode=
+			for candidate in identify reset verify; do
+				if [[ "$*" == *"SEAFILE_RESTORE_NATIVE_MODE=$candidate"* ]]; then
+					mode="$candidate"
+				fi
+			done
+			[ -n "$mode" ] || exit 64
+			if [ "${STUB_RESTORE_PYTHON_FAIL_MODE:-}" = "$mode" ]; then
+				# The pinned seahub.sh wrapper masks this child failure and still
+				# emits its unconditional completion line.
+				printf '%s\n' 'Traceback: fixture Python failure' '' 'Done.'
+				exit 0
+			fi
+			if [ "$mode" = identify ]; then
+				printf '%s\n' \
+					'Load disk config: fixture commits' \
+					'Load disk config: fixture fs' \
+					'Load disk config: fixture blocks'
+				printf 'SHULKER_SEAFILE_PAYLOAD:%s:%s\n' \
+					"${SHULKER_SEAFILE_RESULT_TOKEN:?}" \
+					'native-admin@restore.invalid'
+			fi
+			printf 'SHULKER_SEAFILE_RESULT:%s\n\nDone.\n' \
+				"${SHULKER_SEAFILE_RESULT_TOKEN:?}"
 		fi
 		;;
 	kill)
@@ -297,6 +320,7 @@ EOF
 write_bash_stub "$bin/timeout" <<'EOF'
 set -euo pipefail
 printf 'timeout:%s\n' "$*" >>"$STUB_EVENTS"
+while [[ "${1:-}" == --* ]]; do shift; done
 shift
 exec "$@"
 EOF
@@ -382,7 +406,7 @@ reset_fixture() {
 	unset STUB_STACK_ACTIVE STUB_HEALTHY STUB_STATE_VALID STUB_ONLYOFFICE_PREPARE_FAIL
 	unset STUB_STOP_FAIL STUB_LOGICAL_FAIL STUB_VALIDATE_FAIL STUB_DESTROY_FAIL
 	unset STUB_COMPOSE_CREATE_FAIL STUB_COMPOSE_FAIL_SERVICE
-	unset STUB_CURL_FAIL_MATCH
+	unset STUB_CURL_FAIL_MATCH STUB_RESTORE_PYTHON_FAIL_MODE
 }
 
 expect_failure() {
@@ -588,6 +612,19 @@ fi
 unset STUB_CURL_FAIL_MATCH
 awk '{ $5 = "false"; print }' "$restore_container_state" >"$restore_container_state.next"
 mv "$restore_container_state.next" "$restore_container_state"
+
+# The pinned seahub.sh masks Python failures. Every restore identity stage must
+# therefore require the per-invocation success proof before continuing.
+for mode in identify reset verify; do
+	: >"$events"
+	export STUB_RESTORE_PYTHON_FAIL_MODE="$mode"
+	expect_failure "$restore_verify" \
+		--runtime-dir "$restore_runtime" --backup-set seafile-selected
+	grep -F -- "SEAFILE_RESTORE_NATIVE_MODE=$mode" "$events" >/dev/null
+	unset STUB_RESTORE_PYTHON_FAIL_MODE
+	awk '{ $5 = "false"; print }' "$restore_container_state" >"$restore_container_state.next"
+	mv "$restore_container_state.next" "$restore_container_state"
+done
 
 # Verify starts/imports in order, resets only the existing native account,
 # then checks the isolated HTTPS stack without recreating containers.
