@@ -24,12 +24,14 @@ permissions:
 
 jobs:
   publish:
-    if: github.event_name != 'push' || github.ref_name == github.event.repository.default_branch
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: cachix/install-nix-action@630ae543ea3a38a9a4166f03376c02c50f408342 # v31.11.0
+      - name: Validate Wiki publication contracts
+        run: nix build --no-link .#checks.x86_64-linux.wiki-publication-contract-suite
       - name: Refresh sanitized Pangolin topology
         env:
           PANGOLIN_API_ENDPOINT: ${{ vars.PANGOLIN_API_ENDPOINT }}

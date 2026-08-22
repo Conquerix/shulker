@@ -57,13 +57,16 @@ commit; review and stage those changes before retrying.
 
 GitHub Actions validate every push and pull request, retain generated reports
 as workflow artifacts, propose weekly flake-input updates, and publish the
-host reports to the [repository Wiki](https://github.com/Conquerix/shulker/wiki).
+assembled [repository Wiki](https://github.com/Conquerix/shulker/wiki).
 Dependabot groups updates to pinned GitHub Actions into weekly pull requests.
+
+The publication assembles authored runbooks from `docs/wiki/`. It combines
+evaluated non-host pages from Nix with host pages from evaluated `host-docs` reports.
 
 | Routine | Cadence | Result |
 | --- | --- | --- |
 | Checks | Push and pull request | Validates the flake and builds generated reports |
-| Publish infrastructure Wiki | Relevant push, weekly, or manual | Republishes evaluated reports and sanitized topology |
+| Publish repository Wiki | Relevant default-branch push, weekly, or manual | Validates and republishes authored, evaluated, and host pages |
 | Update flake inputs | Weekly or manual | Opens or refreshes a validated dependency pull request |
 | Check Paperless-ngx release | Weekly or manual | Opens or refreshes one marked review issue when upstream is newer |
 | Check Seafile stack releases | Weekly or manual | Opens or refreshes one marked review issue when a reviewed component is newer |
@@ -82,6 +85,10 @@ opens a pull request, deploys, or mutates a host.
 
 See the [automation guide](https://github.com/Conquerix/shulker/blob/dev/.github/README.md) for workflow triggers,
 permissions, and Wiki synchronization behavior.
+
+[Pangolin topology operations](https://github.com/Conquerix/shulker/blob/dev/.github/README.md#pangolin-topology-enrichment)
+documents the sanitized boundary, manual collector, Integration API bootstrap,
+and restart and rollback behavior.
 
 
 ## Related documentation

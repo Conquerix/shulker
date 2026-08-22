@@ -18,6 +18,9 @@ nix build .#host-docs-shulker
 nix build .#host-docs
 ```
 
+Newly discovered NixOS and nix-darwin hosts automatically receive a report and appear in the Wiki.
+`server-docs` and `server-docs-<host>` remain compatibility aliases for server-profile hosts.
+
 The resulting Markdown file is available as `result/<host>.md`.
 
 Build the complete server fleet into one output directory with:

@@ -42,6 +42,13 @@ expect_failure() {
 	fi
 }
 
+expect_success() {
+	if ! run_sync; then
+		cat "$case_dir/stderr" >&2
+		fail "$1 unexpectedly failed"
+	fi
+}
+
 expect_diagnostic() {
 	grep -Fqx -- "$1" "$case_dir/stderr" || fail "missing diagnostic: $1"
 }
@@ -100,6 +107,22 @@ printf '%s\n%s\n' \
 run_sync
 [ "$(head -n 1 "$wiki_dir/Home.md")" = "$marker" ] || fail "legacy Home.md was not replaced"
 
+new_case blank-separated-legacy-home
+write_standard_pages
+printf '%s\n\n%s\n' \
+	'# Shulker infrastructure' \
+	'Repository: [Conquerix/shulker](https://github.com/Conquerix/shulker)' >"$wiki_dir/Home.md"
+expect_success "blank-separated legacy Home.md"
+[ "$(head -n 1 "$wiki_dir/Home.md")" = "$marker" ] || fail "blank-separated legacy Home.md was not replaced"
+
+new_case near-match-legacy-home
+write_standard_pages
+printf '%s\n\n%s\n' \
+	'# Shulker infrastructure' \
+	'Repository: [Conquerix/shulker](https://github.com/Conquerix/shulker/)' >"$wiki_dir/Home.md"
+expect_failure "near-match legacy Home.md"
+expect_diagnostic "refusing to overwrite manually maintained Wiki page: $wiki_dir/Home.md"
+
 new_case unrelated-manual
 write_standard_pages
 printf '# Manual\n' >"$wiki_dir/Manual.md"
@@ -111,3 +134,48 @@ write_standard_pages
 printf '%s\n\n# Old\n' "$marker" >"$wiki_dir/Old.md"
 run_sync
 [ ! -e "$wiki_dir/Old.md" ] || fail "stale marker-owned Old.md was not removed"
+
+new_case legacy-temp-symlink
+write_standard_pages
+printf '# Manual page\n' >"$wiki_dir/Manual.md"
+cp "$wiki_dir/Manual.md" "$case_dir/Manual.before"
+ln -s Manual.md "$wiki_dir/.Home.md.tmp"
+expect_failure "legacy staging symlink"
+expect_diagnostic "refusing legacy Wiki staging symlink: $wiki_dir/.Home.md.tmp"
+cmp "$case_dir/Manual.before" "$wiki_dir/Manual.md" || fail "legacy staging symlink changed Manual.md"
+
+new_case render-failure-preserves-wiki
+write_standard_pages
+printf '%s\n\n# Existing Home\n' "$marker" >"$wiki_dir/Home.md"
+printf '%s\n\n# Existing Services\n' "$marker" >"$wiki_dir/Services.md"
+printf '%s\n\n# Existing Warden\n' "$marker" >"$wiki_dir/Host-warden.md"
+printf '%s\n\n# Stale\n' "$marker" >"$wiki_dir/Old.md"
+printf '# Manual page\n' >"$wiki_dir/Manual.md"
+mkdir "$case_dir/wiki-before"
+cp "$wiki_dir"/*.md "$case_dir/wiki-before/"
+chmod 000 "$wiki_docs_dir/Services.md"
+expect_failure "unreadable Wiki source"
+chmod 600 "$wiki_docs_dir/Services.md"
+for page in Home.md Services.md Host-warden.md Old.md Manual.md; do
+	cmp "$case_dir/wiki-before/$page" "$wiki_dir/$page" || fail "render failure changed $page"
+done
+if find "$wiki_dir" -maxdepth 1 -name '.shulker-wiki-stage.*' -print -quit | grep -q .; then
+	fail "render failure left a staging directory"
+fi
+
+new_case destination-symlink
+write_standard_pages
+printf '%s\n\n# Outside\n' "$marker" >"$case_dir/outside.md"
+cp "$case_dir/outside.md" "$case_dir/outside.before"
+ln -s "$case_dir/outside.md" "$wiki_dir/Services.md"
+expect_failure "destination symlink"
+expect_diagnostic "refusing symlinked Wiki destination: $wiki_dir/Services.md"
+cmp "$case_dir/outside.before" "$case_dir/outside.md" || fail "destination symlink target changed"
+
+new_case report-symlink
+write_standard_pages
+rm "$reports_dir/warden.md"
+printf '# External report\n' >"$case_dir/external-report.md"
+ln -s "$case_dir/external-report.md" "$reports_dir/warden.md"
+expect_failure "report symlink"
+expect_diagnostic "refusing symlinked host report: $reports_dir/warden.md"

@@ -453,12 +453,15 @@ let
     # Automation
 
     GitHub Actions validates the flake, maintains dependencies, and republishes
-    this Wiki from evaluated configuration and sanitized external data.
+    this Wiki from reviewed repository sources and sanitized external data.
+
+    The publication assembles authored runbooks from `docs/wiki/`. It combines
+    evaluated non-host pages from Nix with host pages from evaluated `host-docs` reports.
 
     | Routine | Trigger | Result |
     | --- | --- | --- |
     | [Checks](https://github.com/Conquerix/shulker/actions/workflows/check.yml) | Push and pull request | Evaluates the flake, runs checks, builds reports, uploads artifacts |
-    | [Publish infrastructure Wiki](https://github.com/Conquerix/shulker/actions/workflows/wiki.yml) | Relevant push, weekly schedule, manual | Refreshes Pangolin data and synchronizes generated Wiki pages |
+    | [Publish repository Wiki](https://github.com/Conquerix/shulker/actions/workflows/wiki.yml) | Relevant default-branch push, weekly schedule, manual | Validates and republishes authored, evaluated, and host pages |
     | [Update flake inputs](https://github.com/Conquerix/shulker/actions/workflows/update-flake.yml) | Weekly schedule, manual | Opens or refreshes a validated dependency-update pull request |
     | [Check Paperless-ngx release](https://github.com/Conquerix/shulker/actions/workflows/check-paperless-release.yml) | Weekly schedule, manual | Opens or refreshes one marked review issue when upstream is newer; never deploys |
     | [Check Seafile stack releases](https://github.com/Conquerix/shulker/actions/workflows/check-seafile-release.yml) | Weekly or manual | Opens or refreshes one marker-owned compatibility-review issue; non-deploying |
@@ -470,9 +473,11 @@ let
     flowchart LR
       nix[Evaluated Nix configurations] --> inventory[Infrastructure inventory]
       pangolin[Pangolin Integration API] --> sanitize[Sanitized public snapshot]
-      inventory --> pages[Generated Wiki pages]
-      sanitize --> pages
-      reports[Per-host evaluated reports] --> sync[Wiki synchronizer]
+      authored[Authored runbooks in docs/wiki] --> pages[Assembled non-host Wiki pages]
+      inventory --> evaluated[Evaluated non-host pages]
+      sanitize --> evaluated
+      evaluated --> pages
+      reports[Host pages from evaluated host-docs reports] --> sync[Wiki synchronizer]
       pages --> sync
       sync --> wiki[GitHub Wiki]
     ```

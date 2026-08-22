@@ -25,6 +25,8 @@ jobs:
         run: nix build --no-link .#checks.x86_64-linux.pre-commit-check
       - name: Run Seafile contract suite
         run: nix build --no-link .#checks.x86_64-linux.seafile-contract-suite
+      - name: Validate Wiki publication contracts
+        run: nix build --no-link .#checks.x86_64-linux.wiki-publication-contract-suite
       - name: Build generated Wiki documentation
         run: |
           nix build .#host-docs --out-link host-docs-result

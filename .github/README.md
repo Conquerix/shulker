@@ -1,14 +1,15 @@
 # Repository automation
 
 The workflows in this directory keep the configuration validated, dependencies
-current, and the server Wiki synchronized.
+current, and the repository Wiki synchronized.
 
 ## Checks
 
 [`workflows/check.yml`](workflows/check.yml) runs on pushes and pull requests. It
 evaluates all flake outputs, builds the repository hook derivation, builds the
-generated host reports and infrastructure topology, and retains those outputs
-as a 14-day workflow artifact.
+Wiki publication contract suite, builds the generated host reports and
+infrastructure topology, and retains those outputs as a 14-day workflow
+artifact.
 
 ## Flake input updates
 
@@ -121,6 +122,34 @@ access is not configured. To refresh it from the live control plane, configure:
 - repository secret `PANGOLIN_TOPOLOGY_API_KEY`, containing a read-only
   organization API key limited to listing sites, public resources, targets, and
   domains.
+
+`topology/public.json` is the sanitized boundary for external control-plane
+data. Refresh it manually from the repository root with:
+
+```sh
+PANGOLIN_API_ENDPOINT=https://api.example.com \
+PANGOLIN_ORG_ID=example \
+PANGOLIN_API_KEY=... \
+scripts/fetch-pangolin-topology.sh
+```
+
+The collector deliberately excludes internal target addresses, ports, private
+resources, access policies, identities, and credentials. Detailed external
+snapshots must remain in ignored `topology/private*.json` files and must never
+be published to the repository or Wiki.
+
+On a self-hosted Pangolin control plane, enable and expose the Integration API
+with the root-only, reversible bootstrap helper:
+
+```sh
+sudo nix shell nixpkgs#yq-go --command \
+  scripts/configure-pangolin-integration-api.sh api.example.com
+```
+
+It preserves the existing YAML, creates root-only backups, validates the edited
+files, and rolls back if the Pangolin API does not become healthy. The helper
+briefly restarts Pangolin and Traefik, so schedule this operation like any other
+short control-plane interruption.
 
 For Pangolin's permission selector, the exact required actions are `listSites`,
 `listResources`, `listTargets`, and `listOrgDomains`. No create, update, delete,

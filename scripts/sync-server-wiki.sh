@@ -28,6 +28,10 @@ if [ ! -d "$wiki_docs_dir" ]; then
 fi
 
 manifest="$wiki_docs_dir/wiki-pages.txt"
+if [ -L "$manifest" ]; then
+	echo "refusing symlinked Wiki page manifest: $manifest" >&2
+	exit 1
+fi
 if [ ! -f "$manifest" ] || [ ! -s "$manifest" ]; then
 	echo "Wiki page manifest does not exist" >&2
 	exit 1
@@ -36,8 +40,12 @@ fi
 manifest_names="$(mktemp)"
 markdown_names="$(mktemp)"
 comparison_names="$(mktemp)"
+staging_dir=""
 cleanup() {
 	rm -f -- "$manifest_names" "$markdown_names" "$comparison_names"
+	if [ -n "$staging_dir" ] && [ -d "$staging_dir" ]; then
+		rm -rf -- "$staging_dir"
+	fi
 }
 trap cleanup EXIT
 
@@ -51,6 +59,11 @@ while IFS= read -r page_name || [ -n "$page_name" ]; do
 
 	if [[ ! $page_name =~ ^(_Sidebar|_Footer|[A-Za-z0-9][A-Za-z0-9-]*)[.]md$ ]]; then
 		echo "invalid Wiki page name in manifest" >&2
+		exit 1
+	fi
+
+	if [ -L "$wiki_docs_dir/$page_name" ]; then
+		echo "refusing symlinked generated Wiki page: $wiki_docs_dir/$page_name" >&2
 		exit 1
 	fi
 
@@ -77,12 +90,18 @@ fi
 
 assert_managed_or_absent() {
 	page="$1"
+	if [ -L "$page" ]; then
+		echo "refusing symlinked Wiki destination: $page" >&2
+		exit 1
+	fi
+
 	if [ ! -e "$page" ] || grep -Fqx "$marker" "$page"; then
 		return
 	fi
 
 	if [ "$(basename "$page")" = "Home.md" ] &&
-		[ "$(cat "$page")" = $'# Shulker infrastructure\nRepository: [Conquerix/shulker](https://github.com/Conquerix/shulker)' ]; then
+		grep -Fqx "# Shulker infrastructure" "$page" &&
+		grep -Fqx "Repository: [Conquerix/shulker](https://github.com/Conquerix/shulker)" "$page"; then
 		return
 	fi
 
@@ -92,19 +111,39 @@ assert_managed_or_absent() {
 	fi
 }
 
+assert_no_legacy_staging_symlink() {
+	page="$1"
+	legacy_staging="$wiki_dir/.$(basename "$page").tmp"
+	if [ -L "$legacy_staging" ]; then
+		echo "refusing legacy Wiki staging symlink: $legacy_staging" >&2
+		exit 1
+	fi
+}
+
 while IFS= read -r page_name; do
 	assert_managed_or_absent "$wiki_dir/$page_name"
+	assert_no_legacy_staging_symlink "$wiki_dir/$page_name"
 done <"$manifest_names"
 
 report_count=0
 for report in "$reports_dir"/*.md; do
+	if [ -L "$report" ]; then
+		echo "refusing symlinked host report: $report" >&2
+		exit 1
+	fi
+
 	if [ ! -e "$report" ]; then
 		continue
 	fi
 
 	report_count=$((report_count + 1))
 	host="$(basename "$report" .md)"
+	if [[ ! $host =~ ^[A-Za-z0-9][A-Za-z0-9-]*$ ]]; then
+		echo "invalid host report name: $report" >&2
+		exit 1
+	fi
 	assert_managed_or_absent "$wiki_dir/Host-$host.md"
+	assert_no_legacy_staging_symlink "$wiki_dir/Host-$host.md"
 done
 
 if [ "$report_count" -eq 0 ]; then
@@ -112,36 +151,71 @@ if [ "$report_count" -eq 0 ]; then
 	exit 1
 fi
 
-# Remove only pages carrying our marker. This clears stale generated pages and
-# hosts without touching unrelated or manually maintained Wiki content.
-for page in "$wiki_dir"/*.md; do
-	if [ -e "$page" ] && grep -Fqx "$marker" "$page"; then
-		rm -f -- "$page"
-	fi
-done
+staging_dir="$(mktemp -d "$wiki_dir/.shulker-wiki-stage.XXXXXX")"
+chmod 700 "$staging_dir"
 
 while IFS= read -r page_name; do
 	source_page="$wiki_docs_dir/$page_name"
-	page="$wiki_dir/$page_name"
-	page_tmp="$wiki_dir/.$page_name.tmp"
+	staged_page="$staging_dir/$page_name"
 	{
 		echo "$marker"
 		echo
 		cat "$source_page"
-	} >"$page_tmp"
-	mv -- "$page_tmp" "$page"
+	} >"$staged_page"
 done <"$manifest_names"
 
 for report in "$reports_dir"/*.md; do
 	host="$(basename "$report" .md)"
-	page="$wiki_dir/Host-$host.md"
-	page_tmp="$wiki_dir/.Host-$host.md.tmp"
+	staged_page="$staging_dir/Host-$host.md"
 	{
 		echo "$marker"
 		echo
 		echo "[← Fleet](Fleet) · [Servers](Servers) · [Services](Services) · [Operations](Operations)"
 		echo
 		sed "1s/^# /# Host: /" "$report"
-	} >"$page_tmp"
-	mv -- "$page_tmp" "$page"
+	} >"$staged_page"
+done
+
+# Recheck all expected destinations after rendering and before any mutation.
+while IFS= read -r page_name; do
+	assert_managed_or_absent "$wiki_dir/$page_name"
+done <"$manifest_names"
+for report in "$reports_dir"/*.md; do
+	host="$(basename "$report" .md)"
+	assert_managed_or_absent "$wiki_dir/Host-$host.md"
+done
+
+# Refuse every Markdown symlink before removing any stale marker-owned page.
+for page in "$wiki_dir"/*.md; do
+	if [ -L "$page" ]; then
+		echo "refusing symlinked Wiki destination: $page" >&2
+		exit 1
+	fi
+done
+
+# Remove only pages carrying our marker. Rendering has already completed, so a
+# source failure cannot remove or partially replace existing Wiki content.
+for page in "$wiki_dir"/*.md; do
+	if [ -f "$page" ] && grep -Fqx "$marker" "$page"; then
+		rm -f -- "$page"
+	fi
+done
+
+while IFS= read -r page_name; do
+	staged_page="$staging_dir/$page_name"
+	if [ -L "$staged_page" ] || [ ! -f "$staged_page" ]; then
+		echo "staged Wiki page is not a regular file: $staged_page" >&2
+		exit 1
+	fi
+	mv -- "$staged_page" "$wiki_dir/$page_name"
+done <"$manifest_names"
+
+for report in "$reports_dir"/*.md; do
+	host="$(basename "$report" .md)"
+	staged_page="$staging_dir/Host-$host.md"
+	if [ -L "$staged_page" ] || [ ! -f "$staged_page" ]; then
+		echo "staged host page is not a regular file: $staged_page" >&2
+		exit 1
+	fi
+	mv -- "$staged_page" "$wiki_dir/Host-$host.md"
 done
