@@ -250,16 +250,40 @@ let
     | Pangolin sites online | ${toString (length onlineSites)} / ${toString (length pangolinSites)} |
     | Published Pangolin resources | ${toString (length pangolinResources)} |
 
-    ## Browse the documentation
+    ## Table of contents
 
-    | Page | Use it for |
-    | --- | --- |
-    | [Overview](Home) | This introduction and its source of truth |
-    | Infrastructure: [Fleet](Fleet), [Topology](Infrastructure), [Public services](Public-Services) | Fleet inventory, diagrams, and sanitized public routing |
-    | Hosts: [Servers](Servers) and generated host pages | Server index and evaluated per-host reports |
-    | Services: [catalog](Services) and [Hermes WebUI](Service-Hermes-WebUI), [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV), [Seafile](Service-Seafile), [OpenCloud](Service-OpenCloud), [Immich](Service-Immich), and [Paperless](Service-Paperless) runbooks | Service ownership, placement, and operations |
-    | Operations: [runbook](Operations), [Backup and restore](Operations-Backup-and-Restore), [Security and recovery](Operations-Security-and-Recovery), [Automation](Automation) | Safe changes, recovery, and publishing routines |
-    | Project: [Development](Project-Development) and [source repository](https://github.com/Conquerix/shulker) | Contribution workflow and declarative source |
+    ### Infrastructure
+
+    - [Fleet](Fleet) — evaluated host inventory and roles
+    - [Topology](Infrastructure) — generated architecture diagrams
+    - [Public services](Public-Services) — sanitized public routing
+
+    ### Hosts
+
+    - [Servers](Servers) — server index and operational summary
+    - Detailed generated host reports are listed in the sidebar
+
+    ### Services
+
+    - [Service catalog](Services)
+    - [Hermes WebUI](Service-Hermes-WebUI)
+    - [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV)
+    - [Seafile](Service-Seafile)
+    - [OpenCloud](Service-OpenCloud)
+    - [Immich](Service-Immich)
+    - [Paperless](Service-Paperless)
+
+    ### Operations
+
+    - [Runbook](Operations)
+    - [Backup and restore](Operations-Backup-and-Restore)
+    - [Security and recovery](Operations-Security-and-Recovery)
+    - [Automation](Automation)
+
+    ### Project
+
+    - [Development](Project-Development)
+    - [Source repository](https://github.com/Conquerix/shulker)
 
     ## Source of truth
 

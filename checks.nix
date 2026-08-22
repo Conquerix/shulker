@@ -144,20 +144,17 @@ in
 
         grep -F -- '](https://github.com/Conquerix/shulker/wiki)' "$root_readme" >/dev/null
         grep -F -- '](https://github.com/Conquerix/shulker/wiki/Automation)' "$root_readme" >/dev/null
+        grep -F -- '[version-controlled sources](docs/wiki/)' "$root_readme" >/dev/null
+        if grep -E -- '^- \[[^]]+\]\(docs/wiki/(services|operations|project)/' "$root_readme" >/dev/null; then
+          echo 'README lists individual Wiki entries instead of routing through the Wiki table of contents' >&2
+          exit 1
+        fi
 
-        for source in \
-          docs/wiki/services/hermes-webui.md \
-          docs/wiki/services/grapheneos-webdav.md \
-          docs/wiki/services/seafile.md \
-          docs/wiki/services/opencloud.md \
-          docs/wiki/services/immich.md \
-          docs/wiki/services/paperless.md \
-          docs/wiki/operations/backup-and-restore.md \
-          docs/wiki/operations/security-and-recovery.md \
-          docs/wiki/project/development.md
-        do
-          grep -F -- "]($source)" "$root_readme" >/dev/null
-        done
+        grep -F -x -- '## Table of contents' "${wikiDocs}/Home.md" >/dev/null
+        if grep -F -x -- '## Browse the documentation' "${wikiDocs}/Home.md" >/dev/null; then
+          echo 'Wiki Home retains the former documentation table heading' >&2
+          exit 1
+        fi
 
         if ! grep -F -x -- 'name: Publish repository Wiki' "$wiki_workflow" >/dev/null; then
           echo 'Wiki workflow name is not Publish repository Wiki' >&2

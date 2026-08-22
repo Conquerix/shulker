@@ -35,18 +35,10 @@ NixOS hosts: `enderdragon`, `endermite`, `guardian`, `phantom`, `shulker`,
 ## Documentation
 
 The [repository Wiki](https://github.com/Conquerix/shulker/wiki) is the
-navigable operator-facing publication. Its detailed runbooks are authored in
-the repository so changes remain reviewable with the configuration:
-
-- [Hermes WebUI](docs/wiki/services/hermes-webui.md)
-- [GrapheneOS WebDAV](docs/wiki/services/grapheneos-webdav.md)
-- [Seafile](docs/wiki/services/seafile.md)
-- [OpenCloud](docs/wiki/services/opencloud.md)
-- [Immich](docs/wiki/services/immich.md)
-- [Paperless](docs/wiki/services/paperless.md)
-- [Backup and restore](docs/wiki/operations/backup-and-restore.md)
-- [Security and recovery](docs/wiki/operations/security-and-recovery.md)
-- [Development and validation](docs/wiki/project/development.md)
+navigable operator-facing publication, with its table of contents on the Home
+page. Detailed runbooks are authored in the repository under
+[version-controlled sources](docs/wiki/) so changes remain reviewable with the
+configuration.
 
 The [server documentation guide](system/hosts/nixos/README.md) explains the
 evaluated per-host reports. The [automation guide](.github/AUTOMATION.md) documents
