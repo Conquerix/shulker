@@ -7,6 +7,7 @@ latest.iso
 
 # Local agent-authored design specifications and implementation plans
 .agent-work/
+.superpowers/
 
 # Editor / tooling backups
 *.bak
