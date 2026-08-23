@@ -299,6 +299,9 @@ application, then archives
 destroy only this reserved snapshot; a preparation failure restarts Paperless
 and removes any snapshot it created.
 
+The dump directory and its files are intentionally root-only (`0700` and
+`0600` respectively); inspect or copy logical dumps with `sudo`.
+
 Before every Paperless update, run:
 
 ```sh

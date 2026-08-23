@@ -271,8 +271,8 @@ in
           ${lib.escapeShellArg cfg.stateDir}/consume \
           ${lib.escapeShellArg cfg.stateDir}/consume/family \
           ${lib.escapeShellArg cfg.stateDir}/consume/private \
-          ${lib.escapeShellArg cfg.stateDir}/export \
-          ${lib.escapeShellArg cfg.stateDir}/dumps
+          ${lib.escapeShellArg cfg.stateDir}/export
+        install -d -m 0700 -o 0 -g 0 ${lib.escapeShellArg cfg.stateDir}/dumps
         install -d -m 0700 -o 999 -g 999 \
           ${lib.escapeShellArg cfg.stateDir}/postgres \
           ${lib.escapeShellArg cfg.stateDir}/redis

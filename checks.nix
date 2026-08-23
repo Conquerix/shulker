@@ -2218,6 +2218,10 @@ in
 
   paperless-backup-contract =
     assert paperless.backUpData;
+    assert
+      pkgs.lib.hasInfix "install -d -m 0700 -o 0 -g 0 /storage/flash/paperless/dumps" paperlessStateService.script
+      && pkgs.lib.hasInfix ''chmod 0600 "$temporary_dump"'' paperless.logicalBackupScript
+      && !(pkgs.lib.hasInfix "\nchown " paperless.logicalBackupScript);
     assert builtins.elem "/storage/flash/paperless/.zfs/snapshot/borgmatic"
       wardenConfig.shulker.system.modules.backup.dirs;
     assert builtins.hasAttr "paperless-logical-backup" services;

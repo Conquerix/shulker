@@ -43,7 +43,6 @@ let
       <"$temporary_dump" >/dev/null
 
     chmod 0600 "$temporary_dump"
-    chown ${toString cfg.uid}:${toString cfg.gid} "$temporary_dump"
     completed_dump="$dumps_dir/paperless-$(date --utc +%Y%m%dT%H%M%S.%NZ).dump"
     mv -- "$temporary_dump" "$completed_dump"
     trap - EXIT INT TERM
