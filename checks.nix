@@ -1805,6 +1805,19 @@ in
     assert pkgs.lib.hasInfix "cleanup-armed" contract;
     assert pkgs.lib.hasInfix "guid" (pkgs.lib.toLower contract);
     assert pkgs.lib.hasInfix "/run/lock/seafile-maintenance.lock" contract;
+    assert pkgs.lib.hasInfix "--execute 'SELECT 1'" contract;
+    assert pkgs.lib.hasInfix "--kill-after=1 \"$validator_probe_timeout\"" contract;
+    assert pkgs.lib.hasInfix "validator database authentication did not become ready" contract;
+    assert !(pkgs.lib.hasInfix "mariadb-admin --user root ping" contract);
+    assert pkgs.lib.hasInfix "--network=none --pull=never --read-only" contract;
+    assert pkgs.lib.hasInfix "--security-opt=no-new-privileges=true --pids-limit=16" contract;
+    assert pkgs.lib.hasInfix "--user 0:0 --cap-drop=ALL --cap-add=DAC_OVERRIDE" contract;
+    assert pkgs.lib.hasInfix "type=bind,source=$workspace,target=/cleanup" contract;
+    assert pkgs.lib.hasInfix "--entrypoint /usr/bin/find" contract;
+    assert
+      !(builtins.elem "CAP_DAC_OVERRIDE" (borgmaticService.serviceConfig.CapabilityBoundingSet or [ ]));
+    assert !(builtins.elem "CAP_CHOWN" (borgmaticService.serviceConfig.CapabilityBoundingSet or [ ]));
+    assert !(builtins.elem "CAP_FOWNER" (borgmaticService.serviceConfig.CapabilityBoundingSet or [ ]));
     assert pkgs.lib.hasInfix "seafile-restore-net" contract;
     assert pkgs.lib.hasInfix "https://files.restore.invalid:24239" contract;
     assert pkgs.lib.hasInfix "https://office.restore.invalid:24240" contract;

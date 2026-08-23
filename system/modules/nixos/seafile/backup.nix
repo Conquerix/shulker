@@ -387,11 +387,14 @@ let
     [ -f "$candidate_file" ] && [ ! -L "$candidate_file" ] || fail_backup "candidate handoff is missing"
     live_candidate="$(cat "$candidate_file")"
     case "$live_candidate" in "$state_dir"/backups/seafile-*-$invocation) ;; *) fail_backup "candidate handoff is foreign" ;; esac
+    live_candidate_is_owned() {
+      [ "''${SEAFILE_TEST_SKIP_OWNERSHIP:-0}" = 1 ] \
+        || [ "$(stat --format '%u:%g:%a' "$live_candidate")" = 0:0:700 ]
+    }
     candidate_name="''${live_candidate##*/}"
     candidate="$snapshot_path/backups/$candidate_name"
     [ -d "$candidate" ] && [ ! -L "$candidate" ] || fail_backup "snapshot candidate is missing"
-    [ "$(stat --format '%u:%g:%a' "$live_candidate")" = 0:0:700 ] \
-      || fail_backup "live candidate ownership is foreign"
+    live_candidate_is_owned || fail_backup "live candidate ownership is foreign"
     jq -e '.transaction_kind == "writers_quiesced=true" and (.databases | length == 3)' \
       "$candidate/manifest.json" >/dev/null || fail_backup "candidate manifest is invalid"
 
@@ -419,23 +422,75 @@ let
     chmod 0600 "$credential"
     MYSQL_PWD="$validator_password"
     export MYSQL_PWD
-    cleanup_validator() {
-      status=$?
-      trap - EXIT
-      if [ -f "$cidfile" ]; then
-        validator_id="$(cat "$cidfile")"
-        if [ -n "$validator_id" ] \
-          && [ "$("$docker_command" inspect --format '{{index .Config.Labels "shulker.seafile.backup-invocation"}}' "$validator_id" 2>/dev/null)" = "$invocation" ]; then
-          "$docker_command" rm -f "$validator_id" >/dev/null 2>&1 || true
-        fi
-      fi
-      rm -f -- "$credential" "$cidfile"
-      if [ "$workspace" = "$validator_state_dir/$invocation" ]; then rm -rf -- "$workspace"; fi
-      if [ "$status" -ne 0 ] && [ -d "$live_candidate" ] \
-        && [ "$(stat --format '%u:%g:%a' "$live_candidate")" = 0:0:700 ]; then
-        case "$live_candidate" in "$state_dir"/backups/seafile-*-$invocation) rm -rf -- "$live_candidate" ;; esac
-      fi
+    validation_marker=
+    validator_resources_cleaned=0
+    remove_owned_validator() {
+      local current_id current_image current_invocation
+      if ! "$docker_command" inspect "$validator_name" >/dev/null 2>&1; then return 0; fi
+      current_id="$("$docker_command" inspect --format '{{.Id}}' "$validator_name")" || return 1
+      current_image="$("$docker_command" inspect --format '{{.Config.Image}}' "$validator_name")" || return 1
+      current_invocation="$("$docker_command" inspect \
+        --format '{{index .Config.Labels "shulker.seafile.backup-invocation"}}' \
+        "$validator_name")" || return 1
+      [[ "$current_id" =~ ^[a-f0-9]{64}$ ]] || return 1
+      [ "$current_image" = ${lib.escapeShellArg cfg.databaseImage} ] \
+        && [ "$current_invocation" = "$invocation" ] || return 1
+      [ -f "$cidfile" ] && [ ! -L "$cidfile" ] || return 1
+      [ "$(cat "$cidfile")" = "$current_id" ] || return 1
+      "$docker_command" rm -f "$current_id" >/dev/null
+      ! "$docker_command" inspect "$current_id" >/dev/null 2>&1 || return 1
+      ! "$docker_command" inspect "$validator_name" >/dev/null 2>&1
+    }
+    remove_validator_workspace() {
+      local cleanup_name="$validator_name-cleanup"
+      [ "$workspace" = "$validator_state_dir/$invocation" ] || return 1
+      if ! path_present "$workspace"; then return 0; fi
+      [ -d "$validator_state_dir" ] && [ ! -L "$validator_state_dir" ] || return 1
+      [ -d "$workspace" ] && [ ! -L "$workspace" ] || return 1
+      ! "$docker_command" inspect "$cleanup_name" >/dev/null 2>&1 || return 1
+      "$docker_command" run --rm --name "$cleanup_name" \
+        --label "shulker.seafile.backup-invocation=$invocation" \
+        --network=none --pull=never --read-only \
+        --security-opt=no-new-privileges=true --pids-limit=16 \
+        --user 0:0 --cap-drop=ALL --cap-add=DAC_OVERRIDE \
+        --mount "type=bind,source=$workspace,target=/cleanup" \
+        --entrypoint /usr/bin/find ${lib.escapeShellArg cfg.databaseImage} \
+        /cleanup -xdev -mindepth 1 -delete >/dev/null 2>&1 || return 1
+      ! "$docker_command" inspect "$cleanup_name" >/dev/null 2>&1 || return 1
+      rmdir -- "$workspace"
+    }
+    cleanup_validator_resources() {
+      [ "$validator_resources_cleaned" -eq 0 ] || return 0
       unset MYSQL_PWD validator_password
+      remove_owned_validator || return 1
+      remove_validator_workspace || return 1
+      validator_resources_cleaned=1
+    }
+    cleanup_validator() {
+      local status=$? cleanup_failed=0
+      trap - EXIT
+      trap "" HUP INT TERM
+      cleanup_validator_resources || cleanup_failed=1
+      if { [ "$status" -ne 0 ] || [ "$cleanup_failed" -ne 0 ]; } \
+        && [ -d "$live_candidate" ] && live_candidate_is_owned; then
+        case "$live_candidate" in
+          "$state_dir"/backups/seafile-*-$invocation)
+            rm -rf -- "$live_candidate" || cleanup_failed=1
+            ;;
+        esac
+      fi
+      if { [ "$status" -ne 0 ] || [ "$cleanup_failed" -ne 0 ]; } \
+        && [ -n "$validation_marker" ]; then
+        case "$validation_marker" in
+          "$state_dir"/control/"$candidate_name".validated)
+            rm -f -- "$validation_marker" || cleanup_failed=1
+            ;;
+        esac
+      fi
+      if [ "$cleanup_failed" -ne 0 ]; then
+        echo "Seafile backup failed: validator cleanup failed" >&2
+        if [ "$status" -eq 0 ]; then status=70; fi
+      fi
       exit "$status"
     }
     trap cleanup_validator EXIT
@@ -445,12 +500,35 @@ let
       --label "shulker.seafile.backup-invocation=$invocation" --cidfile "$cidfile" \
       --env-file "$credential" --network none --publish-all=false \
       --volume "$workspace:/var/lib/mysql" ${lib.escapeShellArg cfg.databaseImage} >/dev/null
+    [ -f "$cidfile" ] && [ ! -L "$cidfile" ] || fail_backup "validator container identity is unavailable"
     validator_id="$(cat "$cidfile")"
+    [[ "$validator_id" =~ ^[a-f0-9]{64}$ ]] || fail_backup "validator container identity is invalid"
+    validator_ready=0
+    validator_deadline="$((SECONDS + 180))"
     for _ in $(seq 1 180); do
-      "$docker_command" exec --env MYSQL_PWD "$validator_id" mariadb-admin --user root ping >/dev/null 2>&1 && break
-      sleep 1
+      validator_probe_timeout=5
+      if [ "''${SEAFILE_TEST_NO_SLEEP:-0}" != 1 ]; then
+        validator_remaining="$((validator_deadline - SECONDS))"
+        [ "$validator_remaining" -gt 0 ] || break
+        if [ "$validator_remaining" -lt "$validator_probe_timeout" ]; then
+          validator_probe_timeout="$validator_remaining"
+        fi
+      fi
+      validator_result="$({
+        "$timeout_command" --kill-after=1 "$validator_probe_timeout" \
+          "$docker_command" exec --env MYSQL_PWD "$validator_id" \
+          mariadb --batch --skip-column-names --user root --execute 'SELECT 1'
+      } 2>/dev/null)" || validator_result=
+      if [ "$validator_result" = 1 ]; then
+        validator_ready=1
+        break
+      fi
+      if [ "''${SEAFILE_TEST_NO_SLEEP:-0}" != 1 ]; then
+        [ "$SECONDS" -lt "$validator_deadline" ] || break
+        sleep 1
+      fi
     done
-    "$docker_command" exec --env MYSQL_PWD "$validator_id" mariadb-admin --user root ping >/dev/null
+    [ "$validator_ready" -eq 1 ] || fail_backup "validator database authentication did not become ready"
     for database in ccnet_db seafile_db seahub_db; do
       "$timeout_command" 3600 "$docker_command" exec -i --env MYSQL_PWD "$validator_id" \
         mariadb --user root <"$candidate/$database.sql"
@@ -458,6 +536,7 @@ let
         -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='$database';")"
       [ "$count" -gt 0 ] || fail_backup "$database import has no schema objects"
     done
+    cleanup_validator_resources || fail_backup "validator cleanup failed"
     validation_marker="$state_dir/control/$candidate_name.validated"
     validation_content="$(printf 'invocation=%s\ncandidate=%s\nvalidated_at=%s\ntransaction_kind=writers_quiesced=true\n' \
       "$invocation" "$live_candidate" "$(date --utc --iso-8601=seconds)")"
@@ -469,10 +548,7 @@ let
       old_candidate="$(marker_field "$old_marker" candidate || true)"
       case "$old_candidate" in "$state_dir"/backups/seafile-*) rm -rf -- "$old_candidate"; rm -f -- "$old_marker" ;; esac
     done
-    trap - EXIT HUP INT TERM
-    "$docker_command" rm -f "$validator_id" >/dev/null
-    rm -rf -- "$workspace"
-    unset MYSQL_PWD validator_password
+    trap - HUP INT TERM
   '';
 
   backupPrepareScript = ''

@@ -27,6 +27,8 @@ bin="$root/bin"
 state="$root/state"
 runtime="$root/runtime"
 validator_state="$root/validator"
+validator_container_state="$root/validator-container-state"
+validator_ready_state="$root/validator-ready-state"
 events="$root/events"
 snapshot_state="$root/snapshot-state"
 restore_container_state="$root/restore-container-state"
@@ -35,6 +37,8 @@ mkdir -p "$bin" "$state/backups" "$state/control" "$state/shared/logs" \
 	"$state/shared/seafile/logs" "$runtime" "$validator_state"
 : >"$events"
 : >"$snapshot_state"
+: >"$validator_container_state"
+: >"$validator_ready_state"
 : >"$restore_container_state"
 : >"$restore_network_state"
 real_install="$(command -v install)"
@@ -67,6 +71,25 @@ printf 'docker:%s\n' "$*" >>"$STUB_EVENTS"
 case "$1" in
 	inspect)
 		target="${!#}"
+		if [ -s "$STUB_VALIDATOR_CONTAINER_STATE" ]; then
+			read -r name id invocation image workspace <"$STUB_VALIDATOR_CONTAINER_STATE"
+			if [ "$target" = "$name" ] || [ "$target" = "$id" ]; then
+				if [[ "$*" == *'{{.Id}}'* ]]; then
+					printf '%s\n' "$id"
+				elif [[ "$*" == *'{{.Config.Image}}'* ]]; then
+					printf '%s\n' "$image"
+				elif [[ "$*" == *'shulker.seafile.backup-invocation'* ]]; then
+					printf '%s\n' "$invocation"
+				else
+					printf '%s\n' "$id"
+				fi
+				exit 0
+			fi
+		fi
+		if [[ "$target" == seafile-backup-validator-* \
+			|| "$target" =~ ^[a-f0-9]{64}$ ]]; then
+			exit 1
+		fi
 		if [[ "$target" == seafile-restore-* || "$target" == restore-*-id ]]; then
 			line="$(awk -v target="$target" '$1 == target || $2 == target { print; exit }' "$STUB_RESTORE_CONTAINER_STATE")"
 			[ -n "$line" ] || exit 1
@@ -100,6 +123,15 @@ case "$1" in
 			printf '%s\n' 'CREATE TABLE fixture (id int);'
 		fi
 		if [[ "$*" == *'SELECT COUNT(*)'* ]]; then
+			printf '1\n'
+		fi
+		if [[ "$*" == *'--execute SELECT 1'* ]]; then
+			attempt="$(( $(cat "$STUB_VALIDATOR_READY_STATE") + 1 ))"
+			printf '%s\n' "$attempt" >"$STUB_VALIDATOR_READY_STATE"
+			ready_after="${STUB_VALIDATOR_READY_AFTER:-1}"
+			if [ "$ready_after" -eq 0 ] || [ "$attempt" -lt "$ready_after" ]; then
+				exit 1
+			fi
 			printf '1\n'
 		fi
 		if [[ "$*" == *'SEAFILE_RESTORE_NATIVE_MODE='* ]]; then
@@ -141,17 +173,53 @@ case "$1" in
 		;;
 	info) printf '%s\n' "${STUB_DOCKER_ROOT:-/tmp}" ;;
 	run)
-		cidfile=
+		if [[ "$*" == *'--entrypoint /usr/bin/find'* ]]; then
+			[ "${STUB_VALIDATOR_CLEANUP_FAIL:-0}" = 0 ] || exit 75
+			mount=
+			previous=
+			for argument in "$@"; do
+				if [ "$previous" = --mount ]; then mount="$argument"; fi
+				previous="$argument"
+			done
+			workspace="${mount#type=bind,source=}"
+			workspace="${workspace%,target=/cleanup}"
+			[ -d "$workspace" ] && [ ! -L "$workspace" ]
+			chmod -R u+rwx "$workspace"
+			find "$workspace" -xdev -mindepth 1 -delete
+			exit 0
+		fi
+		cidfile= name= label= volume=
 		previous=
 		for argument in "$@"; do
-			if [ "$previous" = --cidfile ]; then cidfile="$argument"; fi
+			case "$previous" in
+			--cidfile) cidfile="$argument" ;;
+			--name) name="$argument" ;;
+			--label) label="$argument" ;;
+			--volume) volume="$argument" ;;
+			esac
 			previous="$argument"
 		done
-		[ -z "$cidfile" ] || printf '%s\n' "${STUB_CONTAINER_ID:-owned-validator-id}" >"$cidfile"
-		printf '%s\n' "${STUB_CONTAINER_ID:-owned-validator-id}"
+		id="${STUB_VALIDATOR_CONTAINER_ID:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}"
+		invocation="${label#shulker.seafile.backup-invocation=}"
+		workspace="${volume%:/var/lib/mysql}"
+		image="${!#}"
+		printf '%s\n' "$id" >"$cidfile"
+		printf '%s %s %s %s %s\n' "$name" "$id" "$invocation" "$image" "$workspace" \
+			>"$STUB_VALIDATOR_CONTAINER_STATE"
+		mkdir -p "$workspace/mysql"
+		printf 'fixture\n' >"$workspace/mysql/owned-data"
+		chmod 000 "$workspace/mysql"
+		printf '%s\n' "$id"
 		;;
 	rm)
 		target="${!#}"
+		if [ -s "$STUB_VALIDATOR_CONTAINER_STATE" ]; then
+			read -r name id _ <"$STUB_VALIDATOR_CONTAINER_STATE"
+			if [ "$target" = "$name" ] || [ "$target" = "$id" ]; then
+				: >"$STUB_VALIDATOR_CONTAINER_STATE"
+				exit 0
+			fi
+		fi
 		awk -v target="$target" '$1 != target && $2 != target' "$STUB_RESTORE_CONTAINER_STATE" \
 			>"$STUB_RESTORE_CONTAINER_STATE.next"
 		mv "$STUB_RESTORE_CONTAINER_STATE.next" "$STUB_RESTORE_CONTAINER_STATE"
@@ -367,6 +435,8 @@ chmod +x "$bin"/*
 export PATH="$bin:$PATH"
 export STUB_EVENTS="$events"
 export STUB_SNAPSHOT_STATE="$snapshot_state"
+export STUB_VALIDATOR_CONTAINER_STATE="$validator_container_state"
+export STUB_VALIDATOR_READY_STATE="$validator_ready_state"
 export STUB_RESTORE_CONTAINER_STATE="$restore_container_state"
 export STUB_RESTORE_NETWORK_STATE="$restore_network_state"
 export STUB_REAL_INSTALL="$real_install"
@@ -396,10 +466,13 @@ export SEAFILE_TEST_SKIP_OWNERSHIP=1
 export SEAFILE_TEST_NO_SLEEP=1
 
 reset_fixture() {
+	chmod -R u+rwx "$validator_state" 2>/dev/null || true
 	rm -rf -- "$runtime" "$validator_state"
 	mkdir -p "$runtime" "$validator_state"
 	: >"$events"
 	: >"$snapshot_state"
+	: >"$validator_container_state"
+	printf '0\n' >"$validator_ready_state"
 	: >"$restore_container_state"
 	: >"$restore_network_state"
 	rm -f -- "$state/control/backup-snapshot-owner" "$state/control"/*.validated
@@ -407,6 +480,8 @@ reset_fixture() {
 	unset STUB_STOP_FAIL STUB_LOGICAL_FAIL STUB_VALIDATE_FAIL STUB_DESTROY_FAIL
 	unset STUB_COMPOSE_CREATE_FAIL STUB_COMPOSE_FAIL_SERVICE
 	unset STUB_CURL_FAIL_MATCH STUB_RESTORE_PYTHON_FAIL_MODE
+	unset STUB_VALIDATOR_CLEANUP_FAIL
+	unset STUB_VALIDATOR_LIVE_CANDIDATE STUB_VALIDATOR_READY_AFTER
 }
 
 expect_failure() {
@@ -415,6 +490,79 @@ expect_failure() {
 		exit 1
 	fi
 }
+
+prepare_validator_fixture() {
+	local invocation="$1" candidate_name live_candidate snapshot_candidate dump
+	candidate_name="seafile-20260823T120000-$invocation"
+	live_candidate="$state/backups/$candidate_name"
+	snapshot_candidate="$state/.zfs/snapshot/borgmatic/backups/$candidate_name"
+	mkdir -p "$live_candidate" "$snapshot_candidate"
+	for dump in ccnet_db.sql seafile_db.sql seahub_db.sql; do
+		printf '%s\n' 'CREATE TABLE fixture (id int);' >"$live_candidate/$dump"
+		cp "$live_candidate/$dump" "$snapshot_candidate/$dump"
+	done
+	printf '%s\n' \
+		'{"transaction_kind":"writers_quiesced=true","databases":[{},{},{}]}' \
+		>"$live_candidate/manifest.json"
+	cp "$live_candidate/manifest.json" "$snapshot_candidate/manifest.json"
+	chmod 0700 "$live_candidate"
+	printf '%s\n' "$live_candidate" >"$runtime/current-dump"
+	export SEAFILE_BACKUP_INVOCATION="$invocation"
+	export STUB_VALIDATOR_LIVE_CANDIDATE="$live_candidate"
+}
+
+# The real logical validator waits for authenticated SQL readiness and removes
+# MariaDB-owned scratch data through the confined helper, not host capabilities.
+reset_fixture
+validator_invocation=12345678-1234-1234-1234-123456789abc
+prepare_validator_fixture "$validator_invocation"
+printf 'sibling\n' >"$validator_state/sibling"
+export STUB_VALIDATOR_READY_AFTER=3
+SEAFILE_MAINTENANCE_LOCK_HELD=1 "$validate"
+test "$(cat "$validator_ready_state")" -eq 3
+test ! -e "$validator_state/$validator_invocation"
+test -f "$validator_state/sibling"
+test -d "$STUB_VALIDATOR_LIVE_CANDIDATE"
+test -f "$state/control/$(basename "$STUB_VALIDATOR_LIVE_CANDIDATE").validated"
+grep -E -- 'timeout:--kill-after=1 5 .*docker exec .*--execute SELECT 1' "$events" >/dev/null
+grep -F -- 'docker:run --rm --name seafile-backup-validator-' "$events" >/dev/null
+grep -F -- '--network=none --pull=never --read-only' "$events" >/dev/null
+grep -F -- '--security-opt=no-new-privileges=true --pids-limit=16' "$events" >/dev/null
+grep -F -- '--user 0:0 --cap-drop=ALL --cap-add=DAC_OVERRIDE' "$events" >/dev/null
+grep -F -- '--entrypoint /usr/bin/find' "$events" >/dev/null
+if grep -F -- 'mariadb-admin' "$events"; then exit 1; fi
+
+# A helper failure is terminal, leaves its scratch tree for investigation, and
+# retracts only this invocation's candidate and validation marker.
+reset_fixture
+validator_invocation=abcdefab-cdef-abcd-efab-cdefabcdefab
+prepare_validator_fixture "$validator_invocation"
+printf 'sibling\n' >"$validator_state/sibling"
+old_candidates=()
+old_markers=()
+for index in $(seq -w 1 14); do
+	old_candidate="$state/backups/seafile-old-$index"
+	old_marker="$state/control/seafile-old-$index.validated"
+	mkdir -p "$old_candidate"
+	printf 'retained\n' >"$old_candidate/sentinel"
+	printf 'candidate=%s\n' "$old_candidate" >"$old_marker"
+	touch -t 202001010000 "$old_marker"
+	old_candidates+=("$old_candidate")
+	old_markers+=("$old_marker")
+done
+export STUB_VALIDATOR_CLEANUP_FAIL=1
+expect_failure env SEAFILE_MAINTENANCE_LOCK_HELD=1 "$validate"
+test -d "$validator_state/$validator_invocation"
+test -f "$validator_state/sibling"
+test ! -e "$STUB_VALIDATOR_LIVE_CANDIDATE"
+test ! -e "$state/control/$(basename "$STUB_VALIDATOR_LIVE_CANDIDATE").validated"
+for index in "${!old_candidates[@]}"; do
+	test -f "${old_candidates[$index]}/sentinel"
+	test -f "${old_markers[$index]}"
+done
+grep -F -- 'Seafile backup failed: validator cleanup failed' "$root/failure.stderr" >/dev/null
+rm -rf -- "${old_candidates[@]}"
+rm -f -- "${old_markers[@]}"
 
 # Inactive and unhealthy stacks fail before OnlyOffice or writer shutdown.
 reset_fixture
