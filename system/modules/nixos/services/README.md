@@ -24,8 +24,9 @@ secret *names*, and recovery guidance here; never add secret values, private
 identifiers, raw API payloads, or user data. Fleet operations and project
 documentation remain under `docs/wiki/`.
 
-`default.nix` is the only retained-service composition boundary and explicitly
-imports all nineteen service directories in lexical order. The root NixOS
-module composer flattens that manifest with the six platform and capability
-modules listed above so their existing lexical evaluation order remains
-unchanged.
+`default.nix` uses the repository's bounded `lib.custom.scanPaths` convention.
+It discovers only direct service directories in lexical order; it ignores its
+own `default.nix`, this README, and non-Nix files. The root NixOS module
+composer flattens that discovered import set with the six platform and
+capability modules listed above so their existing lexical evaluation order
+remains unchanged.

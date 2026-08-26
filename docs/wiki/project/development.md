@@ -91,10 +91,11 @@ permissions, and Wiki synchronization behavior.
 
 Add every retained deployable service under
 `system/modules/nixos/services/<service>/`. Create its `default.nix` NixOS
-entry point, canonical `README.md` runbook, and sorted entry in
-`system/modules/nixos/services/default.nix` in the same reviewed change. Split
-implementations use an explicit, sorted `imports` list; helpers, tests, and
-package expressions are never imported implicitly.
+entry point and canonical `README.md` runbook in the same reviewed change. The
+services entry point discovers direct service directories with the repository's
+bounded `lib.custom.scanPaths` convention. Split implementations still use an
+explicit, sorted `imports` list; helpers, tests, and package expressions are
+never imported implicitly.
 
 The README first line is exactly `# <Title>`; the title uses ASCII letters and
 digits separated by single spaces, normalizes to the directory name, and

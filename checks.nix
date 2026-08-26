@@ -165,7 +165,7 @@ let
     custom = import ./lib { lib = pkgs.lib; };
   };
   nixosModuleManifest = import (nixosModuleRoot + "/default.nix") { lib = nixosModuleLib; };
-  serviceModuleManifest = import (serviceModuleRoot + "/default.nix") { lib = pkgs.lib; };
+  serviceModuleManifest = import (serviceModuleRoot + "/default.nix") { lib = nixosModuleLib; };
   serviceLayoutContract =
     let
       serviceFilesAreCanonical =
