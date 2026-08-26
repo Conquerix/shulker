@@ -40,12 +40,7 @@ let
     "Operations-Security-and-Recovery.md" = wikiSourceDir + "/operations/security-and-recovery.md";
     "Project-Development.md" = wikiSourceDir + "/project/development.md";
   };
-  legacyServiceRunbooks = {
-    "Service-Seafile.md" = {
-      title = "Seafile";
-      source = wikiSourceDir + "/services/seafile.md";
-    };
-  };
+  legacyServiceRunbooks = { };
   serviceSourceEntries = builtins.readDir serviceSourceDir;
   serviceEntryType = name: serviceSourceEntries.${name} or null;
   serviceDirectoryNames = sort builtins.lessThan (

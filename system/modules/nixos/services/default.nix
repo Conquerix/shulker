@@ -16,6 +16,7 @@
     ./pelican
     ./plex
     ./pocket-id
+    ./seafile
     ./sunshine
     ./torrent
     ./webdav

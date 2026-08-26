@@ -112,7 +112,7 @@ let
     _shulker_finish()
   '';
   restoreResetNativeAdmin = pkgs.writeText "seafile-restore-reset-native-admin.py" restoreResetNativeAdminScript;
-  composeFactory = import ../../../../lib/seafile-compose.nix { inherit pkgs; };
+  composeFactory = import ./compose.nix { inherit pkgs; };
   restoreBase = composeFactory {
     projectName = "seafile-restore";
     containerNames = {

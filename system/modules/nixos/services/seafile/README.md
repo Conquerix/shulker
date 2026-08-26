@@ -1,4 +1,4 @@
-# Seafile family files
+# Seafile
 
 Warden is configured to run [Seafile Professional Edition
 13](https://manual.seafile.com/13.0/) as the family's file-sync, sharing,

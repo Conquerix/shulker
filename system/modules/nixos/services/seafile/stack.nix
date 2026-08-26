@@ -8,7 +8,7 @@
 let
   cfg = config.shulker.system.modules.seafile;
   secret = config.services.onepassword-secrets.secrets.seafileEnv;
-  composeFactory = import ../../../../lib/seafile-compose.nix { inherit pkgs; };
+  composeFactory = import ./compose.nix { inherit pkgs; };
   stack = composeFactory {
     projectName = "seafile";
     containerNames = {
