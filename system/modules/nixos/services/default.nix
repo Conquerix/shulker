@@ -7,6 +7,7 @@
     ./git-pages
     ./hermes-agent
     ./home-assistant
+    ./immich
     ./newt
     ./nextcloud
     ./ollama

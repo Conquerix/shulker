@@ -1,4 +1,4 @@
-# Immich family photos and videos
+# Immich
 
 Warden runs [Immich](https://docs.immich.app/) as the family's authoritative
 photo and video library. The NixOS module follows Immich's official Compose
