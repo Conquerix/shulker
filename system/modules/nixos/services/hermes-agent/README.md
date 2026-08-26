@@ -1,7 +1,8 @@
 # Hermes Agent
 
-Hermes Agent is the private automation gateway. Its Telegram control surface
-continues work in the Agent container, while the optional community
+Hermes Agent is the private automation gateway. Shulker deploys both the Agent
+and WebUI containers. Its Telegram control surface continues work in the Agent
+container, while the optional community
 [Hermes WebUI](https://github.com/nesquena/hermes-webui) provides the browser,
 PWA, and native-client backend from a separate container. Browser-triggered
 tools run in the WebUI container. Keep Telegram private: the declarative
@@ -61,7 +62,7 @@ are active. From the host, check the configured loopback target before changing
 Pangolin or clients:
 
 ```sh
-curl --fail http://127.0.0.1:<configured-webui-port>/health
+curl --fail http://127.0.0.1:23234/health
 ```
 
 For a public-access failure, distinguish the layers: first verify local WebUI
