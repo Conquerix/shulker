@@ -1,4 +1,4 @@
-# Paperless family documents
+# Paperless
 
 Warden runs [Paperless-ngx](https://docs.paperless-ngx.com/) as the family's
 authoritative searchable document archive. Paperless owns document originals,

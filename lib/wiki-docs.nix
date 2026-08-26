@@ -41,10 +41,6 @@ let
     "Project-Development.md" = wikiSourceDir + "/project/development.md";
   };
   legacyServiceRunbooks = {
-    "Service-Paperless.md" = {
-      title = "Paperless";
-      source = wikiSourceDir + "/services/paperless.md";
-    };
     "Service-Seafile.md" = {
       title = "Seafile";
       source = wikiSourceDir + "/services/seafile.md";

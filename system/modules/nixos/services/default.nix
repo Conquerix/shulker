@@ -12,6 +12,7 @@
     ./nextcloud
     ./ollama
     ./pangolin
+    ./paperless
     ./pelican
     ./plex
     ./pocket-id
