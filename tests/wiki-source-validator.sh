@@ -67,6 +67,37 @@ printf '%s\n' \
 	'# Visible heading' >"$source_file"
 expect_valid "three-space-indented fence"
 
+new_source visible-second-h1
+printf '%s\n' \
+	'# First heading' \
+	'' \
+	'## Detail' \
+	'' \
+	'# Second heading' >"$source_file"
+expect_invalid "visible second H1" "exactly one H1 outside fenced code blocks"
+
+new_source indented-second-h1
+printf '%s\n' \
+	'# First heading' \
+	'' \
+	'   # Indented second heading' >"$source_file"
+expect_invalid "indented second H1" "exactly one H1 outside fenced code blocks"
+
+new_source bare-second-h1
+printf '%s\n' \
+	'# First heading' \
+	'' \
+	'#' >"$source_file"
+expect_invalid "bare second H1" "exactly one H1 outside fenced code blocks"
+
+new_source setext-second-h1
+printf '%s\n' \
+	'# First heading' \
+	'' \
+	'Setext second heading' \
+	'===' >"$source_file"
+expect_invalid "Setext second H1" "exactly one H1 outside fenced code blocks"
+
 new_source relative-reference
 printf '%s\n' \
 	'# Relative reference' \

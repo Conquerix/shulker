@@ -103,8 +103,298 @@ let
     report_target=${wikiSyncWardenReport}/warden.md
     ln -s "$report_target"$'\r\n' "$out/warden.md"
   '';
+  retainedServices = [
+    {
+      name = "backup";
+      legacyPath = "backup.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "beszel";
+      legacyPath = "beszel";
+      legacyType = "directory";
+    }
+    {
+      name = "forgejo";
+      legacyPath = "forgejo.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "git-pages";
+      legacyPath = "git-pages.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "hermes-agent";
+      legacyPath = "hermes-agent.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "home-assistant";
+      legacyPath = "home-assistant.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "immich";
+      legacyPath = "immich.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "newt";
+      legacyPath = "newt.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "nextcloud";
+      legacyPath = "nextcloud.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "ollama";
+      legacyPath = "ollama.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "pangolin";
+      legacyPath = "pangolin.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "paperless";
+      legacyPath = "paperless";
+      legacyType = "directory";
+    }
+    {
+      name = "pelican";
+      legacyPath = "pelican";
+      legacyType = "directory";
+    }
+    {
+      name = "plex";
+      legacyPath = "plex.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "pocket-id";
+      legacyPath = "pocket-id.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "seafile";
+      legacyPath = "seafile";
+      legacyType = "directory";
+    }
+    {
+      name = "sunshine";
+      legacyPath = "sunshine.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "torrent";
+      legacyPath = "torrent.nix";
+      legacyType = "regular";
+    }
+    {
+      name = "webdav";
+      legacyPath = "webdav.nix";
+      legacyType = "regular";
+    }
+  ];
+  excludedCapabilities = [
+    {
+      path = "core";
+      type = "directory";
+    }
+    {
+      path = "containers.nix";
+      type = "regular";
+    }
+    {
+      path = "impermanence.nix";
+      type = "regular";
+    }
+    {
+      path = "nvidia.nix";
+      type = "regular";
+    }
+    {
+      path = "steam.nix";
+      type = "regular";
+    }
+    {
+      path = "yubikey.nix";
+      type = "regular";
+    }
+  ];
+  nixosModuleRoot = ./. + "/system/modules/nixos";
+  serviceModuleRoot = nixosModuleRoot + "/services";
+  nixosModuleEntries = builtins.readDir nixosModuleRoot;
+  serviceModuleEntries = builtins.readDir serviceModuleRoot;
+  retainedServiceNames = map (service: service.name) retainedServices;
+  directServiceDirectories = pkgs.lib.sort builtins.lessThan (
+    builtins.attrNames (
+      pkgs.lib.filterAttrs (_: entryType: entryType == "directory") serviceModuleEntries
+    )
+  );
+  serviceModuleManifest = import (serviceModuleRoot + "/default.nix") { lib = pkgs.lib; };
+  serviceLayoutContract =
+    let
+      exactOne =
+        service:
+        let
+          legacyType = nixosModuleEntries.${service.legacyPath} or null;
+          servicesType = serviceModuleEntries.${service.name} or null;
+        in
+        (legacyType == service.legacyType && servicesType == null)
+        || (legacyType == null && servicesType == "directory");
+      expectedRootEntries = [
+        "default.nix"
+        "services"
+      ]
+      ++ map (service: service.legacyPath) retainedServices
+      ++ map (capability: capability.path) excludedCapabilities;
+      importedServicePaths = map toString (serviceModuleManifest.imports or [ ]);
+      directServicePaths = pkgs.lib.sort builtins.lessThan (
+        map (name: toString (serviceModuleRoot + "/${name}")) directServiceDirectories
+      );
+    in
+    assert builtins.length retainedServices == 19;
+    assert builtins.length excludedCapabilities == 6;
+    assert builtins.all exactOne retainedServices;
+    assert builtins.all (
+      capability: nixosModuleEntries.${capability.path} or null == capability.type
+    ) excludedCapabilities;
+    assert builtins.all (
+      capability: serviceModuleEntries.${builtins.baseNameOf capability.path} or null == null
+    ) excludedCapabilities;
+    assert nixosModuleEntries."default.nix" == "regular";
+    assert nixosModuleEntries.services == "directory";
+    assert builtins.all (name: builtins.elem name expectedRootEntries) (
+      builtins.attrNames nixosModuleEntries
+    );
+    assert builtins.all (
+      name:
+      builtins.elem name [
+        "README.md"
+        "default.nix"
+      ]
+      || serviceModuleEntries.${name} == "directory"
+    ) (builtins.attrNames serviceModuleEntries);
+    assert builtins.all (name: builtins.elem name retainedServiceNames) directServiceDirectories;
+    assert importedServicePaths == directServicePaths;
+    true;
+  serviceRunbooks = import ./lib/service-runbooks.nix { lib = pkgs.lib; };
+  serviceRunbookContract =
+    let
+      evaluate = arguments: builtins.tryEval (builtins.deepSeq (serviceRunbooks arguments) true);
+      valid = {
+        discovered = [
+          {
+            folder = "webdav";
+            readmeType = "regular";
+            content = "# WebDAV\n";
+            source = "fixture/webdav/README.md";
+          }
+        ];
+        legacy = { };
+        reservedPageNames = [ "Home.md" ];
+      };
+      invalid = overrides: valid // overrides;
+      record = builtins.head valid.discovered;
+      invalidRecord = updates: invalid { discovered = [ (record // updates) ]; };
+    in
+    assert (evaluate valid).success;
+    assert
+      !(evaluate (invalidRecord {
+        readmeType = null;
+      })).success;
+    assert
+      !(evaluate (invalidRecord {
+        readmeType = "symlink";
+      })).success;
+    assert
+      !(evaluate (invalidRecord {
+        content = "";
+      })).success;
+    assert
+      !(evaluate (invalidRecord {
+        content = "# WebDAV!\n";
+      })).success;
+    assert
+      !(evaluate (invalidRecord {
+        content = "# Web  DAV\n";
+      })).success;
+    assert
+      !(evaluate (invalidRecord {
+        folder = "web--dav";
+      })).success;
+    assert
+      !(evaluate (invalidRecord {
+        folder = "other";
+      })).success;
+    assert
+      !(evaluate (invalid {
+        legacy."Service-Other.md" = {
+          title = "WebDAV";
+          source = "fixture/legacy.md";
+        };
+      })).success;
+    assert
+      !(evaluate (invalid {
+        legacy."Host-WebDAV.md" = {
+          title = "WebDAV";
+          source = "fixture/legacy.md";
+        };
+      })).success;
+    assert
+      !(evaluate (invalid {
+        legacy."Service-WebDAV.md" = {
+          title = "WebDAV";
+          source = "fixture/legacy.md";
+        };
+      })).success;
+    assert
+      !(evaluate (invalid {
+        legacy."Service-Webdav.md" = {
+          title = "Webdav";
+          source = "fixture/legacy.md";
+        };
+      })).success;
+    assert
+      !(evaluate (invalid {
+        reservedPageNames = [ "Service-WebDAV.md" ];
+      })).success;
+    assert
+      !(evaluate (invalid {
+        reservedPageNames = [ "service-webdav.md" ];
+      })).success;
+    assert
+      !(evaluate (invalid {
+        reservedPageNames = [
+          "Home.md"
+          "Home.md"
+        ];
+      })).success;
+    assert
+      !(evaluate (invalid {
+        reservedPageNames = [
+          "Home.md"
+          "home.md"
+        ];
+      })).success;
+    true;
 in
+assert serviceLayoutContract;
+assert serviceRunbookContract;
 {
+
+  service-module-layout-contract = pkgs.runCommand "service-module-layout-contract" { } ''
+    test -f ${serviceModuleRoot}/default.nix
+    test -f ${serviceModuleRoot}/README.md
+    test ! -L ${serviceModuleRoot}/default.nix
+    test ! -L ${serviceModuleRoot}/README.md
+    touch "$out"
+  '';
 
   wiki-docs-contract =
     pkgs.runCommand "wiki-docs-contract"
@@ -120,6 +410,7 @@ in
       }
       ''
         source_root=${./.}/docs/wiki
+        service_source_root=${./.}/system/modules/nixos/services
         root_readme=${./README.md}
         agents=${./AGENTS.md}
         server_docs_source=${./lib/server-docs.nix}
@@ -219,17 +510,13 @@ in
         test "$check_suite_line" -lt "$artifact_build_line"
 
         grep -F -- 'The repository Wiki is publication output, not an authoring surface.' "$automation_guide" >/dev/null
-        grep -F -- 'Authored runbooks come from `docs/wiki/`' "$automation_guide" >/dev/null
+        grep -F -- 'Fleet and project runbooks come from `docs/wiki/`' "$automation_guide" >/dev/null
+        grep -F -- 'Canonical service runbooks' "$automation_guide" >/dev/null
         grep -F -- 'Evaluated pages are built from Nix configuration' "$automation_guide" >/dev/null
         grep -F -- 'Host pages come from evaluated host reports' "$automation_guide" >/dev/null
         grep -F -- '`wiki-pages.txt` is the non-host page inventory.' "$automation_guide" >/dev/null
 
         for authored_output in \
-          Service-Hermes-WebUI.md \
-          Service-GrapheneOS-WebDAV.md \
-          Service-Seafile.md \
-          Service-Immich.md \
-          Service-Paperless.md \
           Operations-Backup-and-Restore.md \
           Operations-Security-and-Recovery.md \
           Project-Development.md
@@ -271,7 +558,8 @@ in
 
         for documentation in "$development_guide" "$wiki_generator_source" "${wikiDocs}/Automation.md"; do
           grep -F -- 'Publish repository Wiki' "$documentation" >/dev/null
-          grep -F -- 'authored runbooks from `docs/wiki/`' "$documentation" >/dev/null
+          grep -F -- 'docs/wiki/' "$documentation" >/dev/null
+          grep -F -- 'service READMEs' "$documentation" >/dev/null
           grep -F -- 'evaluated non-host pages from Nix' "$documentation" >/dev/null
           grep -F -- 'host pages from evaluated `host-docs` reports' "$documentation" >/dev/null
           if grep -F -- 'Publish infrastructure Wiki' "$documentation" >/dev/null; then
@@ -279,8 +567,8 @@ in
             exit 1
           fi
         done
-        grep -F -- 'authored[Authored runbooks in docs/wiki]' "$wiki_generator_source" >/dev/null
-        grep -F -- 'authored[Authored runbooks in docs/wiki]' "${wikiDocs}/Automation.md" >/dev/null
+        grep -F -- 'serviceReadmes[Direct service READMEs]' "$wiki_generator_source" >/dev/null
+        grep -F -- 'serviceReadmes[Direct service READMEs]' "${wikiDocs}/Automation.md" >/dev/null
         if grep -F -- 'synchronizes generated Wiki pages' "$wiki_generator_source" "${wikiDocs}/Automation.md" >/dev/null; then
           echo 'Automation retains the generated-only publication claim' >&2
           exit 1
@@ -306,6 +594,7 @@ in
 
         expected_agent_routes="$TMPDIR/expected-agent-routes.txt"
         printf '%s\n' \
+          system/modules/nixos/services/ \
           docs/wiki/services/ \
           docs/wiki/operations/security-and-recovery.md \
           docs/wiki/operations/backup-and-restore.md \
@@ -340,92 +629,108 @@ in
           exit 1
         fi
 
-        expected_manifest="$TMPDIR/expected-wiki-pages.txt"
-        printf '%s\n' \
-          Automation.md \
-          Fleet.md \
-          Home.md \
-          Infrastructure.md \
-          Operations-Backup-and-Restore.md \
-          Operations-Security-and-Recovery.md \
-          Operations.md \
-          Project-Development.md \
-          Public-Services.md \
-          Servers.md \
-          Service-GrapheneOS-WebDAV.md \
-          Service-Hermes-WebUI.md \
-          Service-Immich.md \
-          Service-Paperless.md \
-          Service-Seafile.md \
-          Services.md \
-          _Footer.md \
-          _Sidebar.md > "$expected_manifest"
+        generated_names='Automation.md Fleet.md Home.md Infrastructure.md Operations.md Public-Services.md Servers.md Services.md _Footer.md _Sidebar.md'
+        authored_pairs="$TMPDIR/authored-service-and-static-pages.tsv"
+        printf '%s\t%s\t%s\n' \
+          legacy "$source_root/services/grapheneos-webdav.md" Service-GrapheneOS-WebDAV.md \
+          legacy "$source_root/services/hermes-webui.md" Service-Hermes-WebUI.md \
+          legacy "$source_root/services/immich.md" Service-Immich.md \
+          legacy "$source_root/services/paperless.md" Service-Paperless.md \
+          legacy "$source_root/services/seafile.md" Service-Seafile.md \
+          static "$source_root/operations/backup-and-restore.md" Operations-Backup-and-Restore.md \
+          static "$source_root/operations/security-and-recovery.md" Operations-Security-and-Recovery.md \
+          static "$source_root/project/development.md" Project-Development.md > "$authored_pairs"
 
+        while IFS= read -r -d "" directory; do
+          folder="$(basename "$directory")"
+          case "$folder" in
+            *[!a-z0-9-]* | -* | *- | *--*)
+              echo "$folder: invalid service folder" >&2
+              exit 1
+              ;;
+          esac
+          readme="$directory/README.md"
+          if [ ! -f "$readme" ] || [ -L "$readme" ] || [ ! -s "$readme" ]; then
+            echo "$folder: README.md must be a non-empty regular file" >&2
+            exit 1
+          fi
+          first_line="$(head -n 1 "$readme")"
+          title="''${first_line#\# }"
+          if [ "$first_line" != "# $title" ] || ! printf '%s\n' "$title" | grep -Eq '^[A-Za-z0-9]+( [A-Za-z0-9]+)*$'; then
+            echo "$folder: invalid README title" >&2
+            exit 1
+          fi
+          normalized="$(printf '%s' "$title" | tr '[:upper:] ' '[:lower:]-')"
+          if [ "$normalized" != "$folder" ]; then
+            echo "$folder: title does not normalize to folder" >&2
+            exit 1
+          fi
+          page_name="Service-$(printf '%s' "$title" | tr ' ' '-').md"
+          printf '%s\t%s\t%s\n' discovered "$readme" "$page_name" >> "$authored_pairs"
+        done < <(find "$service_source_root" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+
+        if find "$service_source_root" -mindepth 1 -maxdepth 1 -type l -print -quit | grep -q .; then
+          echo 'services root contains a symlink' >&2
+          exit 1
+        fi
+        while IFS= read -r -d "" entry; do
+          name="$(basename "$entry")"
+          if [ "$name" != README.md ] && [ "$name" != default.nix ] && [ ! -d "$entry" ]; then
+            echo "services root contains unsafe entry: $name" >&2
+            exit 1
+          fi
+        done < <(find "$service_source_root" -mindepth 1 -maxdepth 1 -print0)
+
+        cut -f3 "$authored_pairs" | sort > "$TMPDIR/authored-page-names.txt"
+        if [ "$(sort -u "$TMPDIR/authored-page-names.txt" | wc -l)" -ne "$(wc -l < "$TMPDIR/authored-page-names.txt")" ]; then
+          echo 'duplicate authored Wiki page name' >&2
+          exit 1
+        fi
+        tr '[:upper:]' '[:lower:]' < "$TMPDIR/authored-page-names.txt" | sort -u > "$TMPDIR/casefolded-authored-page-names.txt"
+        if [ "$(wc -l < "$TMPDIR/casefolded-authored-page-names.txt")" -ne "$(wc -l < "$TMPDIR/authored-page-names.txt")" ]; then
+          echo 'case-folded authored Wiki page collision' >&2
+          exit 1
+        fi
+        while IFS= read -r page_name; do
+          case "$page_name" in
+            Host-* | host-*)
+              echo "$page_name: reserved host page name" >&2
+              exit 1
+              ;;
+          esac
+          if printf '%s\n' "$generated_names" | tr ' ' '\n' | grep -Fxiq -- "$page_name"; then
+            echo "$page_name: generated page name collision" >&2
+            exit 1
+          fi
+        done < "$TMPDIR/authored-page-names.txt"
+
+        expected_manifest="$TMPDIR/expected-wiki-pages.txt"
+        {
+          printf '%s\n' $generated_names
+          cat "$TMPDIR/authored-page-names.txt"
+        } | sort -u > "$expected_manifest"
         cmp "$expected_manifest" "${wikiDocs}/wiki-pages.txt"
         find "${wikiDocs}" -maxdepth 1 -type f -name '*.md' ! -name 'Host-*' -printf '%f\n' \
           | sort -u > "$TMPDIR/wiki-page-basenames.txt"
         cmp "$expected_manifest" "$TMPDIR/wiki-page-basenames.txt"
 
-        generated_names='Automation.md Fleet.md Home.md Infrastructure.md Operations.md Public-Services.md Servers.md Services.md _Footer.md _Sidebar.md'
-
         bash ${./tests/wiki-source-validator.sh} "$source_validator"
 
-        for authored_page in \
-          'services/hermes-webui.md Service-Hermes-WebUI.md' \
-          'services/grapheneos-webdav.md Service-GrapheneOS-WebDAV.md' \
-          'services/seafile.md Service-Seafile.md' \
-          'services/immich.md Service-Immich.md' \
-          'services/paperless.md Service-Paperless.md' \
-          'operations/backup-and-restore.md Operations-Backup-and-Restore.md' \
-          'operations/security-and-recovery.md Operations-Security-and-Recovery.md' \
-          'project/development.md Project-Development.md'
-        do
-          set -- $authored_page
-          source="$1"
-          page_name="$2"
-
-          case "$page_name" in
-            Host-*)
-              echo "$page_name: reserved host page name" >&2
-              exit 1
-              ;;
-          esac
-
-          if printf '%s\n' "$generated_names" | tr ' ' '\n' | grep -Fqx -- "$page_name"; then
-            echo "$page_name: generated page name collision" >&2
-            exit 1
-          fi
-
-          cmp "$source_root/$source" "${wikiDocs}/$page_name"
+        while IFS=$'\t' read -r origin source page_name; do
+          test -f "$source"
+          test ! -L "$source"
+          test -s "$source"
+          python3 "$source_validator" "$source"
+          cmp "$source" "${wikiDocs}/$page_name"
           page_slug="''${page_name%.md}"
           grep -F -- "($page_slug)" "${wikiDocs}/Home.md" >/dev/null
           grep -F -- "($page_slug)" "${wikiDocs}/_Sidebar.md" >/dev/null
-        done
-
-        for source in \
-          services/hermes-webui.md \
-          services/grapheneos-webdav.md \
-          services/seafile.md \
-          services/immich.md \
-          services/paperless.md \
-          operations/backup-and-restore.md \
-          operations/security-and-recovery.md \
-          project/development.md
-        do
-          path="$source_root/$source"
-
-          if [ ! -f "$path" ]; then
-            echo "$source: missing" >&2
-            exit 1
+          if [ "$origin" != static ]; then
+            service_title="$(printf '%s' "''${page_slug#Service-}" | tr '-' ' ')"
+            grep -Fx -- "  - [$service_title]($page_slug)" "${wikiDocs}/_Sidebar.md" >/dev/null
+            grep -F -- "($page_slug)" "${wikiDocs}/Services.md" >/dev/null
           fi
-
-          if [ ! -s "$path" ]; then
-            echo "$source: nonempty" >&2
-            exit 1
-          fi
-
-          python3 "$source_validator" "$path"
-        done
+        done < "$authored_pairs"
 
         touch "$out"
       '';
@@ -2544,6 +2849,7 @@ in
     pkgs.runCommand "wiki-publication-contract-suite"
       {
         contractInputs = [
+          self.checks.${system}.service-module-layout-contract
           self.checks.${system}.wiki-docs-contract
           self.checks.${system}.wiki-sync-contract
           self.checks.${system}.seafile-docs-contract

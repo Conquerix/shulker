@@ -70,14 +70,17 @@ every Monday as a self-healing run, and on demand.
 
 The repository Wiki is publication output, not an authoring surface.
 
-Authored runbooks come from `docs/wiki/` and are copied to these flat Wiki
-filenames:
+Fleet and project runbooks come from `docs/wiki/`. Canonical service runbooks
+are regular, non-empty `README.md` files discovered only in direct child
+directories of `system/modules/nixos/services/`. Their first and only H1 is
+the public title; its space-to-hyphen form determines the
+`Service-<Title>.md` Wiki filename. Discovery rejects symlinks, invalid titles,
+name collisions, and non-canonical Markdown. During the migration, the
+remaining legacy service runbooks stay in an explicit map until each service
+README moves; no compatibility override exists.
 
-- `Service-Hermes-WebUI.md`;
-- `Service-GrapheneOS-WebDAV.md`;
-- `Service-Seafile.md`;
-- `Service-Immich.md`;
-- `Service-Paperless.md`;
+The current authored non-service pages are:
+
 - `Operations-Backup-and-Restore.md`;
 - `Operations-Security-and-Recovery.md`;
 - `Project-Development.md`.

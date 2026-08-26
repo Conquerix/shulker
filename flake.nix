@@ -220,6 +220,7 @@
             data = infrastructureData;
             inherit infrastructureDiagram;
             inherit lib pkgs;
+            serviceSourceDir = ./system/modules/nixos/services;
             wikiSourceDir = ./docs/wiki;
           };
         }

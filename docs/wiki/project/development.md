@@ -60,7 +60,8 @@ as workflow artifacts, propose weekly flake-input updates, and publish the
 assembled [repository Wiki](https://github.com/Conquerix/shulker/wiki).
 Dependabot groups updates to pinned GitHub Actions into weekly pull requests.
 
-The publication assembles authored runbooks from `docs/wiki/`. It combines
+The publication assembles authored runbooks from fleet and project documents in
+`docs/wiki/` plus colocated direct service `README.md` files. It combines
 evaluated non-host pages from Nix with host pages from evaluated `host-docs` reports.
 
 | Routine | Cadence | Result |
@@ -85,6 +86,23 @@ opens a pull request, deploys, or mutates a host.
 
 See the [automation guide](https://github.com/Conquerix/shulker/blob/dev/.github/AUTOMATION.md) for workflow triggers,
 permissions, and Wiki synchronization behavior.
+
+## Adding or moving a service
+
+Retained deployable services and their canonical service READMEs are migrated one at a time under
+`system/modules/nixos/services/<service>/`. A service directory has a
+`default.nix` entry point with explicit imports and a canonical `README.md`
+runbook. The README first line is exactly `# <Title>`; the title uses ASCII
+letters and digits separated by single spaces, normalizes to the directory
+name, and publishes as `Service-<Title>.md`. Keep only one H1 outside fenced
+code blocks and use canonical absolute links.
+
+Until its move, a service remains in its legacy module and, when one exists,
+its legacy runbook. In the same reviewed change, move the module, move an
+existing runbook or add the canonical README, add the service to the explicit
+services import list, remove any temporary legacy-runbook map entry, and verify
+the evaluated module and Wiki manifests. Do not copy runbooks, add naming
+overrides, or include secret values or private identifiers.
 
 [Pangolin topology operations](https://github.com/Conquerix/shulker/blob/dev/.github/AUTOMATION.md#pangolin-topology-enrichment)
 documents the sanitized boundary, manual collector, Integration API bootstrap,

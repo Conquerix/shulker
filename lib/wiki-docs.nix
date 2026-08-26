@@ -3,6 +3,7 @@
   infrastructureDiagram,
   lib,
   pkgs,
+  serviceSourceDir,
   wikiSourceDir,
 }:
 
@@ -33,6 +34,91 @@ let
       renderRow = row: "| ${concatStringsSep " | " (map escapeCell row)} |\n";
     in
     renderRow headers + renderRow (map (_: "---") headers) + concatMapStringsSep "" renderRow rows;
+
+  staticAuthoredPages = {
+    "Operations-Backup-and-Restore.md" = wikiSourceDir + "/operations/backup-and-restore.md";
+    "Operations-Security-and-Recovery.md" = wikiSourceDir + "/operations/security-and-recovery.md";
+    "Project-Development.md" = wikiSourceDir + "/project/development.md";
+  };
+  legacyServiceRunbooks = {
+    "Service-GrapheneOS-WebDAV.md" = {
+      title = "GrapheneOS WebDAV";
+      source = wikiSourceDir + "/services/grapheneos-webdav.md";
+    };
+    "Service-Hermes-WebUI.md" = {
+      title = "Hermes WebUI";
+      source = wikiSourceDir + "/services/hermes-webui.md";
+    };
+    "Service-Immich.md" = {
+      title = "Immich";
+      source = wikiSourceDir + "/services/immich.md";
+    };
+    "Service-Paperless.md" = {
+      title = "Paperless";
+      source = wikiSourceDir + "/services/paperless.md";
+    };
+    "Service-Seafile.md" = {
+      title = "Seafile";
+      source = wikiSourceDir + "/services/seafile.md";
+    };
+  };
+  serviceSourceEntries = builtins.readDir serviceSourceDir;
+  serviceEntryType = name: serviceSourceEntries.${name} or null;
+  serviceDirectoryNames = sort builtins.lessThan (
+    builtins.attrNames (lib.filterAttrs (_: entryType: entryType == "directory") serviceSourceEntries)
+  );
+  serviceRootChecks = [
+    (
+      if serviceEntryType "README.md" == "regular" then
+        true
+      else
+        throw "Service runbooks: services/README.md must be a regular file"
+    )
+    (
+      if serviceEntryType "default.nix" == "regular" then
+        true
+      else
+        throw "Service runbooks: services/default.nix must be a regular file"
+    )
+    (
+      if
+        lib.all (
+          name:
+          builtins.elem name [
+            "README.md"
+            "default.nix"
+          ]
+          || serviceEntryType name == "directory"
+        ) (builtins.attrNames serviceSourceEntries)
+      then
+        true
+      else
+        throw "Service runbooks: services root contains an unsafe entry"
+    )
+  ];
+  discoveredServiceRunbooks = map (
+    folder:
+    let
+      directory = serviceSourceDir + "/${folder}";
+      entries = builtins.readDir directory;
+      readmeType = entries."README.md" or null;
+    in
+    {
+      inherit folder readmeType;
+      content = if readmeType == "regular" then builtins.readFile (directory + "/README.md") else "";
+      source = directory + "/README.md";
+    }
+  ) serviceDirectoryNames;
+  servicePages = builtins.deepSeq serviceRootChecks (
+    import ./service-runbooks.nix { inherit lib; } {
+      discovered = discoveredServiceRunbooks;
+      legacy = legacyServiceRunbooks;
+      reservedPageNames = generatedPageNames ++ builtins.attrNames staticAuthoredPages;
+    }
+  );
+  serviceRunbookLinks = concatMapStringsSep "\n" (
+    service: "- [${service.title}](${lib.removeSuffix ".md" service.pageName})"
+  ) servicePages;
 
   hosts = sort (left: right: left.name < right.name) data.hosts;
   serverHosts = filter (host: host.kind == "server") hosts;
@@ -266,11 +352,7 @@ let
     ### Services
 
     - [Service catalog](Services)
-    - [Hermes WebUI](Service-Hermes-WebUI)
-    - [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV)
-    - [Seafile](Service-Seafile)
-    - [Immich](Service-Immich)
-    - [Paperless](Service-Paperless)
+    ${serviceRunbookLinks}
 
     ### Operations
 
@@ -342,11 +424,7 @@ let
 
     ## Service runbooks
 
-    - [Hermes WebUI](Service-Hermes-WebUI)
-    - [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV)
-    - [Seafile](Service-Seafile)
-    - [Immich](Service-Immich)
-    - [Paperless](Service-Paperless)
+    ${serviceRunbookLinks}
 
     ## Local component dependencies
 
@@ -477,8 +555,9 @@ let
     GitHub Actions validates the flake, maintains dependencies, and republishes
     this Wiki from reviewed repository sources and sanitized external data.
 
-    The publication assembles authored runbooks from `docs/wiki/`. It combines
-    evaluated non-host pages from Nix with host pages from evaluated `host-docs` reports.
+    The publication combines fleet and project runbooks from `docs/wiki/` with
+    canonical service READMEs discovered directly under `system/modules/nixos/services/`.
+    It combines evaluated non-host pages from Nix with host pages from evaluated `host-docs` reports.
 
     | Routine | Trigger | Result |
     | --- | --- | --- |
@@ -495,7 +574,8 @@ let
     flowchart LR
       nix[Evaluated Nix configurations] --> inventory[Infrastructure inventory]
       pangolin[Pangolin Integration API] --> sanitize[Sanitized public snapshot]
-      authored[Authored runbooks in docs/wiki] --> pages[Assembled non-host Wiki pages]
+      authored[Authored docs/wiki runbooks] --> pages[Assembled non-host Wiki pages]
+      serviceReadmes[Direct service READMEs] --> pages
       inventory --> evaluated[Evaluated non-host pages]
       sanitize --> evaluated
       evaluated --> pages
@@ -539,11 +619,9 @@ let
     )}
     - **Services**
       - [Catalog](Services)
-      - [Hermes WebUI](Service-Hermes-WebUI)
-      - [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV)
-      - [Seafile](Service-Seafile)
-      - [Immich](Service-Immich)
-      - [Paperless](Service-Paperless)
+    ${concatMapStringsSep "\n" (
+      service: "  - [${service.title}](${lib.removeSuffix ".md" service.pageName})"
+    ) servicePages}
     - **Operations**
       - [Runbook](Operations)
       - [Backup and restore](Operations-Backup-and-Restore)
@@ -571,18 +649,15 @@ let
     "_Footer.md" = pkgs.writeText "_Footer.md" footer;
   };
 
-  authoredPages = {
-    "Service-Hermes-WebUI.md" = wikiSourceDir + "/services/hermes-webui.md";
-    "Service-GrapheneOS-WebDAV.md" = wikiSourceDir + "/services/grapheneos-webdav.md";
-    "Service-Seafile.md" = wikiSourceDir + "/services/seafile.md";
-    "Service-Immich.md" = wikiSourceDir + "/services/immich.md";
-    "Service-Paperless.md" = wikiSourceDir + "/services/paperless.md";
-    "Operations-Backup-and-Restore.md" = wikiSourceDir + "/operations/backup-and-restore.md";
-    "Operations-Security-and-Recovery.md" = wikiSourceDir + "/operations/security-and-recovery.md";
-    "Project-Development.md" = wikiSourceDir + "/project/development.md";
-  };
-
-  reservedPageNames = builtins.attrNames generatedPages;
+  serviceAuthoredPages = builtins.listToAttrs (
+    map (service: {
+      name = service.pageName;
+      value = service.source;
+    }) servicePages
+  );
+  authoredPages = staticAuthoredPages // serviceAuthoredPages;
+  generatedPageNames = builtins.attrNames generatedPages;
+  reservedPageNames = generatedPageNames;
   authoredPageNames = builtins.attrNames authoredPages;
   pages = generatedPages // authoredPages;
   pageNames = sort builtins.lessThan (builtins.attrNames pages);
@@ -590,8 +665,11 @@ let
 in
 assert lib.intersectLists reservedPageNames authoredPageNames == [ ];
 assert lib.all (name: !lib.hasPrefix "Host-" name) authoredPageNames;
-pkgs.runCommand "wiki-docs" { } ''
+pkgs.runCommand "wiki-docs" { nativeBuildInputs = [ pkgs.python3 ]; } ''
   mkdir -p "$out"
+  ${concatMapStringsSep "\n" (
+    name: "python3 ${../scripts/validate-wiki-source.py} ${authoredPages.${name}}"
+  ) authoredPageNames}
   ${concatMapStringsSep "\n" (name: "cp ${pages.${name}} \"$out/${name}\"") pageNames}
   cp ${pageManifest} "$out/wiki-pages.txt"
   cp ${infrastructureDiagram}/infrastructure.json "$out/infrastructure.json"

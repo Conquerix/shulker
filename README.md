@@ -36,9 +36,10 @@ NixOS hosts: `enderdragon`, `endermite`, `guardian`, `phantom`, `shulker`,
 
 The [repository Wiki](https://github.com/Conquerix/shulker/wiki) is the
 navigable operator-facing publication, with its table of contents on the Home
-page. Detailed runbooks are authored in the repository under
-[version-controlled sources](docs/wiki/) so changes remain reviewable with the
-configuration.
+page. Fleet and project runbooks are authored under
+[version-controlled sources](docs/wiki/); each migrated service owns its
+canonical runbook beside its module under `system/modules/nixos/services/`.
+Changes remain reviewable with the configuration.
 
 The [server documentation guide](system/hosts/nixos/README.md) explains the
 evaluated per-host reports. The [automation guide](.github/AUTOMATION.md) documents
