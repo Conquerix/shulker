@@ -26,5 +26,6 @@ and project documentation remain under `docs/wiki/`.
 
 During migration, this directory's explicit import list contains exactly the
 services that have moved: `backup`, `beszel`, `forgejo`, `hermes-agent`,
-`newt`, `ollama`, `plex`, `pocket-id`, `sunshine`, and `webdav`. The legacy
-root scanner continues to import every unmoved service exactly once.
+`home-assistant`, `newt`, `ollama`, `pelican`, `plex`, `pocket-id`, `sunshine`,
+`torrent`, and `webdav`. The legacy root scanner continues to import every
+unmoved service exactly once.
