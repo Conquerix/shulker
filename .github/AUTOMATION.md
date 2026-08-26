@@ -75,9 +75,8 @@ are regular, non-empty `README.md` files discovered only in direct child
 directories of `system/modules/nixos/services/`. Their first and only H1 is
 the public title; its space-to-hyphen form determines the
 `Service-<Title>.md` Wiki filename. Discovery rejects symlinks, invalid titles,
-name collisions, and non-canonical Markdown. During the migration, the
-remaining legacy service runbooks stay in an explicit map until each service
-README moves; no compatibility override exists.
+name collisions, and non-canonical Markdown. Service pages originate only from
+these discovered READMEs; there is no legacy map or naming override.
 
 The current authored non-service pages are:
 

@@ -6,7 +6,6 @@ point and summarizes the layout, operating model, and safety boundaries.
 ## Documentation routing
 
 - Service modules and runbooks: [`system/modules/nixos/services/`](system/modules/nixos/services/)
-- Legacy service runbooks during migration: [`docs/wiki/services/`](docs/wiki/services/)
 - Security and recovery: [`docs/wiki/operations/security-and-recovery.md`](docs/wiki/operations/security-and-recovery.md)
 - Backup and restore: [`docs/wiki/operations/backup-and-restore.md`](docs/wiki/operations/backup-and-restore.md)
 - Development and validation: [`docs/wiki/project/development.md`](docs/wiki/project/development.md)

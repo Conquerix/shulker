@@ -40,7 +40,6 @@ let
     "Operations-Security-and-Recovery.md" = wikiSourceDir + "/operations/security-and-recovery.md";
     "Project-Development.md" = wikiSourceDir + "/project/development.md";
   };
-  legacyServiceRunbooks = { };
   serviceSourceEntries = builtins.readDir serviceSourceDir;
   serviceEntryType = name: serviceSourceEntries.${name} or null;
   serviceDirectoryNames = sort builtins.lessThan (
@@ -91,7 +90,7 @@ let
   servicePages = builtins.deepSeq serviceRootChecks (
     import ./service-runbooks.nix { inherit lib; } {
       discovered = discoveredServiceRunbooks;
-      legacy = legacyServiceRunbooks;
+      legacy = { };
       reservedPageNames = generatedPageNames ++ builtins.attrNames staticAuthoredPages;
     }
   );

@@ -87,22 +87,27 @@ opens a pull request, deploys, or mutates a host.
 See the [automation guide](https://github.com/Conquerix/shulker/blob/dev/.github/AUTOMATION.md) for workflow triggers,
 permissions, and Wiki synchronization behavior.
 
-## Adding or moving a service
+## Adding a service
 
-Retained deployable services and their canonical service READMEs are migrated one at a time under
-`system/modules/nixos/services/<service>/`. A service directory has a
-`default.nix` entry point with explicit imports and a canonical `README.md`
-runbook. The README first line is exactly `# <Title>`; the title uses ASCII
-letters and digits separated by single spaces, normalizes to the directory
-name, and publishes as `Service-<Title>.md`. Keep only one H1 outside fenced
-code blocks and use canonical absolute links.
+Add every retained deployable service under
+`system/modules/nixos/services/<service>/`. Create its `default.nix` NixOS
+entry point, canonical `README.md` runbook, and sorted entry in
+`system/modules/nixos/services/default.nix` in the same reviewed change. Split
+implementations use an explicit, sorted `imports` list; helpers, tests, and
+package expressions are never imported implicitly.
 
-Until its move, a service remains in its legacy module and, when one exists,
-its legacy runbook. In the same reviewed change, move the module, move an
-existing runbook or add the canonical README, add the service to the explicit
-services import list, remove any temporary legacy-runbook map entry, and verify
-the evaluated module and Wiki manifests. Do not copy runbooks, add naming
-overrides, or include secret values or private identifiers.
+The README first line is exactly `# <Title>`; the title uses ASCII letters and
+digits separated by single spaces, normalizes to the directory name, and
+publishes as `Service-<Title>.md`. Keep only one H1 outside fenced code blocks
+and use canonical absolute links. Canonical service READMEs are the only source
+of service Wiki pages: never create a legacy map, copy a runbook, or add a
+naming override. Keep secret values and private identifiers out of
+documentation.
+
+Stage new Nix files before evaluation. Validate the README title and links,
+the exact service-directory/import manifest, generated Wiki navigation and
+page equality, and the affected host options, units, inventories, persistence,
+backup, secret names, and routes before committing.
 
 [Pangolin topology operations](https://github.com/Conquerix/shulker/blob/dev/.github/AUTOMATION.md#pangolin-topology-enrichment)
 documents the sanitized boundary, manual collector, Integration API bootstrap,

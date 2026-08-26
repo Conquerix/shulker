@@ -65,6 +65,7 @@ let
   sshdKeygenService = services."sshd-keygen";
   storageBoxKnownHosts = wardenConfig.programs.ssh.knownHosts;
   wardenServerDocs = self.packages.${system}."server-docs-warden";
+  witherHostDocs = self.packages.${system}."host-docs-wither";
   infrastructureData = self.packages.${system}.infrastructure-data;
   infrastructureDiagram = self.packages.${system}.infrastructure-diagram;
   wikiDocs = self.packages.${system}.wiki-docs;
@@ -105,101 +106,25 @@ let
     ln -s "$report_target"$'\r\n' "$out/warden.md"
   '';
   retainedServices = [
-    {
-      name = "backup";
-      legacyPath = "backup.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "beszel";
-      legacyPath = "beszel";
-      legacyType = "directory";
-    }
-    {
-      name = "forgejo";
-      legacyPath = "forgejo.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "git-pages";
-      legacyPath = "git-pages.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "hermes-agent";
-      legacyPath = "hermes-agent.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "home-assistant";
-      legacyPath = "home-assistant.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "immich";
-      legacyPath = "immich.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "newt";
-      legacyPath = "newt.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "nextcloud";
-      legacyPath = "nextcloud.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "ollama";
-      legacyPath = "ollama.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "pangolin";
-      legacyPath = "pangolin.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "paperless";
-      legacyPath = "paperless";
-      legacyType = "directory";
-    }
-    {
-      name = "pelican";
-      legacyPath = "pelican";
-      legacyType = "directory";
-    }
-    {
-      name = "plex";
-      legacyPath = "plex.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "pocket-id";
-      legacyPath = "pocket-id.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "seafile";
-      legacyPath = "seafile";
-      legacyType = "directory";
-    }
-    {
-      name = "sunshine";
-      legacyPath = "sunshine.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "torrent";
-      legacyPath = "torrent.nix";
-      legacyType = "regular";
-    }
-    {
-      name = "webdav";
-      legacyPath = "webdav.nix";
-      legacyType = "regular";
-    }
+    "backup"
+    "beszel"
+    "forgejo"
+    "git-pages"
+    "hermes-agent"
+    "home-assistant"
+    "immich"
+    "newt"
+    "nextcloud"
+    "ollama"
+    "pangolin"
+    "paperless"
+    "pelican"
+    "plex"
+    "pocket-id"
+    "seafile"
+    "sunshine"
+    "torrent"
+    "webdav"
   ];
   excludedCapabilities = [
     {
@@ -231,7 +156,6 @@ let
   serviceModuleRoot = nixosModuleRoot + "/services";
   nixosModuleEntries = builtins.readDir nixosModuleRoot;
   serviceModuleEntries = builtins.readDir serviceModuleRoot;
-  retainedServiceNames = map (service: service.name) retainedServices;
   directServiceDirectories = pkgs.lib.sort builtins.lessThan (
     builtins.attrNames (
       pkgs.lib.filterAttrs (_: entryType: entryType == "directory") serviceModuleEntries
@@ -244,20 +168,28 @@ let
   serviceModuleManifest = import (serviceModuleRoot + "/default.nix") { lib = pkgs.lib; };
   serviceLayoutContract =
     let
-      exactOne =
+      serviceFilesAreCanonical =
         service:
         let
-          legacyType = nixosModuleEntries.${service.legacyPath} or null;
-          servicesType = serviceModuleEntries.${service.name} or null;
+          entries = builtins.readDir (serviceModuleRoot + "/${service}");
         in
-        (legacyType == service.legacyType && servicesType == null)
-        || (legacyType == null && servicesType == "directory");
-      expectedRootEntries = [
-        "default.nix"
-        "services"
-      ]
-      ++ map (service: service.legacyPath) retainedServices
-      ++ map (capability: capability.path) excludedCapabilities;
+        (entries."default.nix" or null) == "regular"
+        && (entries."README.md" or null) == "regular"
+        && builtins.readFile (serviceModuleRoot + "/${service}/README.md") != "";
+      expectedRootEntries = pkgs.lib.sort builtins.lessThan (
+        [
+          "default.nix"
+          "services"
+        ]
+        ++ map (capability: capability.path) excludedCapabilities
+      );
+      expectedServiceRootEntries = pkgs.lib.sort builtins.lessThan (
+        [
+          "README.md"
+          "default.nix"
+        ]
+        ++ retainedServices
+      );
       importedServicePaths = map toString (serviceModuleManifest.imports or [ ]);
       directServicePaths = pkgs.lib.sort builtins.lessThan (
         map (name: toString (serviceModuleRoot + "/${name}")) directServiceDirectories
@@ -295,7 +227,8 @@ let
     in
     assert builtins.length retainedServices == 19;
     assert builtins.length excludedCapabilities == 6;
-    assert builtins.all exactOne retainedServices;
+    assert directServiceDirectories == retainedServices;
+    assert builtins.all serviceFilesAreCanonical retainedServices;
     assert builtins.all (
       capability: nixosModuleEntries.${capability.path} or null == capability.type
     ) excludedCapabilities;
@@ -304,18 +237,8 @@ let
     ) excludedCapabilities;
     assert nixosModuleEntries."default.nix" == "regular";
     assert nixosModuleEntries.services == "directory";
-    assert builtins.all (name: builtins.elem name expectedRootEntries) (
-      builtins.attrNames nixosModuleEntries
-    );
-    assert builtins.all (
-      name:
-      builtins.elem name [
-        "README.md"
-        "default.nix"
-      ]
-      || serviceModuleEntries.${name} == "directory"
-    ) (builtins.attrNames serviceModuleEntries);
-    assert builtins.all (name: builtins.elem name retainedServiceNames) directServiceDirectories;
+    assert builtins.attrNames nixosModuleEntries == expectedRootEntries;
+    assert builtins.attrNames serviceModuleEntries == expectedServiceRootEntries;
     assert importedServicePaths == directServicePaths;
     assert rootImportNames == expectedRootImportNames;
     true;
@@ -338,6 +261,35 @@ let
       invalid = overrides: valid // overrides;
       record = builtins.head valid.discovered;
       invalidRecord = updates: invalid { discovered = [ (record // updates) ]; };
+      duplicateDiscovered = invalid {
+        discovered = [
+          record
+          (record // { source = "fixture/duplicate/README.md"; })
+        ];
+      };
+      caseFoldedDiscovered = invalid {
+        discovered = [
+          record
+          (
+            record
+            // {
+              content = "# Webdav\n";
+              source = "fixture/case-folded/README.md";
+            }
+          )
+        ];
+      };
+      hostReservedDiscovered = invalid {
+        discovered = [
+          {
+            folder = "host-webdav";
+            readmeType = "regular";
+            content = "# Host WebDAV\n";
+            source = "fixture/host-webdav/README.md";
+          }
+        ];
+        reservedPageNames = [ "Service-Host-WebDAV.md" ];
+      };
     in
     assert (evaluate valid).success;
     assert
@@ -368,34 +320,9 @@ let
       !(evaluate (invalidRecord {
         folder = "other";
       })).success;
-    assert
-      !(evaluate (invalid {
-        legacy."Service-Other.md" = {
-          title = "WebDAV";
-          source = "fixture/legacy.md";
-        };
-      })).success;
-    assert
-      !(evaluate (invalid {
-        legacy."Host-WebDAV.md" = {
-          title = "WebDAV";
-          source = "fixture/legacy.md";
-        };
-      })).success;
-    assert
-      !(evaluate (invalid {
-        legacy."Service-WebDAV.md" = {
-          title = "WebDAV";
-          source = "fixture/legacy.md";
-        };
-      })).success;
-    assert
-      !(evaluate (invalid {
-        legacy."Service-Webdav.md" = {
-          title = "Webdav";
-          source = "fixture/legacy.md";
-        };
-      })).success;
+    assert !(evaluate duplicateDiscovered).success;
+    assert !(evaluate caseFoldedDiscovered).success;
+    assert !(evaluate hostReservedDiscovered).success;
     assert
       !(evaluate (invalid {
         reservedPageNames = [ "Service-WebDAV.md" ];
@@ -457,6 +384,8 @@ assert serviceRunbookContract;
         host_docs_guide=${./system/hosts/nixos/README.md}
         wiki_generator_source=${./lib/wiki-docs.nix}
         source_validator=${./scripts/validate-wiki-source.py}
+        wither_host_docs=${witherHostDocs}/wither.md
+        infrastructure_json=${infrastructureData}/infrastructure.json
 
         readme_lines="$(wc -l < "$root_readme")"
         if [ "$readme_lines" -ge 200 ]; then
@@ -548,6 +477,7 @@ assert serviceRunbookContract;
         grep -F -- 'The repository Wiki is publication output, not an authoring surface.' "$automation_guide" >/dev/null
         grep -F -- 'Fleet and project runbooks come from `docs/wiki/`' "$automation_guide" >/dev/null
         grep -F -- 'Canonical service runbooks' "$automation_guide" >/dev/null
+        grep -F -- 'Service pages originate only from' "$automation_guide" >/dev/null
         grep -F -- 'Evaluated pages are built from Nix configuration' "$automation_guide" >/dev/null
         grep -F -- 'Host pages come from evaluated host reports' "$automation_guide" >/dev/null
         grep -F -- '`wiki-pages.txt` is the non-host page inventory.' "$automation_guide" >/dev/null
@@ -631,7 +561,6 @@ assert serviceRunbookContract;
         expected_agent_routes="$TMPDIR/expected-agent-routes.txt"
         printf '%s\n' \
           system/modules/nixos/services/ \
-          docs/wiki/services/ \
           docs/wiki/operations/security-and-recovery.md \
           docs/wiki/operations/backup-and-restore.md \
           docs/wiki/project/development.md \
@@ -650,6 +579,40 @@ assert serviceRunbookContract;
           }
         ' "$agents" > "$actual_agent_routes"
         cmp "$expected_agent_routes" "$actual_agent_routes"
+
+        if [ -e "$source_root/services" ]; then
+          echo 'docs/wiki/services must be absent after service runbook migration' >&2
+          exit 1
+        fi
+        if grep -F -- 'legacyServiceRunbooks' "$wiki_generator_source" >/dev/null; then
+          echo 'Wiki generator retains the repository legacy-runbook binding' >&2
+          exit 1
+        fi
+        if [ "$(grep -F -c -- 'legacy = { };' "$wiki_generator_source")" -ne 1 ]; then
+          echo 'Wiki generator must use discovered service READMEs without repository legacy entries' >&2
+          exit 1
+        fi
+
+        if [ "$(grep -F -c -- '| Steam |' "$wither_host_docs")" -ne 1 ]; then
+          echo 'Wither host documentation does not retain its evaluated Steam service row' >&2
+          exit 1
+        fi
+        python3 - "$infrastructure_json" <<'PY'
+        import json
+        import sys
+
+        with open(sys.argv[1], encoding="utf-8") as source:
+            data = json.load(source)
+
+        wither = next((host for host in data["hosts"] if host["name"] == "wither"), None)
+        if wither is None:
+            raise SystemExit("evaluated infrastructure data has no Wither host")
+
+        steam = [service for service in wither["services"] if service["key"] == "steam"]
+        expected = [{"category": "gaming", "endpoint": None, "key": "steam", "name": "Steam"}]
+        if steam != expected:
+            raise SystemExit(f"unexpected Wither Steam inventory: {steam!r}")
+        PY
 
         for service_page in Service-Immich Service-Paperless Service-Seafile; do
           wiki_url="https://github.com/Conquerix/shulker/wiki/$service_page"
@@ -671,12 +634,6 @@ assert serviceRunbookContract;
           static "$source_root/operations/backup-and-restore.md" Operations-Backup-and-Restore.md \
           static "$source_root/operations/security-and-recovery.md" Operations-Security-and-Recovery.md \
           static "$source_root/project/development.md" Project-Development.md > "$authored_pairs"
-
-        test ! -e "$source_root/services/immich.md"
-        test ! -e "$source_root/services/paperless.md"
-        test ! -e "$source_root/services/seafile.md"
-        test ! -e "$source_root/services/grapheneos-webdav.md"
-        test ! -e "$source_root/services/hermes-webui.md"
 
         while IFS= read -r -d "" directory; do
           folder="$(basename "$directory")"
