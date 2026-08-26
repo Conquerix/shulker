@@ -669,13 +669,14 @@ assert serviceRunbookContract;
         authored_pairs="$TMPDIR/authored-service-and-static-pages.tsv"
         printf '%s\t%s\t%s\n' \
           legacy "$source_root/services/grapheneos-webdav.md" Service-GrapheneOS-WebDAV.md \
-          legacy "$source_root/services/hermes-webui.md" Service-Hermes-WebUI.md \
           legacy "$source_root/services/immich.md" Service-Immich.md \
           legacy "$source_root/services/paperless.md" Service-Paperless.md \
           legacy "$source_root/services/seafile.md" Service-Seafile.md \
           static "$source_root/operations/backup-and-restore.md" Operations-Backup-and-Restore.md \
           static "$source_root/operations/security-and-recovery.md" Operations-Security-and-Recovery.md \
           static "$source_root/project/development.md" Project-Development.md > "$authored_pairs"
+
+        test ! -e "$source_root/services/hermes-webui.md"
 
         while IFS= read -r -d "" directory; do
           folder="$(basename "$directory")"

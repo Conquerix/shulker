@@ -45,10 +45,6 @@ let
       title = "GrapheneOS WebDAV";
       source = wikiSourceDir + "/services/grapheneos-webdav.md";
     };
-    "Service-Hermes-WebUI.md" = {
-      title = "Hermes WebUI";
-      source = wikiSourceDir + "/services/hermes-webui.md";
-    };
     "Service-Immich.md" = {
       title = "Immich";
       source = wikiSourceDir + "/services/immich.md";

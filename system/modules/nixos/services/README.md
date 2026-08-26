@@ -25,5 +25,5 @@ values, private identifiers, raw API payloads, or user data. Fleet operations
 and project documentation remain under `docs/wiki/`.
 
 During migration, this directory's explicit import list contains exactly the
-services that have moved. The legacy root scanner continues to import every
-unmoved service exactly once.
+services that have moved: `beszel`, `hermes-agent`, `newt`, and `plex`. The
+legacy root scanner continues to import every unmoved service exactly once.
