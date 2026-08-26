@@ -3,10 +3,9 @@
 Warden is configured to run [Seafile Professional Edition
 13](https://manual.seafile.com/13.0/) as the family's file-sync, sharing,
 search, metadata, notification, and browser Office service. Seafile is the
-pilot successor to OpenCloud, but OpenCloud remains enabled as the rollback
-path until the acceptance and restore gates below pass. Repository
-implementation and commits do not deploy Seafile or authorize dataset,
-credential, identity-provider, ingress, or other live mutations.
+authoritative family file service. Repository implementation and commits do
+not deploy Seafile or authorize dataset, credential, identity-provider,
+ingress, or other live mutations.
 
 The seven-container matrix is pinned by tag and Linux/amd64 digest:
 
@@ -31,7 +30,7 @@ Only three loopback listeners exist. Warden's firewall remains closed to them:
 MariaDB, Redis, SeaSearch, and Metadata publish no host ports. Before any
 deployment, inspect Warden's CPU, available memory and swap, flash-pool free
 space, and Docker storage pressure. Preserve headroom for the existing Immich,
-Paperless, Plex, and OpenCloud workloads; OnlyOffice alone has a 4 GiB baseline,
+Paperless, and Plex workloads; OnlyOffice alone has a 4 GiB baseline,
 and two concurrent 1.5 TiB ZFS quotas do not reserve physical capacity.
 
 ## Dataset and state
@@ -286,7 +285,7 @@ affected pins together, build the Warden system and contracts, deploy only with
 approval, and repeat login, sync, notification, metadata, Office, search,
 sharing, backup, and restore acceptance. No workflow deploys automatically.
 
-## Media boundary, acceptance, and rollback
+## Media boundary and acceptance
 
 Immich is the sole authoritative store and user interface for photo/video
 originals. Never mount, index, copy, export, or link its library through
@@ -295,32 +294,23 @@ hardlinks, reflinks, scheduled exports, or an Immich external library. A manual
 copy into a general-file library is an intentional independent Seafile object;
 otherwise share the asset from Immich.
 
-Before making Seafile authoritative during the initial owner-only stage, test
-the owner OAuth account and independent native administrator; browser and
-native-client SSO; Android manual operations with camera upload off; desktop
-sync and SeaDrive conflicts; large and unusual-name files; permissions,
-locking, versions, and audit; Notification WebSockets; Metadata views and
-reconciliation; OnlyOffice editing and durable callbacks; public links;
-search; restart and reboot persistence; the exact three listeners; current
-health, fsck, and Borg checks; and a complete isolated restore rehearsal with
-sample checksums, login, sharing, search, and a new upload.
+During the initial owner-only stage, continue to test the owner OAuth account
+and independent native administrator; browser and native-client SSO; Android
+manual operations with camera upload off; desktop sync and SeaDrive conflicts;
+large and unusual-name files; permissions, locking, versions, and audit;
+Notification WebSockets; Metadata views and reconciliation; OnlyOffice editing
+and durable callbacks; public links; search; restart and reboot persistence;
+the exact three listeners; current health, fsck, and Borg checks; and a
+complete isolated restore rehearsal with sample checksums, login, sharing,
+search, and a new upload. Every gate applicable to the current onboarding
+stage remains mandatory.
 
 After the second approved family member is enrolled, repeat login and client
 acceptance with both OAuth users and test two-user sharing, permissions,
 locking, conflict handling, Notification updates, Metadata views, and
-OnlyOffice collaboration. OpenCloud retirement requires every applicable gate
-for the current onboarding stage: the later two-user checks are not blockers
-while `seafile_users` remains owner-only, but become mandatory as soon as the
-second member is enrolled.
-
-If acceptance fails, keep or return users to OpenCloud and leave its service,
-dataset, identity objects, and secret material unchanged. Immediately before
-retirement, perform a fresh live OpenCloud inventory. Retirement is allowed
-only after every applicable Seafile/restore test passes and that inventory
-proves either zero state or completion of a separately reviewed migration.
-OpenCloud removal and dataset deletion are separate, destructive,
-approval-gated work.
-
+OnlyOffice collaboration. The later two-user checks are not blockers while
+`seafile_users` remains owner-only, but become mandatory as soon as the second
+member is enrolled.
 
 ## Related documentation
 

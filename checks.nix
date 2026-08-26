@@ -228,7 +228,6 @@ in
           Service-Hermes-WebUI.md \
           Service-GrapheneOS-WebDAV.md \
           Service-Seafile.md \
-          Service-OpenCloud.md \
           Service-Immich.md \
           Service-Paperless.md \
           Operations-Backup-and-Restore.md \
@@ -296,7 +295,6 @@ in
           '## Hermes WebUI and native clients' \
           '## GrapheneOS WebDAV backups' \
           '## Seafile family files' \
-          '## OpenCloud family storage' \
           '## Immich family photos' \
           '## Paperless family documents'
         do
@@ -357,7 +355,6 @@ in
           Service-GrapheneOS-WebDAV.md \
           Service-Hermes-WebUI.md \
           Service-Immich.md \
-          Service-OpenCloud.md \
           Service-Paperless.md \
           Service-Seafile.md \
           Services.md \
@@ -377,7 +374,6 @@ in
           'services/hermes-webui.md Service-Hermes-WebUI.md' \
           'services/grapheneos-webdav.md Service-GrapheneOS-WebDAV.md' \
           'services/seafile.md Service-Seafile.md' \
-          'services/opencloud.md Service-OpenCloud.md' \
           'services/immich.md Service-Immich.md' \
           'services/paperless.md Service-Paperless.md' \
           'operations/backup-and-restore.md Operations-Backup-and-Restore.md' \
@@ -410,7 +406,6 @@ in
           services/hermes-webui.md \
           services/grapheneos-webdav.md \
           services/seafile.md \
-          services/opencloud.md \
           services/immich.md \
           services/paperless.md \
           operations/backup-and-restore.md \
@@ -1981,11 +1976,10 @@ in
 
         for policy in \
           'Repository implementation and commits do not deploy Seafile' \
-          'OpenCloud remains enabled as the rollback path' \
+          'authoritative family file service' \
           'Immich is the sole authoritative store' \
           'no documented server-side switch that enforces this preference' \
-          'They do not extract archive data or automate browser login' \
-          'OpenCloud removal and dataset deletion are separate, destructive, approval-gated work'
+          'They do not extract archive data or automate browser login'
         do
           grep -F -- "$policy" "$seafile_runbook_text" >/dev/null
         done

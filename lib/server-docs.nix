@@ -142,11 +142,6 @@ let
       "Docker-managed volumes"
       "AIO manages its child containers"
     )
-    (service "OpenCloud" modules.opencloud.enable
-      "${modules.opencloud.publicUrl} via ${modules.opencloud.bindAddress}:${toString modules.opencloud.port}"
-      "${modules.opencloud.stateDir} (${modules.opencloud.dataset})"
-      "Non-collaborative PosixFS; personal quota ${bytesAsGiB modules.opencloud.personalQuotaBytes}; planned Family space ${bytesAsGiB modules.opencloud.familyQuotaBytes}; snapshot backup ${enabledDisabled modules.opencloud.backUpData}"
-    )
     (service "Ollama" modules.ollama.enable
       "Port ${toString modules.ollama.port}; firewall ${enabledDisabled modules.ollama.openFirewall}"
       modules.ollama.stateDir
@@ -333,7 +328,6 @@ let
 
   backupSources = sort builtins.lessThan (unique modules.backup.dirs);
   immichSnapshotPath = "${modules.immich.stateDir}/.zfs/snapshot/${modules.immich.backupSnapshotName}";
-  opencloudSnapshotPath = "${modules.opencloud.stateDir}/.zfs/snapshot/${modules.opencloud.backupSnapshotName}";
   paperlessSnapshotPath = "${modules.paperless.stateDir}/.zfs/snapshot/${modules.paperless.backupSnapshotName}";
   seafileSnapshotPath = "${modules.seafile.stateDir}/.zfs/snapshot/${modules.seafile.backupSnapshotName}";
   seafileBackupSources = [
@@ -401,14 +395,6 @@ let
         source: hasPrefix modules.plex.dataDir source || hasPrefix source modules.plex.dataDir
       ) backupSources)
     ) "Plex data is not present in the Borgmatic source list."
-    ++ optional (
-      modules.opencloud.enable
-      && modules.opencloud.backUpData
-      && !(lib.elem opencloudSnapshotPath backupSources)
-    ) "OpenCloud snapshot data is not present in the Borgmatic source list."
-    ++ optional (
-      modules.opencloud.enable && !modules.opencloud.backUpData
-    ) "OpenCloud state is not included in Borgmatic backups."
     ++ optional (
       modules.immich.enable && modules.immich.backUpData && !(lib.elem immichSnapshotPath backupSources)
     ) "Immich snapshot data is not present in the Borgmatic source list."
@@ -810,7 +796,7 @@ let
           teardown. Follow the
           [Seafile service Wiki](https://github.com/Conquerix/shulker/wiki/Service-Seafile)
           for dataset setup, routing, bootstrap, backup ordering, archive extraction,
-          restore rehearsal, acceptance, and the OpenCloud rollback gate.
+          restore rehearsal, and acceptance.
         ''
       else
         ""

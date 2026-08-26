@@ -1,11 +1,10 @@
 # Paperless family documents
 
 Warden runs [Paperless-ngx](https://docs.paperless-ngx.com/) as the family's
-authoritative searchable document archive. It is deliberately separate from
-OpenCloud: OpenCloud remains general file sync and collaboration, while
-Paperless owns document originals, PDF/A renditions, thumbnails, OCR text,
-metadata, permissions, search indexes, and ingestion history. Do not add any
-Paperless-managed directory to OpenCloud or edit it while Paperless is running.
+authoritative searchable document archive. Paperless owns document originals,
+PDF/A renditions, thumbnails, OCR text, metadata, permissions, search indexes,
+and ingestion history. Do not add any Paperless-managed directory to another
+service or edit it while Paperless is running.
 
 The generated Compose stack contains Paperless-ngx `3.0.5`, PostgreSQL 18,
 Valkey 9, Gotenberg 8.34, and Apache Tika 3.2.3.0. All five Linux/amd64 images

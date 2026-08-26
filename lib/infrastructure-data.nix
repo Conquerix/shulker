@@ -104,7 +104,6 @@ let
         (service "newt" "Newt" "edge" modules.newt.enable modules.newt.endpoint)
         (service "nextcloud" "Nextcloud AIO" "collaboration" modules.nextcloud.enable null)
         (service "ollama" "Ollama" "ai" modules.ollama.enable null)
-        (service "opencloud" "OpenCloud" "storage" modules.opencloud.enable modules.opencloud.publicUrl)
         (service "paperless" "Paperless-ngx (PostgreSQL, Valkey, Tika, Gotenberg)" "storage"
           modules.paperless.enable
           modules.paperless.publicUrl
@@ -141,7 +140,6 @@ let
           "node control"
         )
         (connection modules.immich.enable "immich" modules.immich.oidcIssuer "OIDC authentication")
-        (connection modules.opencloud.enable "opencloud" modules.opencloud.oidcIssuer "OIDC authentication")
         (connection modules.paperless.enable "paperless" modules.paperless.oidcIssuer "OIDC authentication")
         (connection modules.seafile.enable "seafile" modules.seafile.oidcIssuer "OIDC authentication")
       ];

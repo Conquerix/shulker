@@ -269,7 +269,6 @@ let
     - [Hermes WebUI](Service-Hermes-WebUI)
     - [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV)
     - [Seafile](Service-Seafile)
-    - [OpenCloud](Service-OpenCloud)
     - [Immich](Service-Immich)
     - [Paperless](Service-Paperless)
 
@@ -346,7 +345,6 @@ let
     - [Hermes WebUI](Service-Hermes-WebUI)
     - [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV)
     - [Seafile](Service-Seafile)
-    - [OpenCloud](Service-OpenCloud)
     - [Immich](Service-Immich)
     - [Paperless](Service-Paperless)
 
@@ -544,7 +542,6 @@ let
       - [Hermes WebUI](Service-Hermes-WebUI)
       - [GrapheneOS WebDAV](Service-GrapheneOS-WebDAV)
       - [Seafile](Service-Seafile)
-      - [OpenCloud](Service-OpenCloud)
       - [Immich](Service-Immich)
       - [Paperless](Service-Paperless)
     - **Operations**
@@ -578,7 +575,6 @@ let
     "Service-Hermes-WebUI.md" = wikiSourceDir + "/services/hermes-webui.md";
     "Service-GrapheneOS-WebDAV.md" = wikiSourceDir + "/services/grapheneos-webdav.md";
     "Service-Seafile.md" = wikiSourceDir + "/services/seafile.md";
-    "Service-OpenCloud.md" = wikiSourceDir + "/services/opencloud.md";
     "Service-Immich.md" = wikiSourceDir + "/services/immich.md";
     "Service-Paperless.md" = wikiSourceDir + "/services/paperless.md";
     "Operations-Backup-and-Restore.md" = wikiSourceDir + "/operations/backup-and-restore.md";

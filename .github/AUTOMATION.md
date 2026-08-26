@@ -76,7 +76,6 @@ filenames:
 - `Service-Hermes-WebUI.md`;
 - `Service-GrapheneOS-WebDAV.md`;
 - `Service-Seafile.md`;
-- `Service-OpenCloud.md`;
 - `Service-Immich.md`;
 - `Service-Paperless.md`;
 - `Operations-Backup-and-Restore.md`;
