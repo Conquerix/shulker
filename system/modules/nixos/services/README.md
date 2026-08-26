@@ -25,7 +25,7 @@ values, private identifiers, raw API payloads, or user data. Fleet operations
 and project documentation remain under `docs/wiki/`.
 
 During migration, this directory's explicit import list contains exactly the
-services that have moved: `backup`, `beszel`, `forgejo`, `hermes-agent`,
-`home-assistant`, `newt`, `ollama`, `pelican`, `plex`, `pocket-id`, `sunshine`,
-`torrent`, and `webdav`. The legacy root scanner continues to import every
-unmoved service exactly once.
+services that have moved: `backup`, `beszel`, `forgejo`, `git-pages`,
+`hermes-agent`, `home-assistant`, `newt`, `nextcloud`, `ollama`, `pangolin`,
+`pelican`, `plex`, `pocket-id`, `sunshine`, `torrent`, and `webdav`. The legacy
+root scanner continues to import every unmoved service exactly once.
