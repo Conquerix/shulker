@@ -10,6 +10,7 @@ let
   wardenConfig = self.nixosConfigurations.warden.config;
   services = wardenConfig.systemd.services;
   borgmaticService = services.borgmatic;
+  borgmaticSourceDirectories = wardenConfig.shulker.system.modules.backup.dirs;
   pullService = services."immich-image-pull";
   composeService = services."immich-compose";
   checkedRebuild = import ./nix/checked-rebuild.nix {
@@ -778,6 +779,13 @@ assert serviceRunbookContract;
     assert builtins.elem "/dev/zfs" borgmaticService.serviceConfig.BindPaths;
     assert builtins.elem "CAP_SYS_ADMIN" (borgmaticService.serviceConfig.CapabilityBoundingSet or [ ]);
     pkgs.runCommand "backup-zfs-device-contract" { } ''
+      touch "$out"
+    '';
+
+  backup-source-order-contract =
+    assert borgmaticSourceDirectories == builtins.sort builtins.lessThan borgmaticSourceDirectories;
+    assert wardenConfig.services.borgmatic.settings.source_directories == borgmaticSourceDirectories;
+    pkgs.runCommand "backup-source-order-contract" { } ''
       touch "$out"
     '';
 

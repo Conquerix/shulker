@@ -14,7 +14,8 @@ in
     dirs = lib.mkOption {
       type = types.listOf types.str;
       default = [ ];
-      description = "List of directories and files to backup.";
+      apply = builtins.sort builtins.lessThan;
+      description = "Lexically ordered list of directories and files to back up.";
     };
     hetznerStorageBoxAccount = lib.mkOption {
       type = types.str;
