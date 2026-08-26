@@ -16,8 +16,9 @@ owner-only permissions and is included in Warden's Borgmatic sources by
 default. The module's logical password secret is `grapheneWebdavPassword`.
 
 SFTPGo listens only on `127.0.0.1:23235`; the firewall does not expose this
-listener. WebDAV Basic authentication must be protected by TLS, so never
-publish or use the loopback HTTP endpoint directly. A TLS-terminating reverse
+listener. Local loopback diagnostics on Warden may use the HTTP endpoint
+directly. Never expose it or use it directly from outside Warden because WebDAV
+Basic authentication requires TLS outside the host. A TLS-terminating reverse
 proxy must preserve the original `Host` header for correct WebDAV `COPY` and
 `MOVE` handling.
 
