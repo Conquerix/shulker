@@ -41,10 +41,6 @@ let
     "Project-Development.md" = wikiSourceDir + "/project/development.md";
   };
   legacyServiceRunbooks = {
-    "Service-GrapheneOS-WebDAV.md" = {
-      title = "GrapheneOS WebDAV";
-      source = wikiSourceDir + "/services/grapheneos-webdav.md";
-    };
     "Service-Immich.md" = {
       title = "Immich";
       source = wikiSourceDir + "/services/immich.md";

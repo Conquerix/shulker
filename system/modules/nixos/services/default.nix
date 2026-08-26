@@ -5,5 +5,6 @@
     ./hermes-agent
     ./newt
     ./plex
+    ./webdav
   ];
 }
