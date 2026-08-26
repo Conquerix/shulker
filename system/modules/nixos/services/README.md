@@ -24,6 +24,6 @@ operational facts, secret *names*, and recovery guidance here; never add secret
 values, private identifiers, raw API payloads, or user data. Fleet operations
 and project documentation remain under `docs/wiki/`.
 
-During migration, this directory's explicit import list remains empty until a
-service moves. The legacy root scanner continues to import every unmoved
-service exactly once.
+During migration, this directory's explicit import list contains exactly the
+services that have moved. The legacy root scanner continues to import every
+unmoved service exactly once.

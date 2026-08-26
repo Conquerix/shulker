@@ -237,6 +237,10 @@ let
       pkgs.lib.filterAttrs (_: entryType: entryType == "directory") serviceModuleEntries
     )
   );
+  nixosModuleLib = pkgs.lib // {
+    custom = import ./lib { lib = pkgs.lib; };
+  };
+  nixosModuleManifest = import (nixosModuleRoot + "/default.nix") { lib = nixosModuleLib; };
   serviceModuleManifest = import (serviceModuleRoot + "/default.nix") { lib = pkgs.lib; };
   serviceLayoutContract =
     let
@@ -258,6 +262,36 @@ let
       directServicePaths = pkgs.lib.sort builtins.lessThan (
         map (name: toString (serviceModuleRoot + "/${name}")) directServiceDirectories
       );
+      rootImportNames = map (
+        path: pkgs.lib.removeSuffix ".nix" (builtins.baseNameOf path)
+      ) nixosModuleManifest.imports;
+      expectedRootImportNames = [
+        "backup"
+        "beszel"
+        "containers"
+        "core"
+        "forgejo"
+        "git-pages"
+        "hermes-agent"
+        "home-assistant"
+        "immich"
+        "impermanence"
+        "newt"
+        "nextcloud"
+        "nvidia"
+        "ollama"
+        "pangolin"
+        "paperless"
+        "pelican"
+        "plex"
+        "pocket-id"
+        "seafile"
+        "steam"
+        "sunshine"
+        "torrent"
+        "webdav"
+        "yubikey"
+      ];
     in
     assert builtins.length retainedServices == 19;
     assert builtins.length excludedCapabilities == 6;
@@ -283,6 +317,7 @@ let
     ) (builtins.attrNames serviceModuleEntries);
     assert builtins.all (name: builtins.elem name retainedServiceNames) directServiceDirectories;
     assert importedServicePaths == directServicePaths;
+    assert rootImportNames == expectedRootImportNames;
     true;
   serviceRunbooks = import ./lib/service-runbooks.nix { lib = pkgs.lib; };
   serviceRunbookContract =

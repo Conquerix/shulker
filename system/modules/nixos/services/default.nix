@@ -1,4 +1,8 @@
 { ... }:
 {
-  imports = [ ];
+  imports = [
+    ./beszel
+    ./newt
+    ./plex
+  ];
 }
