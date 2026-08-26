@@ -19,8 +19,8 @@ The public `torrent` options are `enable`, `impermanence`, `stateDir`,
 `portForwarding`, `puid`, `group`, `gid`, and `timeZone`. Defaults keep the Web
 UI on `127.0.0.1:8080`, use the `torrent` group with GID 970, and enable
 port forwarding. Warden publishes only `127.0.0.1:23232`, configures
-`10.0.0.0/24` as the container's VPN firewall allowlist, and stores downloads
-at `/storage/hdd/torrents`.
+a private LAN range as the container's VPN firewall allowlist, and stores
+downloads at `/storage/hdd/torrents`.
 
 ## Networking and exposure
 

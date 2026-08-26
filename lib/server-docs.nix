@@ -173,7 +173,7 @@ let
     (service "qBittorrent" modules.torrent.enable
       "${modules.torrent.bindAddress}:${toString modules.torrent.webUiPort}; firewall ${enabledDisabled modules.torrent.openFirewall}"
       "${modules.torrent.stateDir}; downloads ${modules.torrent.downloadDir}"
-      "VPN LAN ${modules.torrent.lanNetwork}; port forwarding ${enabledDisabled modules.torrent.portForwarding}"
+      "VPN LAN configured; port forwarding ${enabledDisabled modules.torrent.portForwarding}"
     )
     (service "Steam" modules.steam.enable
       "Remote Play firewall ${enabledDisabled modules.steam.remotePlay}; dedicated server firewall ${enabledDisabled modules.steam.dedicatedServer}"
@@ -382,9 +382,9 @@ let
       optional (unpinnedContainers != [ ])
         "Containers without digest-pinned images: ${concatStringsSep ", " unpinnedContainers}. This can be intentional for self-updating services."
     ++ optional config.boot.initrd.network.ssh.enable "Initrd SSH is enabled on port ${toString config.boot.initrd.network.ssh.port}; preserve its persistent host key and recovery authorization."
-    ++
-      optional (modules.torrent.enable && modules.torrent.lanNetwork == "192.168.1.0/24")
-        "qBittorrent uses the default VPN LAN allowlist 192.168.1.0/24; verify that it matches the host's real LAN."
+    ++ optional (
+      modules.torrent.enable && modules.torrent.lanNetwork == "192.168.1.0/24"
+    ) "qBittorrent uses the default VPN LAN allowlist; verify that it matches the host's real LAN."
     ++
       optional
         (modules.nextcloud.enable && !(lib.any (source: hasPrefix "/var/lib/docker" source) backupSources))

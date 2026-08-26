@@ -384,6 +384,7 @@ assert serviceRunbookContract;
         host_docs_guide=${./system/hosts/nixos/README.md}
         wiki_generator_source=${./lib/wiki-docs.nix}
         source_validator=${./scripts/validate-wiki-source.py}
+        host_docs=${self.packages.${system}.host-docs}
         wither_host_docs=${witherHostDocs}/wither.md
         infrastructure_json=${infrastructureData}/infrastructure.json
 
@@ -592,6 +593,14 @@ assert serviceRunbookContract;
           echo 'Wiki generator must use discovered service READMEs without repository legacy entries' >&2
           exit 1
         fi
+
+        private_ipv4_pattern='(^|[^0-9])(10(\.[0-9]{1,3}){3}|172\.(1[6-9]|2[0-9]|3[01])(\.[0-9]{1,3}){2}|192\.168(\.[0-9]{1,3}){2})([^0-9]|$)'
+        for public_document in "$host_docs"/*.md "${wikiDocs}"/*.md; do
+          if grep -Eq -- "$private_ipv4_pattern" "$public_document"; then
+            echo "Public documentation contains a private IPv4 address: $(basename "$public_document")" >&2
+            exit 1
+          fi
+        done
 
         if [ "$(grep -F -c -- '| Steam |' "$wither_host_docs")" -ne 1 ]; then
           echo 'Wither host documentation does not retain its evaluated Steam service row' >&2
