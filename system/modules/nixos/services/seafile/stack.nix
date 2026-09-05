@@ -625,8 +625,10 @@ in
       after = [ "docker.service" ];
       unitConfig = {
         ConditionFileNotEmpty = secret.path;
+        # Healthy timer polls count as starts too; allow the two-minute cadence
+        # throughout this window, plus one boundary/manual-start margin.
         StartLimitIntervalSec = 600;
-        StartLimitBurst = 3;
+        StartLimitBurst = 6;
       };
       serviceConfig = {
         Type = "oneshot";
