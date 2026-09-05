@@ -103,7 +103,7 @@ validated_at="$(date +%s)"
 cat >"$state/control/seafile-29990101T000000-11111111-1111-4111-8111-111111111111.validated" <<EOF
 invocation=11111111-1111-4111-8111-111111111111
 candidate=$state/backups/seafile-29990101T000000-11111111-1111-4111-8111-111111111111
-validated_at=$(date --utc --iso-8601=seconds)
+validated_at=$(date --utc --date="@$validated_at" --iso-8601=seconds)
 transaction_kind=writers_quiesced=true
 EOF
 chmod 0600 "$state/control/seafile-29990101T000000-11111111-1111-4111-8111-111111111111.validated"
