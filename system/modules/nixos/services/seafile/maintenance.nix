@@ -761,27 +761,51 @@ let
     SEAFILE_MAINTENANCE_LOCK_HELD=1 "$health_command" >/dev/null \
       || fail_maintenance "local health"
 
-          marker="$state_dir/control/last-validated-backup"
-          [ -f "$marker" ] && [ ! -L "$marker" ] \
-            || fail_maintenance "backup freshness"
-          expected_control_owner="''${SEAFILE_EXPECTED_CONTROL_OWNER:-0:0}"
-          [ "$(stat --format '%u:%g:%a' -- "$marker")" = "$expected_control_owner:600" ] \
-            || fail_maintenance "backup freshness"
-    set_name="$(jq --raw-output '.set // empty' "$marker")" \
+    # Consume the validation marker published by seafile-validate-logical-backup.
+    mapfile -d $'\0' -t validation_markers < <(
+      find "$state_dir/control" -maxdepth 1 -name 'seafile-*.validated' -printf '%T@ %p\0' | sort -zrn
+    )
+    [ "''${#validation_markers[@]}" -gt 0 ] || fail_maintenance "backup freshness"
+    marker="''${validation_markers[0]#* }"
+    expected_control_owner="''${SEAFILE_EXPECTED_CONTROL_OWNER:-0:0}"
+    [ -f "$marker" ] && [ ! -L "$marker" ] \
+      && [ "$(stat --format '%u:%g:%a' -- "$marker")" = "$expected_control_owner:600" ] \
       || fail_maintenance "backup freshness"
-    validated_at="$(jq --raw-output '.validated_at_epoch // empty' "$marker")" \
+    validation_field() {
+      local key="$1" line value="" count=0
+      while IFS= read -r line; do
+        case "$line" in
+          "$key="*) value="''${line#*=}"; count=$((count + 1)) ;;
+        esac
+      done <"$marker"
+      [ "$count" -eq 1 ] && [ -n "$value" ] || return 1
+      printf '%s\n' "$value"
+    }
+    invocation="$(validation_field invocation)" || fail_maintenance "backup freshness"
+    candidate="$(validation_field candidate)" || fail_maintenance "backup freshness"
+    validation_time="$(validation_field validated_at)" || fail_maintenance "backup freshness"
+    transaction_kind="$(validation_field transaction_kind)" || fail_maintenance "backup freshness"
+    set_name="''${marker##*/}"
+    set_name="''${set_name%.validated}"
+    set_identity="''${set_name#seafile-}"
+    set_invocation="''${set_identity#*-}"
+    [[ "$invocation" =~ ^[a-zA-Z0-9-]+$ ]] || fail_maintenance "backup freshness"
+    [[ "$set_name" =~ ^seafile-[0-9]{8}T[0-9]{6}-[a-zA-Z0-9-]+$ ]] \
+      && [ "$set_invocation" = "$invocation" ] \
+      && [ "$candidate" = "$state_dir/backups/$set_name" ] \
+      && [ -d "$candidate" ] && [ ! -L "$candidate" ] \
+      && [ "$(stat --format '%u:%g:%a' -- "$candidate")" = "$expected_control_owner:700" ] \
+      && [ "$transaction_kind" = writers_quiesced=true ] \
       || fail_maintenance "backup freshness"
-    writers_quiesced="$(jq --raw-output '.writers_quiesced // false' "$marker")" \
-      || fail_maintenance "backup freshness"
-    [[ "$set_name" =~ ^seafile-[0-9]{8}T[0-9]{6}\.[0-9]{9}Z$ ]] \
+    validated_at="$(date --utc --date="$validation_time" +%s)" \
       || fail_maintenance "backup freshness"
     [[ "$validated_at" =~ ^[0-9]+$ ]] || fail_maintenance "backup freshness"
-    [ "$writers_quiesced" = true ] || fail_maintenance "backup freshness"
-    manifest="$state_dir/backups/$set_name/manifest.json"
+    manifest="$candidate/manifest.json"
     [ -f "$manifest" ] && [ ! -L "$manifest" ] \
+      && [ "$(stat --format '%u:%g:%a' -- "$manifest")" = "$expected_control_owner:600" ] \
       || fail_maintenance "backup freshness"
-    jq --exit-status '.writers_quiesced == true' "$manifest" >/dev/null \
-      || fail_maintenance "backup freshness"
+    jq --exit-status '.transaction_kind == "writers_quiesced=true" and (.databases | length == 3)' \
+      "$manifest" >/dev/null || fail_maintenance "backup freshness"
     now="$(date --utc +%s)"
     age="$((now - validated_at))"
           [ "$age" -ge 0 ] && [ "$age" -le 129600 ] \
@@ -936,6 +960,7 @@ let
     metadataProbe
     notificationPublicCheck
     onlyOfficeSmokeTest
+    pkgs.findutils
     pkgs.gnugrep
     pkgs.jq
   ];

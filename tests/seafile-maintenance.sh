@@ -40,7 +40,7 @@ lock="$root/maintenance.lock"
 calls="$root/calls"
 mkdir -p "$bin" "$state/shared/logs" "$state/shared/seafile/logs" \
 	"$state/shared/seafile/conf" "$state/shared/seafile/md-data" \
-	"$state/backups/seafile-29990101T000000.000000000Z" "$state/control" \
+	"$state/backups/seafile-29990101T000000-11111111-1111-4111-8111-111111111111" "$state/control" \
 	"$runtime_host" "$runtime_app" "$runtime_metadata"
 : >"$calls"
 : >"$lock"
@@ -93,16 +93,20 @@ chmod 0400 "$runtime_app/seafevents.conf"
 : >"$runtime_metadata/seafile.conf"
 chmod 0444 "$runtime_metadata/seafile.conf"
 
-cat >"$state/backups/seafile-29990101T000000.000000000Z/manifest.json" <<'EOF'
-{"writers_quiesced":true}
+cat >"$state/backups/seafile-29990101T000000-11111111-1111-4111-8111-111111111111/manifest.json" <<'EOF'
+{"transaction_kind":"writers_quiesced=true","databases":[{},{},{}]}
 EOF
-chmod 0600 "$state/backups/seafile-29990101T000000.000000000Z/manifest.json"
+chmod 0600 "$state/backups/seafile-29990101T000000-11111111-1111-4111-8111-111111111111/manifest.json"
+chmod 0700 "$state/backups/seafile-29990101T000000-11111111-1111-4111-8111-111111111111"
 
 validated_at="$(date +%s)"
-cat >"$state/control/last-validated-backup" <<EOF
-{"set":"seafile-29990101T000000.000000000Z","validated_at_epoch":$validated_at,"writers_quiesced":true}
+cat >"$state/control/seafile-29990101T000000-11111111-1111-4111-8111-111111111111.validated" <<EOF
+invocation=11111111-1111-4111-8111-111111111111
+candidate=$state/backups/seafile-29990101T000000-11111111-1111-4111-8111-111111111111
+validated_at=$(date --utc --iso-8601=seconds)
+transaction_kind=writers_quiesced=true
 EOF
-chmod 0600 "$state/control/last-validated-backup"
+chmod 0600 "$state/control/seafile-29990101T000000-11111111-1111-4111-8111-111111111111.validated"
 
 write_bash_stub "$bin/systemctl" <<'EOF'
 set -euo pipefail
@@ -415,10 +419,10 @@ chmod +x "$bin"/*
 
 if stat --version >/dev/null 2>&1; then
 	expected_owner="$(stat -c '%u:%g' "$state/shared/seafile/conf/.env")"
-	expected_control_owner="$(stat -c '%u:%g' "$state/control/last-validated-backup")"
+	expected_control_owner="$(stat -c '%u:%g' "$state/control/seafile-29990101T000000-11111111-1111-4111-8111-111111111111.validated")"
 else
 	expected_owner="$(stat -f '%u:%g' "$state/shared/seafile/conf/.env")"
-	expected_control_owner="$(stat -f '%u:%g' "$state/control/last-validated-backup")"
+	expected_control_owner="$(stat -f '%u:%g' "$state/control/seafile-29990101T000000-11111111-1111-4111-8111-111111111111.validated")"
 fi
 
 run_health() {
@@ -752,6 +756,53 @@ STUB_BORG_RECORD=stale expect_backup_failure 'stale completion record'
 STUB_BORG_RECORD=no-row expect_backup_failure 'empty completion record'
 
 : >"$calls"
+[ "$(STUB_BORG_RECORD=current run_extended)" = 'public ingress acceptance pending' ]
+
+# Use the on-disk schema emitted by backup.nix, not a separate health-only marker.
+validation_marker="$state/control/seafile-29990101T000000-11111111-1111-4111-8111-111111111111.validated"
+backup_candidate="$state/backups/seafile-29990101T000000-11111111-1111-4111-8111-111111111111"
+cp "$validation_marker" "$root/good-validation"
+cp "$backup_candidate/manifest.json" "$root/good-manifest"
+
+printf 'invocation=duplicate\n' >>"$validation_marker"
+expect_backup_failure 'duplicate validation field'
+cp "$root/good-validation" "$validation_marker"
+sed 's/^invocation=.*/invocation=foreign/' "$root/good-validation" >"$validation_marker"
+expect_backup_failure 'mismatched invocation'
+sed 's/^invocation=.*/invocation=111111111111/' "$root/good-validation" >"$validation_marker"
+expect_backup_failure 'partial invocation suffix'
+sed 's|^candidate=.*|candidate=/foreign/backup|' "$root/good-validation" >"$validation_marker"
+expect_backup_failure 'foreign candidate'
+sed '/^validated_at=/d' "$root/good-validation" >"$validation_marker"
+expect_backup_failure 'missing validation timestamp'
+for validation_time in '2000-01-01T00:00:00+00:00' '2999-01-01T00:00:00+00:00' 'invalid'; do
+	sed "s/^validated_at=.*/validated_at=$validation_time/" "$root/good-validation" >"$validation_marker"
+	expect_backup_failure 'stale, future, or malformed validation timestamp'
+done
+cp "$root/good-validation" "$validation_marker"
+chmod 0644 "$validation_marker"
+expect_backup_failure 'unprotected validation marker'
+chmod 0600 "$validation_marker"
+mv "$validation_marker" "$root/saved-validation"
+ln -s "$root/saved-validation" "$validation_marker"
+expect_backup_failure 'symlinked validation marker'
+rm "$validation_marker"
+mv "$root/saved-validation" "$validation_marker"
+mv "$backup_candidate" "$root/saved-candidate"
+ln -s "$root/saved-candidate" "$backup_candidate"
+expect_backup_failure 'symlinked candidate'
+rm "$backup_candidate"
+mv "$root/saved-candidate" "$backup_candidate"
+for manifest_content in '{"writers_quiesced":true}' '{"transaction_kind":"writers_quiesced=false","databases":[{},{},{}]}' '{"transaction_kind":"writers_quiesced=true","databases":[]}' 'invalid'; do
+	printf '%s\n' "$manifest_content" >"$backup_candidate/manifest.json"
+	expect_backup_failure 'invalid manifest transaction'
+done
+cp "$root/good-manifest" "$backup_candidate/manifest.json"
+mv "$backup_candidate/manifest.json" "$root/saved-manifest"
+ln -s "$root/saved-manifest" "$backup_candidate/manifest.json"
+expect_backup_failure 'symlinked manifest'
+rm "$backup_candidate/manifest.json"
+mv "$root/saved-manifest" "$backup_candidate/manifest.json"
 [ "$(STUB_BORG_RECORD=current run_extended)" = 'public ingress acceptance pending' ]
 
 websocket_nonce="$(sed -n "s/.*Sec-WebSocket-Key: \([^']*\)'.*/\1/p" "$contract_source")"
