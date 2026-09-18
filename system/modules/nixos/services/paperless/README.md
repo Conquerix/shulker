@@ -291,12 +291,22 @@ administrator it disables.
 `paperless-logical-backup.timer` creates a validated PostgreSQL custom-format
 dump every day and retains the newest 14 in
 `/storage/flash/paperless/dumps`. Borgmatic acquires the Paperless maintenance
-lock, creates a fresh logical dump, stops the stack only long enough to create
-`flash_pool/flash/storage/paperless@borgmatic`, restarts and health-checks the
-application, then archives
-`/storage/flash/paperless/.zfs/snapshot/borgmatic`. Finish and failure hooks
-destroy only this reserved snapshot; a preparation failure restarts Paperless
-and removes any snapshot it created.
+lock, verifies the five existing containers, and stops the application writer
+before creating a fresh logical dump, with a 15-minute deadline and 30-second
+termination grace. It then stops the remaining containers
+long enough to create `flash_pool/flash/storage/paperless@borgmatic`, resumes
+the same containers in dependency order, and health-checks the application
+before archiving `/storage/flash/paperless/.zfs/snapshot/borgmatic`. Retaining
+the containers preserves their writable layers and avoids repeating the slow
+user-ID remapping on every backup. An intentional Compose unit stop or a
+configuration change still removes the containers normally.
+
+Finish and failure hooks destroy only the reserved snapshot. A preparation
+failure attempts to resume the containers it stopped and removes its snapshot.
+Recovery refuses to start containers if the Compose unit was intentionally
+stopped or restarted, or any pinned container was replaced. An incomplete
+recovery fails the backup and requires checking the Compose unit and container
+health before retrying.
 
 The dump directory and its files are intentionally root-only (`0700` and
 `0600` respectively); inspect or copy logical dumps with `sudo`.

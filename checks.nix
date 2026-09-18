@@ -2538,6 +2538,41 @@ assert serviceRunbookContract;
         touch "$out"
       '';
 
+  paperless-backup-state-machine-contract =
+    let
+      prepare = pkgs.writeText "paperless-backup-prepare-under-test.sh" (
+        builtins.unsafeDiscardStringContext (
+          builtins.replaceStrings
+            [
+              paperlessHealthService.serviceConfig.ExecStart
+              paperlessLogicalBackupService.serviceConfig.ExecStart
+              "/run/lock/paperless-maintenance.lock"
+            ]
+            [
+              "paperless-health-under-test"
+              "paperless-logical-under-test"
+              ''"$PAPERLESS_MAINTENANCE_LOCK"''
+            ]
+            paperless.backupPrepareScript
+        )
+      );
+    in
+    pkgs.runCommand "paperless-backup-state-machine-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.python3
+          pkgs.shellcheck
+        ];
+      }
+      ''
+        shellcheck --shell=bash ${prepare}
+        ${pkgs.python3}/bin/python3 ${./tests/paperless-backup-state-machine.py} \
+          ${prepare} ${pkgs.bash}/bin/bash
+        touch "$out"
+      '';
+
   paperless-backup-contract =
     assert paperless.backUpData;
     assert

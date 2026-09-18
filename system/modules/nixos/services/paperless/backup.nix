@@ -93,54 +93,148 @@ let
       zfs destroy "$snapshot"
     fi
 
-    if ! systemctl is-active --quiet "$service"; then
+    if ! timeout 10 systemctl is-active --quiet "$service"; then
       echo "Paperless must be active before taking its backup snapshot" >&2
       exit 69
     fi
 
     PAPERLESS_MAINTENANCE_LOCK_HELD=1 \
       ${config.systemd.services.paperless-health-check.serviceConfig.ExecStart}
-    PAPERLESS_MAINTENANCE_LOCK_HELD=1 \
-      ${logicalBackup}/bin/paperless-logical-backup
 
-    service_stopped=0
+    # Keep the remapped writable layers during backups. The normal Compose
+    # unit still uses down for intentional shutdown and configuration changes.
+    components=(webserver database broker tika gotenberg)
+    declare -A names=(
+      [webserver]=paperless_webserver [database]=paperless_postgres
+      [broker]=paperless_broker [tika]=paperless_tika [gotenberg]=paperless_gotenberg
+    )
+    declare -A ids stop_attempted
+    invocation="$(timeout 10 systemctl show --property=InvocationID --value "$service")"
+    [[ "$invocation" =~ ^[a-f0-9]{32}$ ]] || exit 69
+    fail_backup() { echo "Paperless backup failed: $1" >&2; exit 69; }
+    active_invocation() {
+      timeout 10 systemctl is-active --quiet "$service" \
+        && [ "$(timeout 10 systemctl show --property=InvocationID --value "$service")" = "$invocation" ]
+    }
+    owned_containers() {
+      local component identity
+      active_invocation || return 1
+      for component in "''${components[@]}"; do
+        identity="$(timeout 10 docker inspect --format \
+          '{{.Id}} {{index .Config.Labels "com.docker.compose.project"}} {{index .Config.Labels "com.docker.compose.service"}}' \
+          "''${names[$component]}")" || return 1
+        [ "$identity" = "''${ids[$component]} paperless $component" ] || return 1
+      done
+    }
+    for component in "''${components[@]}"; do
+      ids[$component]="$(timeout 10 docker inspect --format '{{.Id}}' "''${names[$component]}")"
+      [[ "''${ids[$component]}" =~ ^[a-f0-9]{64}$ ]] || fail_backup "invalid container identity"
+      [ "$(timeout 10 docker inspect --format '{{.State.Running}}' "''${ids[$component]}")" = true ] \
+        || fail_backup "container is not running"
+    done
+    owned_containers || fail_backup "stack identity changed"
+    project_ids="$(timeout 10 docker ps --all --no-trunc --filter label=com.docker.compose.project=paperless --format '{{.ID}}')"
+    [ "$(printf '%s\n' "$project_ids" | sort)" = "$(printf '%s\n' "''${ids[@]}" | sort)" ] \
+      || fail_backup "unexpected Compose container inventory"
+
+    wait_ready() {
+      local component="$1" attempt health
+      for ((attempt = 0; attempt < 60; attempt++)); do
+        owned_containers || return 1
+        [ "$(timeout 10 docker inspect --format '{{.State.Running}}' "''${ids[$component]}")" = true ] \
+          || return 1
+        case "$component" in
+          database|broker|webserver)
+            health="$(timeout 10 docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{end}}' \
+              "''${ids[$component]}")" || return 1
+            case "$health" in healthy) return 0 ;; starting) ;; *) return 1 ;; esac
+            ;;
+          *) return 0 ;;
+        esac
+        sleep 5
+      done
+      return 1
+    }
+    resume_containers() {
+      local component running
+      owned_containers || return 1
+      for component in database broker tika gotenberg webserver; do
+        if [ "''${stop_attempted[$component]:-0}" = 1 ]; then
+          owned_containers || return 1
+          running="$(timeout 10 docker inspect --format '{{.State.Running}}' "''${ids[$component]}")" || return 1
+          case "$running" in
+            false) timeout 150 docker start "''${ids[$component]}" >/dev/null || return 1 ;;
+            true) ;;
+            *) return 1 ;;
+          esac
+        fi
+        # Untouched dependencies can fail during a partial stop too. Never
+        # restart the writer unless all dependencies are still ready.
+        wait_ready "$component" || return 1
+      done
+    }
+    stop_container() {
+      local component="$1" stopped_state
+      owned_containers || fail_backup "stack changed before stop"
+      # Docker may stop the container even if its CLI returns an error.
+      stop_attempted[$component]=1
+      timeout 150 docker stop --time 120 "''${ids[$component]}" >/dev/null \
+        || fail_backup "container stop failed"
+      stopped_state="$(timeout 10 docker inspect --format '{{.State.Running}} {{.State.ExitCode}} {{.State.OOMKilled}}' \
+        "''${ids[$component]}")"
+      [[ "$stopped_state" =~ ^false[[:space:]]([0-9]+)[[:space:]]false$ ]] \
+        && [ "''${BASH_REMATCH[1]}" -ne 137 ] || fail_backup "container did not stop cleanly"
+    }
+
     snapshot_created=0
     recover() {
       status=$?
-      trap - EXIT
-      if [ "$service_stopped" -eq 1 ]; then
-        systemctl start "$service" || true
+      trap - EXIT HUP INT TERM
+      if ! resume_containers; then
+        echo "Paperless backup recovery incomplete: stack changed or containers did not become healthy" >&2
+        status=69
       fi
       if [ "$snapshot_created" -eq 1 ] && [ "$status" -ne 0 ]; then
-        zfs destroy "$snapshot" || true
+        if zfs list -H -o name -t snapshot "$snapshot" >/dev/null 2>&1; then
+          zfs destroy "$snapshot" || echo "Paperless backup snapshot cleanup failed" >&2
+        fi
       fi
       exit "$status"
     }
     trap recover EXIT
-    trap 'exit 1' INT TERM
+    trap 'exit 75' HUP INT TERM
 
-    systemctl stop "$service"
-    service_stopped=1
-    zfs snapshot "$snapshot"
+    stop_container webserver
+    PAPERLESS_MAINTENANCE_LOCK_HELD=1 \
+      timeout --kill-after=30 900 ${logicalBackup}/bin/paperless-logical-backup
+    for component in tika gotenberg broker database; do
+      stop_container "$component"
+    done
+    owned_containers || fail_backup "stack changed before snapshot"
+    for component in "''${components[@]}"; do
+      [ "$(timeout 10 docker inspect --format '{{.State.Running}}' "''${ids[$component]}")" = false ] \
+        || fail_backup "container resumed before snapshot"
+    done
     snapshot_created=1
+    zfs snapshot "$snapshot"
 
     if [ "''${PAPERLESS_BACKUP_TEST_FAIL_AFTER_SNAPSHOT:-0}" = 1 ]; then
       echo "Injecting the requested Paperless post-snapshot backup failure" >&2
       exit 75
     fi
 
-    systemctl start "$service"
-    systemctl is-active --quiet "$service"
+    resume_containers || fail_backup "container resume failed"
+    owned_containers || fail_backup "stack changed after resume"
     PAPERLESS_MAINTENANCE_LOCK_HELD=1 \
       ${config.systemd.services.paperless-health-check.serviceConfig.ExecStart}
-    service_stopped=0
 
-    trap - EXIT INT TERM
+    trap - EXIT HUP INT TERM
   '';
   backupPrepare = pkgs.writeShellApplication {
     name = "paperless-backup-prepare";
     runtimeInputs = [
       config.boot.zfs.package
+      config.virtualisation.docker.package
       pkgs.coreutils
       pkgs.systemd
       pkgs.util-linux
