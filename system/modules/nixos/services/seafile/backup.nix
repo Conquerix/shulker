@@ -1082,7 +1082,7 @@ let
     services=(database redis seafile seasearch notification metadata onlyoffice proxy)
     app_ids=()
     for service in "''${services[@]}"; do
-      id="$(compose_restore_bootstrap ps -q "$service")"
+      id="$(compose_restore_bootstrap ps --all -q "$service")"
       [ -n "$id" ] || fail_restore "missing restore container ID"
       app_ids+=("$id")
     done

@@ -269,9 +269,14 @@ STATE
 			&& [ "${!#}" = "$STUB_COMPOSE_FAIL_SERVICE" ]; then
 			exit 75
 		fi
-		if [[ "$*" == *' ps -q '* ]]; then
+		if [[ "$*" == *' ps '* ]]; then
 			service="${!#}"
-			awk -v service="$service" '$3 == service { print $2; exit }' "$STUB_RESTORE_CONTAINER_STATE"
+			include_stopped=0
+			[[ " $* " == *' --all '* ]] && include_stopped=1
+			# Compose ps omits created/stopped containers unless --all is used.
+			awk -v service="$service" -v include_stopped="$include_stopped" \
+				'$3 == service && (include_stopped == 1 || $5 == "true") { print $2; exit }' \
+				"$STUB_RESTORE_CONTAINER_STATE"
 		fi
 		if [[ "$*" == *' up '* && "$*" == *'--project-name seafile-restore'* ]]; then
 			selected=0
