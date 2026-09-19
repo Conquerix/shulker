@@ -121,6 +121,11 @@ let
       "${modules.seafile.stateDir} (${modules.seafile.dataset})"
       "1.5 TiB quota; Pocket ID OIDC; ${toString modules.seafile.licenseUserLimit} named users maximum; Initial owner-only OAuth enrollment has one native plus one OAuth user initially; the reviewed transition has one native plus two OAuth users after second-user enrollment and no fourth user, with no OIDC secret rotation or 1Password edit during second-user enrollment; password-protected public download/upload links with ${toString modules.seafile.shareLinkExpireDaysDefault}-day default and ${toString modules.seafile.shareLinkExpireDaysMax}-day maximum expiry; Immich exclusively owns photo/video originals; writer-quiesced Borgmatic snapshot coverage ${enabledDisabled modules.seafile.backUpData}"
     )
+    (service "KitchenOwl" modules.kitchenowl.enable
+      "${modules.kitchenowl.publicUrl} via 127.0.0.1:${toString modules.kitchenowl.port}"
+      "${modules.kitchenowl.stateDir} (${modules.kitchenowl.dataset})"
+      "Pocket ID only; restricted household login; quota ${bytesAsGiB modules.kitchenowl.datasetQuotaBytes}; snapshot backup ${enabledDisabled modules.kitchenowl.backUpData}"
+    )
     (service "Actual Budget" modules.actual-budget.enable
       "${modules.actual-budget.publicUrl} via 127.0.0.1:${toString modules.actual-budget.port}"
       "${modules.actual-budget.stateDir} (${modules.actual-budget.dataset})"

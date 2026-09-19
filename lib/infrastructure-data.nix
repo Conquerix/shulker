@@ -113,6 +113,9 @@ let
         (service "qbittorrent" "qBittorrent" "media" modules.torrent.enable null)
         (service "steam" "Steam" "gaming" modules.steam.enable null)
         (service "sunshine" "Sunshine" "gaming" modules.sunshine.enable null)
+        (service "kitchenowl" "KitchenOwl" "household" modules.kitchenowl.enable
+          modules.kitchenowl.publicUrl
+        )
         (service "actual-budget" "Actual Budget" "finance" modules.actual-budget.enable
           modules.actual-budget.publicUrl
         )
@@ -142,6 +145,9 @@ let
       ];
       # Connections name endpoints; dependencies below link local components by service key.
       connections = concatLists [
+        (connection modules.kitchenowl.enable "kitchenowl" modules.kitchenowl.oidcIssuer
+          "OIDC authentication"
+        )
         (connection modules.actual-budget.enable "actual-budget" modules.actual-budget.oidcIssuer
           "OIDC authentication"
         )
@@ -158,6 +164,9 @@ let
         (connection modules.seafile.enable "seafile" modules.seafile.oidcIssuer "OIDC authentication")
       ];
       dependencies = concatLists [
+        (dependency (
+          modules.kitchenowl.enable && modules.kitchenowl.backUpData
+        ) "kitchenowl" "backup" "consistent data snapshot")
         (dependency (
           modules.actual-budget.enable && modules.actual-budget.backUpData
         ) "actual-budget" "backup" "consistent data snapshot")

@@ -71,6 +71,15 @@
           transcodingAcceleration = "qsv";
           preferredHardwareDevice = "/dev/dri/renderD128";
         };
+        kitchenowl = {
+          enable = true;
+          stateDir = "/storage/flash/kitchenowl";
+          dataset = "flash_pool/flash/storage/kitchenowl";
+          datasetQuotaBytes = 10737418240;
+          publicUrl = "https://kitchen.shulker.link";
+          oidcIssuer = "https://sso.shulker.link";
+          port = 23247;
+        };
         actual-budget = {
           enable = true;
           stateDir = "/storage/flash/actual-budget";

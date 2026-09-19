@@ -57,6 +57,7 @@ let
     "hermes-agent"
     "home-assistant"
     "immich"
+    "kitchenowl"
     "newt"
     "nextcloud"
     "ollama"
@@ -154,6 +155,7 @@ let
         "home-assistant"
         "immich"
         "impermanence"
+        "kitchenowl"
         "newt"
         "nextcloud"
         "nvidia"
@@ -172,7 +174,7 @@ let
         "yubikey"
       ];
     in
-    assert builtins.length retainedServices == 21;
+    assert builtins.length retainedServices == 22;
     assert builtins.length excludedCapabilities == 6;
     assert directServiceDirectories == retainedServices;
     assert builtins.all serviceFilesAreCanonical retainedServices;

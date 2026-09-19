@@ -30,6 +30,7 @@ let
     (import ./checks/paperless.nix context)
     (import ./checks/taskview.nix context)
     (import ./checks/actual-budget.nix context)
+    (import ./checks/kitchenowl.nix context)
     (import ./checks/suites.nix context)
     (import ./checks/pre-commit.nix context)
   ];

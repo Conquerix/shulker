@@ -6,8 +6,8 @@ canonical `README.md` runbook. Split implementations use an explicit, sorted
 `imports` list in `default.nix`; helpers, tests, and package expressions are
 never imported implicitly.
 
-The retained service families are `backup`, `beszel`, `forgejo`, `git-pages`,
-`hermes-agent`, `home-assistant`, `immich`, `newt`, `nextcloud`, `ollama`,
+The retained service families are `actual-budget`, `backup`, `beszel`, `forgejo`, `git-pages`,
+`hermes-agent`, `home-assistant`, `immich`, `kitchenowl`, `newt`, `nextcloud`, `ollama`,
 `pangolin`, `paperless`, `pelican`, `plex`, `pocket-id`, `seafile`, `sunshine`,
 `taskview`, `torrent`, and `webdav`. This tree does not own the platform or capability
 modules `core/`, `containers.nix`, `impermanence.nix`, `nvidia.nix`,
