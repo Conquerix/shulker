@@ -24,10 +24,11 @@ Pangolin/Newt boundary, never blindly to true.
 
 Public registration is disabled. Use separate household identities and deliberate
 project membership. The household email domain is application state, not a Nix
-setting: create the household organization, add Pocket ID OIDC, and verify domain
-ownership using the DNS TXT or HTTPS proof shown by TaskView. Register the exact
+setting: create the household organization, add Pocket ID OIDC, and configure one SSO entry per household email domain. The operator-selected
+trusted domains in the runtime secret skip the DNS/HTTP ownership proof. Register the exact
 callback displayed by TaskView (API `/module/sso/callback/<config-id>`) in Pocket
-ID. Do not configure `SSO_TRUSTED_DOMAINS` to bypass verification. Retain a secured
+ID. Trust applies only to these exact domains; `*` is unsupported. Access still
+requires an allowed Pocket ID identity. Retain a secured
 local recovery account and test both OIDC login and organization exclusion.
 
 Centrifugo delivers assignment/deadline notifications while the app is open.
@@ -54,6 +55,10 @@ Required fields:
   each at least 32 characters.
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_ENCRYPTION` (`ssl` or `tls`).
 - `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_NAME`, `SMTP_FROM_EMAIL`.
+- `SSO_TRUSTED_DOMAINS`: comma-separated exact email domains approved by the
+  operator for this household instance. This skips ownership proof, including
+  for household members using a shared mail provider; it does not trust that
+  provider as an identity issuer. Keep Pocket ID client access household-only.
 
 Mail provider, sender and login are entirely runtime configuration. For the
 approved dedicated Fastmail service account, use its full login address, an

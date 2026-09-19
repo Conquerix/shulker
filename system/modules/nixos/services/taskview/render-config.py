@@ -12,6 +12,7 @@ def render(source, target, base):
         'DB_PASSWORD', 'JWT_SIGN', 'ENCRYPTION_KEY', 'CENTRIFUGO_API_KEY',
         'CENTRIFUGO_TOKEN_SECRET', 'SMTP_HOST', 'SMTP_PORT', 'SMTP_ENCRYPTION',
         'SMTP_FROM_NAME', 'SMTP_FROM_EMAIL', 'SMTP_USERNAME', 'SMTP_PASSWORD',
+        'SSO_TRUSTED_DOMAINS',
     }
     values = {}
     for line in source.read_text().splitlines():
@@ -33,6 +34,9 @@ def render(source, target, base):
         raise ValueError('invalid SMTP_PORT')
     if values['SMTP_ENCRYPTION'] not in ('ssl', 'tls'):
         raise ValueError('SMTP_ENCRYPTION must be ssl or tls')
+    domain = r'[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+'
+    if not re.fullmatch(domain + r'(,' + domain + r')*', values['SSO_TRUSTED_DOMAINS']):
+        raise ValueError('SSO_TRUSTED_DOMAINS requires comma-separated exact domains')
     config = json.loads(base.read_text())
     config.setdefault('client', {})['token'] = {'hmac_secret_key': values['CENTRIFUGO_TOKEN_SECRET']}
     config['http_api'] = {'key': values['CENTRIFUGO_API_KEY']}

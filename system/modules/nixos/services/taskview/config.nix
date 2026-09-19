@@ -51,6 +51,7 @@ in
             "SMTP_FROM_EMAIL"
             "SMTP_USERNAME"
             "SMTP_PASSWORD"
+            "SSO_TRUSTED_DOMAINS"
           ]
           (_: {
             minLength = 1;
@@ -73,6 +74,10 @@ in
           CENTRIFUGO_TOKEN_SECRET = {
             minLength = 32;
             pattern = "^.+$";
+          };
+          SSO_TRUSTED_DOMAINS = {
+            minLength = 1;
+            pattern = "^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+(,[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+)*$";
           };
           SMTP_PORT = {
             minLength = 1;
