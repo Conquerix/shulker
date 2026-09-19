@@ -121,6 +121,11 @@ let
       "${modules.seafile.stateDir} (${modules.seafile.dataset})"
       "1.5 TiB quota; Pocket ID OIDC; ${toString modules.seafile.licenseUserLimit} named users maximum; Initial owner-only OAuth enrollment has one native plus one OAuth user initially; the reviewed transition has one native plus two OAuth users after second-user enrollment and no fourth user, with no OIDC secret rotation or 1Password edit during second-user enrollment; password-protected public download/upload links with ${toString modules.seafile.shareLinkExpireDaysDefault}-day default and ${toString modules.seafile.shareLinkExpireDaysMax}-day maximum expiry; Immich exclusively owns photo/video originals; writer-quiesced Borgmatic snapshot coverage ${enabledDisabled modules.seafile.backUpData}"
     )
+    (service "Actual Budget" modules.actual-budget.enable
+      "${modules.actual-budget.publicUrl} via 127.0.0.1:${toString modules.actual-budget.port}"
+      "${modules.actual-budget.stateDir} (${modules.actual-budget.dataset})"
+      "Pocket ID only; manual additional users; quota ${bytesAsGiB modules.actual-budget.datasetQuotaBytes}; snapshot backup ${enabledDisabled modules.actual-budget.backUpData}"
+    )
     (service "TaskView" modules.taskview.enable
       "${modules.taskview.publicUrl}; API ${modules.taskview.apiPublicUrl}; MCP ${modules.taskview.mcpPublicUrl}; Notifications ${modules.taskview.centrifugoPublicUrl}"
       "${modules.taskview.stateDir} (${modules.taskview.dataset})"

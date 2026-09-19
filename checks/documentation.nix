@@ -49,6 +49,7 @@ let
   '';
   # The explicit inventory catches accidental service moves or discovery expansion.
   retainedServices = [
+    "actual-budget"
     "backup"
     "beszel"
     "forgejo"
@@ -142,6 +143,7 @@ let
         path: pkgs.lib.removeSuffix ".nix" (builtins.baseNameOf path)
       ) nixosModuleManifest.imports;
       expectedRootImportNames = [
+        "actual-budget"
         "backup"
         "beszel"
         "containers"
@@ -170,7 +172,7 @@ let
         "yubikey"
       ];
     in
-    assert builtins.length retainedServices == 20;
+    assert builtins.length retainedServices == 21;
     assert builtins.length excludedCapabilities == 6;
     assert directServiceDirectories == retainedServices;
     assert builtins.all serviceFilesAreCanonical retainedServices;

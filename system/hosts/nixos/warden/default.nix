@@ -71,6 +71,15 @@
           transcodingAcceleration = "qsv";
           preferredHardwareDevice = "/dev/dri/renderD128";
         };
+        actual-budget = {
+          enable = true;
+          stateDir = "/storage/flash/actual-budget";
+          dataset = "flash_pool/flash/storage/actual-budget";
+          datasetQuotaBytes = 10737418240;
+          publicUrl = "https://budget.shulker.link";
+          oidcIssuer = "https://sso.shulker.link";
+          port = 23246;
+        };
         taskview = {
           enable = true;
           stateDir = "/storage/flash/taskview";

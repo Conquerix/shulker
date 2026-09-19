@@ -113,6 +113,9 @@ let
         (service "qbittorrent" "qBittorrent" "media" modules.torrent.enable null)
         (service "steam" "Steam" "gaming" modules.steam.enable null)
         (service "sunshine" "Sunshine" "gaming" modules.sunshine.enable null)
+        (service "actual-budget" "Actual Budget" "finance" modules.actual-budget.enable
+          modules.actual-budget.publicUrl
+        )
         (service "taskview" "TaskView" "collaboration" modules.taskview.enable modules.taskview.publicUrl)
         (service "taskview-api" "TaskView API" "collaboration" modules.taskview.enable
           modules.taskview.apiPublicUrl
@@ -139,6 +142,9 @@ let
       ];
       # Connections name endpoints; dependencies below link local components by service key.
       connections = concatLists [
+        (connection modules.actual-budget.enable "actual-budget" modules.actual-budget.oidcIssuer
+          "OIDC authentication"
+        )
         (connection modules.taskview.enable "taskview-api" modules.taskview.oidcIssuer
           "organization OIDC authentication"
         )
@@ -152,6 +158,9 @@ let
         (connection modules.seafile.enable "seafile" modules.seafile.oidcIssuer "OIDC authentication")
       ];
       dependencies = concatLists [
+        (dependency (
+          modules.actual-budget.enable && modules.actual-budget.backUpData
+        ) "actual-budget" "backup" "consistent data snapshot")
         (dependency modules.taskview.enable "taskview" "taskview-api" "application API")
         (dependency modules.taskview.enable "taskview-api" "taskview-database" "application data")
         (dependency modules.taskview.enable "taskview-api" "taskview-events" "notification publishing")
