@@ -32,6 +32,10 @@ cat >"$fixture/bin/health" <<'STUB'
 #!/usr/bin/env bash
 echo health >> "$EVENTS"
 STUB
+for stub in "$fixture/bin/"*; do
+	sed "1s|.*|#!$(command -v bash)|" "$stub" >"$stub.fixed"
+	mv "$stub.fixed" "$stub"
+done
 chmod +x "$fixture/bin/"*
 export PATH="$fixture/bin:$PATH"
 for mode in state database migration backup signal success; do

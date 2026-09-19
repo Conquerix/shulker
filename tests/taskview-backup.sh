@@ -22,6 +22,10 @@ cat >"$fixture/bin/validate" <<'STUB'
 #!/usr/bin/env bash
 [ "$MODE" != state ]
 STUB
+for stub in "$fixture/bin/"*; do
+	sed "1s|.*|#!$(command -v bash)|" "$stub" >"$stub.fixed"
+	mv "$stub.fixed" "$stub"
+done
 chmod +x "$fixture/bin/"*
 export PATH="$fixture/bin:$PATH"
 for mode in state dump catalogue success; do

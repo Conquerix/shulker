@@ -16,6 +16,10 @@ quota) if [ "$MODE" = quota ]; then echo 1; else echo 21474836480; fi ;;
 compression) echo zstd ;; atime) echo off ;; acltype) echo posix ;; xattr) echo sa ;; dnodesize) echo auto ;;
 esac
 STUB
+for stub in "$fixture/bin/"*; do
+	sed "1s|.*|#!$(command -v bash)|" "$stub" >"$stub.fixed"
+	mv "$stub.fixed" "$stub"
+done
 chmod +x "$fixture/bin/"*
 export PATH="$fixture/bin:$PATH"
 for mode in missing source quota; do
