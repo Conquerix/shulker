@@ -34,6 +34,56 @@ in
   };
   config = lib.mkIf cfg.enable {
     shulker.system.modules.taskview.centrifugoConfig = centrifugoConfig;
+    shulker.system.secretPreflight.schemas.taskviewEnv = {
+      format = "dotenv";
+      exactKeys =
+        (lib.genAttrs
+          [
+            "DB_PASSWORD"
+            "JWT_SIGN"
+            "ENCRYPTION_KEY"
+            "CENTRIFUGO_API_KEY"
+            "CENTRIFUGO_TOKEN_SECRET"
+            "SMTP_HOST"
+            "SMTP_PORT"
+            "SMTP_ENCRYPTION"
+            "SMTP_FROM_NAME"
+            "SMTP_FROM_EMAIL"
+            "SMTP_USERNAME"
+            "SMTP_PASSWORD"
+          ]
+          (_: {
+            minLength = 1;
+            pattern = "^.+$";
+          })
+        )
+        // {
+          ENCRYPTION_KEY = {
+            minLength = 64;
+            pattern = "^[0-9a-fA-F]{64}$";
+          };
+          JWT_SIGN = {
+            minLength = 32;
+            pattern = "^.+$";
+          };
+          CENTRIFUGO_API_KEY = {
+            minLength = 32;
+            pattern = "^.+$";
+          };
+          CENTRIFUGO_TOKEN_SECRET = {
+            minLength = 32;
+            pattern = "^.+$";
+          };
+          SMTP_PORT = {
+            minLength = 1;
+            pattern = "^[0-9]{1,5}$";
+          };
+          SMTP_ENCRYPTION = {
+            minLength = 3;
+            pattern = "^(ssl|tls)$";
+          };
+        };
+    };
     systemd.services.taskview-config = {
       description = "Render TaskView runtime secrets";
       requires = [ "opnix-secrets.service" ];

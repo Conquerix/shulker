@@ -42,7 +42,8 @@ The logical OpNix secret is `taskviewEnv`, stored in the Warden 1Password item's
 dedicated TaskView Environment field. It is a multiline literal `KEY=value`
 file: one field per line, no shell quoting or interpolation. Passwords containing
 `$` and `#` are preserved. Do not print the input, run resolved Compose config,
-or copy credentials into Nix or documentation.
+or copy credentials into Nix or documentation. The checked rebuild preflight
+rejects missing or empty fields before activating the configuration.
 
 Required fields:
 

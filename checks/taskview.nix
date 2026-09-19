@@ -12,6 +12,9 @@ in
 {
   taskview-core-contract =
     assert cfg.enable;
+    assert
+      wardenConfig.shulker.system.secretPreflight.schemas.taskviewEnv.exactKeys.SMTP_PASSWORD.minLength
+      == 1;
     assert cfg.stateDir == "/storage/flash/taskview";
     assert cfg.dataset == "flash_pool/flash/storage/taskview";
     assert cfg.datasetQuotaBytes == 21474836480;
