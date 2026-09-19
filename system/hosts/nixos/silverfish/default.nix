@@ -1,5 +1,6 @@
 { ... }:
 {
+  # Silverfish is the impermanent Home Assistant server.
   imports = [ ./hardware.nix ];
 
   zramSwap.enable = true;
@@ -32,6 +33,7 @@
   boot.loader.grub.enable = true;
   boot.loader.grub.efiSupport = true;
   boot.loader.grub.device = "nodev";
+  # Install the fallback EFI path so boot does not depend on firmware entries.
   boot.loader.grub.efiInstallAsRemovable = true;
 
   networking.hostId = "6dc72d90";

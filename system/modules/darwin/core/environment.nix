@@ -1,6 +1,7 @@
 { ... }:
 
 {
+  # Set the fleet-wide macOS platform identity and system defaults.
   config = {
     system.stateVersion = 6;
     nixpkgs.hostPlatform = "aarch64-darwin";

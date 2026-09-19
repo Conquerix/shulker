@@ -49,6 +49,7 @@ in
       };
     };
 
+    # Use the fixed service identity for persisted state and owner-restricted credentials.
     systemd.services.beszel-agent.serviceConfig.DynamicUser = mkForce false;
 
     environment = mkIf cfg.impermanence {

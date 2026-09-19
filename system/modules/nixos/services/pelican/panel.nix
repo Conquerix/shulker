@@ -9,6 +9,7 @@ with lib;
 let
   cfg = config.shulker.system.modules.pelican.panel;
 
+  # Forward PHP requests inside the container and trust forwarding headers only from the listed proxies.
   caddyFile = pkgs.writeText "Caddyfile" ''
     {
         admin off
@@ -54,6 +55,7 @@ in
 
     shulker.system.modules.containers.enable = true;
 
+    # Match the container identity so its data, logs, and plugins remain writable on the host.
     users.groups.pelican-panel.gid = 82;
     users.users.pelican-panel = {
       isSystemUser = true;

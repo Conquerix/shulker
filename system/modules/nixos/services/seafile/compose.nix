@@ -1,3 +1,4 @@
+# Build production and isolated restore Compose definitions from the same pinned service topology.
 { pkgs }:
 
 {
@@ -23,6 +24,7 @@ let
   required = variable: "\${${variable}:?${variable} is required}";
   redisUid = 999;
   redisGid = 1000;
+  # Place the Redis password in a private tmpfs config, then drop privileges before launching Redis.
   redisStartScriptText = ''
     #!/bin/sh
     set -eu
@@ -60,6 +62,7 @@ let
     text = redisStartScriptText;
   };
   metadataEntrypointHash = "cd9a0609e3928af93c4601a9565ea9e0e3795915c206d1bd6375eb6e55649f98";
+  # Patch only the verified entrypoint so TERM reaches the metadata server for graceful shutdown.
   metadataStartScriptText = ''
     #!/bin/bash
     set -euo pipefail
@@ -86,6 +89,7 @@ let
     text = metadataStartScriptText;
   };
   seasearchEntrypointHash = "6e091fbbe7453bb577f2243b85bbae36735a8a22339677ad9d1a052ef3304995";
+  # Apply the same verified exec handoff to SeaSearch so backups can stop it without SIGKILL.
   seasearchStartScriptText = ''
     #!/bin/bash
     set -euo pipefail
@@ -117,6 +121,7 @@ let
       interval = "5m";
     };
   };
+  # Keep databases and internal workers isolated; only application-facing services get optional egress.
   privateNetwork = [ networkName ];
   egressNetworkName = "${networkName}-egress";
   applicationNetworks =
@@ -159,6 +164,7 @@ let
     SEAFILE_OAUTH_CLIENT_SECRET = required "SEAFILE_OAUTH_CLIENT_SECRET";
     ONLYOFFICE_JWT_SECRET = required "ONLYOFFICE_JWT_SECRET";
   };
+  # Restart policy stays disabled: the guarded systemd lifecycle owns recovery and configuration changes.
   composeConfig = {
     name = projectName;
     services = {
@@ -448,6 +454,7 @@ let
         { }
     );
   };
+  # Supply the database root credential only while initializing fresh state.
   bootstrapComposeConfig.services = {
     database.environment.MYSQL_ROOT_PASSWORD = required "INIT_SEAFILE_MYSQL_ROOT_PASSWORD";
     seafile.environment.INIT_SEAFILE_MYSQL_ROOT_PASSWORD = required "INIT_SEAFILE_MYSQL_ROOT_PASSWORD";

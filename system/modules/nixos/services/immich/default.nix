@@ -1,3 +1,4 @@
+# Run the photo stack with runtime-only OAuth configuration, persistent ZFS state, and snapshot backups.
 {
   config,
   lib,
@@ -92,6 +93,7 @@ let
       };
     };
   };
+  # Render secret-bearing settings under /run and publish the validated JSON by atomic rename.
   renderConfig = pkgs.writeShellApplication {
     name = "immich-render-config";
     runtimeInputs = [
@@ -183,6 +185,7 @@ let
       trap - EXIT
     '';
   };
+  # Stop the Compose stack for a consistent snapshot, then restart it; recover on intermediate failure.
   backupPrepare = pkgs.writeShellApplication {
     name = "immich-backup-prepare";
     runtimeInputs = [
@@ -247,6 +250,7 @@ let
       trap - EXIT INT TERM
     '';
   };
+  # Remove the reserved snapshot after archiving, serialized with other maintenance.
   backupCleanup = pkgs.writeShellApplication {
     name = "immich-backup-cleanup";
     runtimeInputs = [
@@ -271,6 +275,7 @@ let
       fi
     '';
   };
+  # Verify HTTP, the exact service inventory, and container health; skip an inactive stack.
   healthCheck = pkgs.writeShellApplication {
     name = "immich-health-check";
     runtimeInputs = [
@@ -322,6 +327,7 @@ let
       done
     '';
   };
+  # Check database schema consistency without racing the snapshot lifecycle.
   schemaCheck = pkgs.writeShellApplication {
     name = "immich-schema-check";
     runtimeInputs = [
@@ -562,6 +568,7 @@ in
       };
     };
 
+    # Render configuration after secrets and state are ready, then wait for Compose health checks.
     systemd.services.${composeServiceName} = {
       description = "Immich photo and video stack";
       wantedBy = [ "multi-user.target" ];
@@ -638,6 +645,7 @@ in
       };
     };
 
+    # Allow the snapshot hooks to reach ZFS through Borgmatic's device sandbox.
     systemd.services.borgmatic = lib.mkIf cfg.backUpData {
       unitConfig.RequiresMountsFor = [ cfg.stateDir ];
       serviceConfig = {
@@ -675,6 +683,7 @@ in
       }
     ];
 
+    # Archive the snapshot so application downtime ends before the remote backup begins.
     shulker.system.modules.backup.dirs = lib.mkIf cfg.backUpData [ snapshotPath ];
 
     services.onepassword-secrets.secrets.immichEnv = {

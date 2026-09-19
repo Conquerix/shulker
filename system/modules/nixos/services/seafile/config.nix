@@ -1,3 +1,4 @@
+# Validate secret input and separate host, application, and metadata runtime configuration.
 {
   config,
   lib,
@@ -22,6 +23,7 @@ let
     "SEAFILE_OAUTH_CLIENT_SECRET"
     "ONLYOFFICE_JWT_SECRET"
   ];
+  # Restrict credentials to characters safe for every generated dotenv, shell, and database consumer.
   safePattern = "^[A-Za-z0-9._~!@%+,/:=-]+$";
   mysqlPattern = "^[A-Za-z0-9._~!@+,/:=-]+$";
   emailPattern = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
@@ -40,6 +42,7 @@ let
     SEAFILE_OAUTH_CLIENT_SECRET = rule 32 safePattern;
     ONLYOFFICE_JWT_SECRET = rule 32 safePattern;
   };
+  # Keep policy in the store while loading secret values from the container environment at runtime.
   seahubSettingsText = ''
     import os
 
@@ -97,6 +100,7 @@ let
     ENABLE_WIKI = False
     SERVICE_URL = "${cfg.publicUrl}"
   '';
+  # Parse an exact key allow-list as data; never evaluate the supplied environment file as shell code.
   parseEnvironmentScript = ''
     set -euo pipefail
 
@@ -192,6 +196,7 @@ let
     runtimeInputs = parseEnvironmentRuntimeInputs;
     text = parseEnvironmentScript;
   };
+  # Render protected files only while the maintenance lock is held and all owned containers are stopped.
   renderRuntimeConfigScript = ''
         set -euo pipefail
         umask 077
@@ -350,6 +355,7 @@ let
           values["$key"]="''${line#*=}"
         done <"$normalized"
 
+        # Separate bootstrap-only credentials from the established application and Compose environments.
         bootstrap_keys=(
           ${lib.concatMapStringsSep "\n      " lib.escapeShellArg requiredEnvironmentKeys}
         )
@@ -462,6 +468,7 @@ let
         cp "$seafile_conf" "$metadata_conf"
         chmod 0444 "$metadata_conf"
 
+        # Publish validated files by rename while consumers are stopped; Metadata receives only non-secret config.
         mv -fT -- "$host_bootstrap" "$host_dir/bootstrap.environment"
         mv -fT -- "$compose_environment" "$host_dir/compose.environment"
         mv -fT -- "$host_environment" "$host_dir/environment"
@@ -489,6 +496,7 @@ let
     ];
     text = renderRuntimeConfigScript;
   };
+  # Replace upstream persistent config with checked runtime symlinks and reject leaked secret material.
   reconcileRuntimeConfigScript = ''
     set -euo pipefail
     umask 077
@@ -583,6 +591,7 @@ let
     printf '%s\n' "$basic_token" >>"$patterns"
     chmod 0400 "$patterns"
 
+    # These absolute links resolve inside containers through their read-only runtime directory mounts.
     declare -A targets=(
       [.env]="$container_config_dir/seafile.env"
       [seahub_settings.py]="$container_config_dir/seahub_settings.py"
@@ -635,6 +644,7 @@ let
       mv -T -- "$temporary_link" "$config_dir/$name"
     done
 
+    # Scan retained configuration and bounded logs without traversing the user-content storage trees.
     scan_file() {
       local candidate="$1" grep_status
       if grep -F -q -f "$patterns" -- "$candidate" 2>/dev/null; then

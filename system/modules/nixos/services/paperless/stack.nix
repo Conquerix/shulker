@@ -1,3 +1,4 @@
+# Run Paperless and its document-processing dependencies, with local health and schema checks.
 {
   config,
   lib,
@@ -154,6 +155,7 @@ let
     };
   };
   composeFile = composeYaml.generate "paperless-compose.yml" composeConfig;
+  # Build the OIDC provider JSON from runtime credentials, then execute Compose with that environment.
   composeEnvironment = pkgs.writeShellApplication {
     name = "paperless-compose-environment";
     runtimeInputs = [ pkgs.jq ];
@@ -204,6 +206,7 @@ let
       exec "$@"
     '';
   };
+  # Check the complete stack and storage under the same lock used for snapshots and administration.
   healthCheck = pkgs.writeShellApplication {
     name = "paperless-health-check";
     runtimeInputs = healthCheckRuntimeInputs;
@@ -262,6 +265,7 @@ let
       echo "Paperless web, database, broker, Tika, Gotenberg, and storage are healthy"
     '';
   };
+  # Run Django deployment checks and refresh the search index only when needed.
   schemaCheck = pkgs.writeShellApplication {
     name = "paperless-schema-check";
     runtimeInputs = [
@@ -343,6 +347,7 @@ in
       };
     };
 
+    # Start only after storage, secrets, and images are ready; Compose waits for container readiness.
     systemd.services.${composeServiceName} = {
       description = "Paperless document archive stack";
       wantedBy = [ "multi-user.target" ];

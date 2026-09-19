@@ -1,3 +1,4 @@
+# Assemble the GNOME workstation baseline, with optional laptop and RDP support.
 {
   config,
   lib,
@@ -28,7 +29,7 @@ in
 
     services.printing.enable = true;
 
-    # Sound setting
+    # PipeWire provides one audio stack for ALSA, PulseAudio, and JACK clients.
     security.rtkit.enable = true;
     services.pipewire = {
       enable = true;
@@ -86,18 +87,18 @@ in
     services.displayManager.gdm.enable = true;
     services.desktopManager.gnome.enable = true;
 
-    # Enable the GNOME RDP components
+    # Enable the GNOME RDP components only when the host requests them.
     services.gnome.gnome-remote-desktop.enable = cfg.remoteDesktop;
 
-    # Ensure the service starts automatically at boot so the settings panel appears
+    # Start the service at boot so GNOME exposes its settings panel.
     systemd.services.gnome-remote-desktop = mkIf cfg.remoteDesktop {
       wantedBy = [ "graphical.target" ];
     };
 
-    # Open the default RDP port (3389)
+    # Open the standard RDP port only when remote desktop is requested.
     networking.firewall.allowedTCPPorts = optional cfg.remoteDesktop 3389;
 
-    # Disable autologin to avoid session conflicts
+    # Disable automatic logins to avoid session conflicts.
     services.displayManager.autoLogin.enable = false;
     services.getty.autologinUser = null;
 

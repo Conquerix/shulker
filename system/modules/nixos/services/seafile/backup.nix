@@ -1,3 +1,4 @@
+# Coordinate quiesced dumps, validated ZFS snapshots, and isolated restore rehearsals.
 {
   config,
   lib,
@@ -12,6 +13,7 @@ let
   validatorStateDir = "${cfg.stateDir}/control/backup-validator";
   snapshotPath = "${cfg.stateDir}/.zfs/snapshot/${cfg.backupSnapshotName}";
   restoreProxyImage = "docker.io/library/nginx:alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752";
+  # Identify the single restored native administrator without accepting the temporary bootstrap identity.
   restoreIdentifyNativeAdminScript = ''
     ${cfg.managementPythonPrelude}
 
@@ -48,6 +50,7 @@ let
     _shulker_finish(native_admins[0].email)
   '';
   restoreIdentifyNativeAdmin = pkgs.writeText "seafile-restore-identify-native-admin.py" restoreIdentifyNativeAdminScript;
+  # Verify the restore-only password and prove that account recovery preserved the identity boundary.
   restoreVerifyNativeAdminScript = ''
     ${cfg.managementPythonPrelude}
 
@@ -91,6 +94,7 @@ let
     _shulker_finish()
   '';
   restoreVerifyNativeAdmin = pkgs.writeText "seafile-restore-verify-native-admin.py" restoreVerifyNativeAdminScript;
+  # Change only the isolated copy of the native recovery account, never an OAuth-linked account.
   restoreResetNativeAdminScript = ''
     ${cfg.managementPythonPrelude}
 
@@ -113,6 +117,7 @@ let
   '';
   restoreResetNativeAdmin = pkgs.writeText "seafile-restore-reset-native-admin.py" restoreResetNativeAdminScript;
   composeFactory = import ./compose.nix { inherit pkgs; };
+  # Reuse the production topology with separate state, names, credentials, and no external egress.
   restoreBase = composeFactory {
     projectName = "seafile-restore";
     containerNames = {
@@ -166,6 +171,7 @@ let
       "\${SEAFILE_RESTORE_RUNTIME:?}/ca/ca.crt:/usr/local/share/ca-certificates/seafile-restore-ca.crt:ro"
     ];
   };
+  # Expose only the rehearsal TLS proxy on loopback; application ports stay inside the restore network.
   restoreComposeConfig = lib.recursiveUpdate restoreBase.composeConfig {
     services.proxy = {
       container_name = "seafile-restore-proxy";
@@ -212,6 +218,7 @@ let
       restoreComposeConfig;
   restoreBootstrapComposeFile = restoreBase.bootstrapComposeFile;
 
+  # Share snapshot identity checks, durable marker writes, and proof of inherited maintenance locks.
   commonScript = ''
     systemctl_command="''${SEAFILE_SYSTEMCTL_COMMAND:-systemctl}"
     docker_command="''${SEAFILE_DOCKER_COMMAND:-docker}"
@@ -292,6 +299,7 @@ let
     }
   '';
 
+  # Dump all three databases with application writers stopped, then publish checksums and a release manifest.
   logicalBackupScript = ''
     ${commonScript}
     [ "''${SEAFILE_MAINTENANCE_LOCK_HELD:-0}" = 1 ] \
@@ -376,6 +384,7 @@ let
     trap - EXIT HUP INT TERM
   '';
 
+  # Import the snapshot's dumps into a disposable network-isolated database before marking them validated.
   validateLogicalBackupScript = ''
     ${commonScript}
     [ "''${SEAFILE_MAINTENANCE_LOCK_HELD:-0}" = 1 ] \
@@ -424,6 +433,7 @@ let
     export MYSQL_PWD
     validation_marker=
     validator_resources_cleaned=0
+    # Cleanup requires matching invocation, image, and recorded container ID to avoid removing foreign resources.
     remove_owned_validator() {
       local current_id current_image current_invocation
       if ! "$docker_command" inspect "$validator_name" >/dev/null 2>&1; then return 0; fi
@@ -441,6 +451,7 @@ let
       ! "$docker_command" inspect "$current_id" >/dev/null 2>&1 || return 1
       ! "$docker_command" inspect "$validator_name" >/dev/null 2>&1
     }
+    # Remove database files through the same container namespace so remapped ownership does not block cleanup.
     remove_validator_workspace() {
       local cleanup_name="$validator_name-cleanup"
       [ "$workspace" = "$validator_state_dir/$invocation" ] || return 1
@@ -551,6 +562,7 @@ let
     trap - HUP INT TERM
   '';
 
+  # Drain writers, create dumps and a snapshot, resume service, then validate imports before arming cleanup.
   backupPrepareScript = ''
     ${commonScript}
     validate_snapshot_constants
@@ -634,6 +646,7 @@ let
       stopped=()
     }
 
+    # An invocation marker plus the ZFS GUID proves ownership before failure recovery destroys a snapshot.
     destroy_current_snapshot() {
       [ "$snapshot_created" -eq 1 ] && [ "$marker_written" -eq 1 ] || return 0
       snapshot_exists || return 0
@@ -663,6 +676,7 @@ let
     trap recover_prepare EXIT
     trap 'exit 75' HUP INT TERM
 
+    # Flush pending editor saves before stopping writers; stop MariaDB only after logical dumps complete.
     onlyoffice_prepare_attempted=1
     "$timeout_command" 330 "$docker_command" exec seafile-onlyoffice documentserver-prepare4shutdown.sh
     for container in seafile-onlyoffice seafile-notification seafile-metadata seafile-seasearch seafile seafile-redis; do
@@ -689,6 +703,7 @@ let
     trap - EXIT HUP INT TERM
   '';
 
+  # Require both durable ownership and the armed cleanup token to match the live snapshot GUID.
   backupCleanupScript = ''
     ${commonScript}
     validate_snapshot_constants
@@ -729,6 +744,7 @@ let
       "''${last_validated:-none}" "''${borg_result:-unknown}" "$snapshot_state"
   '';
 
+  # Require a newly completed Borgmatic run and fresh quiesced dumps before an operator upgrades.
   preUpgradeCheckScript = ''
     ${commonScript}
     "''${SEAFILE_HEALTH_COMMAND:-seafile-health-check}"
@@ -745,6 +761,7 @@ let
     fi
   '';
 
+  # Keep rehearsal paths, project identity, and generated credentials separate from production.
   restoreCommonScript = ''
     docker_command="''${SEAFILE_DOCKER_COMMAND:-docker}"
     systemctl_command="''${SEAFILE_SYSTEMCTL_COMMAND:-systemctl}"
@@ -806,6 +823,7 @@ let
 
   '';
 
+  # Prepare an isolated rehearsal with empty non-production directories; archive extraction happens separately.
   restorePrepareScript = ''
     ${restoreCommonScript}
     target=
@@ -820,6 +838,7 @@ let
     [ -n "$target" ] && [ -n "$runtime" ] || fail_restore "target and runtime directory are required"
     [[ "$target" =~ ^/[A-Za-z0-9._/-]+$ ]] && [[ "$runtime" =~ ^/[A-Za-z0-9._/-]+$ ]] \
       || fail_restore "restore paths contain unsupported characters"
+    # Resolve aliases and mount sources before accepting a destination that could otherwise overlap live state.
     canonical_production="$(realpath -e -- "$production_state")" \
       || fail_restore "production state cannot be canonicalized"
     canonical_target="$(realpath -e -- "$target")" \
@@ -907,6 +926,7 @@ let
       seafile-restore-onlyoffice seafile-restore-proxy
     )
 
+    # Roll back only resources labelled for this preparation attempt; preserve evidence if ownership is uncertain.
     rollback_prepare() {
       status=$?
       trap - EXIT
@@ -970,6 +990,7 @@ let
     "$install_command" -d -m 0750 "$target/shared/seafile/conf"
     target_prepared=1
 
+    # Generate rehearsal-only credentials and disable external OAuth in its rendered application settings.
     source_environment="$runtime/source.environment"
     emit_restore_environment() { printf '%s=%s\n' "$1" "$2"; }
     {
@@ -1015,6 +1036,7 @@ let
       ln -s "$runtime/app/$source_name" "$target/shared/seafile/conf/$name"
     done
 
+    # Issue a short-lived local CA so isolated HTTPS probes do not need production certificates or DNS.
     openssl req -x509 -newkey rsa:3072 -nodes -days 2 -subj '/CN=Seafile restore rehearsal CA' \
       -keyout "$runtime/ca/ca.key" -out "$runtime/ca/ca.crt" >/dev/null 2>&1
     for host in files.restore.invalid office.restore.invalid; do
@@ -1060,6 +1082,7 @@ let
     NGINX
     chmod 0600 "$runtime/proxy/nginx.conf"
 
+    # Record resource ownership before creation, then replace names with exact container and network IDs.
     provisional="$runtime/.rehearsal-session.$invocation"
     {
       printf 'invocation=%s\ntarget=%s\nruntime=%s\nproject=%s\nnetwork=%s\nnetwork_id=%s\n' \
@@ -1102,6 +1125,7 @@ let
     echo "Restore rehearsal prepared; extract one selected archive before verification"
   '';
 
+  # Validate the extracted backup set, import its databases, and test the isolated application and recovery account.
   restoreVerifyScript = ''
     ${restoreCommonScript}
     ${cfg.pythonResultProtocolShell}
@@ -1173,6 +1197,7 @@ let
         || fail_restore "restore verification requires every recorded container to be stopped"
     done
 
+    # Start only database dependencies for import; application startup follows checksum and ownership checks.
     compose_restore_bootstrap up --detach --no-deps --wait --wait-timeout 1800 database redis
     secret_value() {
       local key="$1" count
@@ -1232,6 +1257,7 @@ let
     echo "Compatible releases, three database checksums/imports, restore-only native recovery, read-only fsck, Metadata config, and isolated HTTPS health verified"
   '';
 
+  # Remove only recorded rehearsal containers and runtime credentials; leave restored data for inspection.
   restoreTeardownScript = ''
     ${restoreCommonScript}
     runtime=
@@ -1439,6 +1465,7 @@ in
       validateLogicalBackup
     ];
 
+    # Permit snapshot management through Borgmatic's device sandbox.
     systemd.services.borgmatic = lib.mkIf cfg.backUpData {
       unitConfig.RequiresMountsFor = [ cfg.stateDir ];
       serviceConfig = {
@@ -1455,6 +1482,7 @@ in
     };
 
     services.borgmatic.settings = lib.mkIf cfg.backUpData {
+      # Runtime configuration is regenerated from secrets; exclude its links and already-scanned logs from archives.
       exclude_patterns = [
         "${snapshotPath}/shared/logs"
         "${snapshotPath}/shared/seafile/logs"
@@ -1488,6 +1516,7 @@ in
       ];
     };
 
+    # Archive file content and validated dumps from the snapshot; omit raw MariaDB and SeaSearch state.
     shulker.system.modules.backup.dirs = lib.mkIf cfg.backUpData [
       "${snapshotPath}/shared"
       "${snapshotPath}/backups"

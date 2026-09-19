@@ -50,15 +50,15 @@ let
             volumes = [
               "${statePath}:/git:rw"
             ];
-            # Fix Permission Denied: Run as root so it can write to the host-mounted volume
+            # The sync process writes the root-owned host bind mount.
             user = "root:root";
-            # Fix v4 Pathing: Use explicit v4 arguments instead of deprecated env vars
+            # git-sync publishes a site symlink inside the shared volume.
             cmd = [
               "--repo=${repo.url}"
               "--branch=${repo.branch}"
               "--period=${pullInt}"
-              "--link=site" # Replaces the old GITSYNC_DEST
-              "--root=/git" # Explicitly set the root to match our volume mount
+              "--link=site"
+              "--root=/git"
             ];
             log-driver = "journald";
           };
@@ -118,6 +118,7 @@ let
     )
   );
 
+  # Validate the derived names and ports too: distinct inputs can map to the same container.
   sanitizedNames = map (repo: sanitizeName repo.name) cfg.repos;
   effectivePorts = imap0 (i: repo: if repo.port != 0 then repo.port else cfg.basePort + i) cfg.repos;
 in

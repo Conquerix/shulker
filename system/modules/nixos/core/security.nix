@@ -1,3 +1,4 @@
+# Centralize immutable-user security, secret provisioning, and checked rebuilds.
 {
   config,
   inputs,

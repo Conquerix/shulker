@@ -1,3 +1,4 @@
+# Provides a single gate for the fleet's Docker-backed OCI runtime and tooling.
 {
   config,
   lib,

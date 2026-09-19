@@ -20,7 +20,7 @@ in
       autosuggestion.enable = true;
       syntaxHighlighting.enable = true;
 
-      # Declarative history config (replaces manual HIST* exports in initContent)
+      # Keep history behavior declarative so Home Manager owns the shell state.
       history = {
         path = "$HOME/.zsh_history";
         size = 20000;

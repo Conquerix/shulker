@@ -84,6 +84,7 @@ in
     };
 
     shulker.system.modules.backup.dirs = [ cfg.stateDir ];
+    # Capture a consistent SQLite dump alongside the application files.
     services.borgmatic.settings.sqlite_databases = [
       {
         name = "pocket-id-db";

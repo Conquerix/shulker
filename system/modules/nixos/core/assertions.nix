@@ -2,6 +2,7 @@
 
 let
   modules = config.shulker.system.modules;
+  # Keep service persistence from being enabled without host-level persistence.
   impermanentServices = {
     "Beszel agent" = modules.beszel.agent.impermanence;
     "Beszel hub" = modules.beszel.hub.impermanence;

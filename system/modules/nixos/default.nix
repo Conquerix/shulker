@@ -7,8 +7,8 @@ let
   moduleName = path: lib.removeSuffix ".nix" (builtins.baseNameOf path);
 in
 {
-  # Flatten the discovered service imports so moving a module does not change
-  # traversal depth or the merge order of list-valued options.
+  # Scan root and service modules separately, then flatten them into one sorted
+  # list. A nested services import would change traversal depth and list merges.
   imports = builtins.sort (left: right: moduleName left < moduleName right) (
     rootModules ++ serviceModules
   );

@@ -1,3 +1,4 @@
+# Create portable database dumps and consistent snapshots for Borgmatic, with failure recovery.
 {
   config,
   lib,
@@ -11,6 +12,7 @@ let
   snapshot = "${cfg.dataset}@${cfg.backupSnapshotName}";
   snapshotPath = "${cfg.stateDir}/.zfs/snapshot/${cfg.backupSnapshotName}";
   maintenanceLock = "/run/lock/paperless-maintenance.lock";
+  # Publish each PostgreSQL dump only after its archive catalogue is readable; keep the latest fourteen.
   logicalBackupScript = ''
     readonly dumps_dir=${lib.escapeShellArg "${cfg.stateDir}/dumps"}
 
@@ -75,6 +77,7 @@ let
     ];
     text = logicalBackupScript;
   };
+  # Pause writers, dump PostgreSQL, snapshot the stopped stack, then resume and verify it.
   backupPrepareScript = ''
     readonly dataset=${lib.escapeShellArg cfg.dataset}
     readonly snapshot_name=${lib.escapeShellArg cfg.backupSnapshotName}
@@ -116,6 +119,7 @@ let
       timeout 10 systemctl is-active --quiet "$service" \
         && [ "$(timeout 10 systemctl show --property=InvocationID --value "$service")" = "$invocation" ]
     }
+    # Pin both the systemd invocation and container IDs so recovery cannot restart a replacement stack.
     owned_containers() {
       local component identity
       active_invocation || return 1
@@ -186,6 +190,7 @@ let
         && [ "''${BASH_REMATCH[1]}" -ne 137 ] || fail_backup "container did not stop cleanly"
     }
 
+    # The exit trap resumes only the containers this run stopped and discards a failed snapshot.
     snapshot_created=0
     recover() {
       status=$?
@@ -242,6 +247,7 @@ let
     ];
     text = backupPrepareScript;
   };
+  # Remove only the reserved snapshot after Borgmatic finishes or fails.
   backupCleanupScript = ''
     readonly dataset=${lib.escapeShellArg cfg.dataset}
     readonly snapshot_name=${lib.escapeShellArg cfg.backupSnapshotName}
@@ -267,6 +273,7 @@ let
     ];
     text = backupCleanupScript;
   };
+  # Refresh the portable document export and record the exact version required for import.
   preUpgradeExport = pkgs.writeShellApplication {
     name = "paperless-pre-upgrade-export";
     runtimeInputs = [
@@ -377,6 +384,7 @@ in
       };
     };
 
+    # Grant the backup hooks access to ZFS inside Borgmatic's restricted service environment.
     systemd.services.borgmatic = lib.mkIf cfg.backUpData {
       unitConfig.RequiresMountsFor = [ cfg.stateDir ];
       serviceConfig = {
@@ -414,6 +422,7 @@ in
       }
     ];
 
+    # Borg reads the immutable snapshot while the live service is already running again.
     shulker.system.modules.backup.dirs = lib.mkIf cfg.backUpData [ snapshotPath ];
   };
 }

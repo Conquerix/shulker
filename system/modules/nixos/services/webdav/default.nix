@@ -79,6 +79,7 @@ in
         User = serviceUser;
         Group = serviceUser;
         WorkingDirectory = cfg.dataDir;
+        # Portable mode exposes one password-authenticated WebDAV root; other protocol listeners are disabled.
         ExecStart = lib.escapeShellArgs [
           "${pkgs.sftpgo}/bin/sftpgo"
           "portable"
@@ -126,6 +127,7 @@ in
         ProtectKernelModules = true;
         ProtectKernelTunables = true;
         ProtectProc = "invisible";
+        # Keep the host filesystem read-only apart from the backup destination.
         ProtectSystem = "strict";
         ReadWritePaths = [ cfg.dataDir ];
         RemoveIPC = true;

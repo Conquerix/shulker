@@ -37,6 +37,7 @@ in
             alefragnani.bookmarks
             mhutchie.git-graph
           ]
+          # Pin extensions absent from nixpkgs so the editor remains reproducible.
           ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [
             {
               name = "better-comments";

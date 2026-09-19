@@ -1,5 +1,6 @@
 { ... }:
 {
+  # Shulker hosts the fleet's ingress, identity, monitoring, and collaboration services.
   imports = [ ./hardware.nix ];
 
   zramSwap.enable = true;
@@ -100,6 +101,7 @@
   boot.loader.grub.enable = true;
   boot.loader.grub.efiSupport = true;
   boot.loader.grub.device = "nodev";
+  # Install the fallback EFI path so boot does not depend on firmware entries.
   boot.loader.grub.efiInstallAsRemovable = true;
 
   #boot.loader.grub.mirroredBoots = [
@@ -107,13 +109,16 @@
   #    path = "/boot-fallback"; }
   #];
   boot.supportedFilesystems = [ "zfs" ];
+  # ZFS uses a stable host ID to guard pool ownership across machines.
   networking.hostId = "6dc72d90";
 
   boot = {
     #kernelParams = [ "ip=144.76.176.22::144.76.176.31:255.255.255.224::enp6s0:none" ]; # Use if dhcp not available.
     initrd = {
-      kernelModules = [ "igb" ]; # Check module with "lspci -v" -> driver in use for the ethernet adapter.
+      # Load the on-board Intel NIC before userspace for remote ZFS unlocking.
+      kernelModules = [ "igb" ];
       network = {
+        # Permit remote access while the initrd waits for ZFS unlocking.
         enable = true;
         ssh = {
           enable = true;

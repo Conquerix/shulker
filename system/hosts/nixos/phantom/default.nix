@@ -1,6 +1,7 @@
 { ... }:
 
 {
+  # Phantom is the TUXEDO gaming laptop and enables vendor hardware controls.
   imports = [ ./hardware.nix ];
 
   hardware = {

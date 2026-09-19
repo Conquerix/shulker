@@ -1,3 +1,4 @@
+# Configure Steam, controller access, Proton-GE discovery, and optional firewall ports.
 {
   config,
   lib,

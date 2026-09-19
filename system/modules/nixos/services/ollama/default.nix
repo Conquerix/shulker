@@ -54,6 +54,7 @@ in
       group = "ollama";
     };
 
+    # Keep model ownership stable when the home directory is persisted across reboots.
     systemd.services.ollama.serviceConfig.DynamicUser = lib.mkForce false;
 
     environment.persistence = mkIf cfg.impermanence {

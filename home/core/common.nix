@@ -1,3 +1,4 @@
+# Shared Home Manager baseline for Nix compatibility, CLI tools, and shell defaults.
 {
   lib,
   pkgs,
@@ -12,7 +13,7 @@
     home.file.".nixpkgs".source = inputs.nixpkgs;
     home.sessionVariables."NIX_PATH" = "nixpkgs=$HOME/.nixpkgs\${NIX_PATH:+:}$NIX_PATH";
 
-    # Use the same Nix configuration for the user
+    # Reuse the repository's Nix configuration for user-level commands.
     xdg.configFile."nixpkgs/config.nix".source = lib.custom.relativeToRoot "nix/config.nix";
 
     # Re-expose self and nixpkgs as flakes.
@@ -71,7 +72,7 @@
         wget
         # List directory contents in tree-like format.
         tree
-        # Mote interactive top (btm)
+        # Interactive process monitor.
         bottom
         # Man pages
         man

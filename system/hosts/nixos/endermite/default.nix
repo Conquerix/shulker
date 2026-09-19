@@ -1,6 +1,7 @@
 { pkgs, ... }:
 
 {
+  # Endermite is a general-purpose laptop with GNOME and remote desktop access.
   imports = [ ./hardware.nix ];
 
   boot.loader = {

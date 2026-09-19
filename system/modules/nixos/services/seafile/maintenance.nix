@@ -1,3 +1,4 @@
+# Provide serialized local health, functional probes, and bounded integrity and search maintenance.
 {
   config,
   lib,
@@ -27,6 +28,7 @@ let
     seafile = "seafile";
     seasearch = "seafile-seasearch";
   };
+  # Share command overrides and prove inherited lock ownership for nested maintenance helpers.
   commandPrelude = ''
     # shellcheck disable=SC1090,SC2034
     systemctl_command="''${SEAFILE_SYSTEMCTL_COMMAND:-systemctl}"
@@ -98,6 +100,7 @@ let
       set +a
     }
   '';
+  # Read authenticated-probe credentials only from validated protected files.
   credentialPrelude = ''
     bootstrap_environment_file="$host_dir/bootstrap.environment"
     seafevents_file="$app_dir/seafevents.conf"
@@ -185,6 +188,7 @@ let
       done
     }
   '';
+  # Check the full local stack, runtime links, storage, license count, and absence of secrets in logs.
   healthCheckScript = ''
         ${commandPrelude}
         ${credentialPrelude}
@@ -384,6 +388,7 @@ let
         trap - EXIT HUP INT TERM
         echo "Seafile local health is healthy"
   '';
+  # Exercise a metadata rename in a dedicated health library and clean up only this probe's files.
   metadataProbePython = ''
     import json
     import os
@@ -507,6 +512,7 @@ let
     unset INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD
     echo "Seafile Metadata functional probe passed"
   '';
+  # Probe public HTTP and WebSocket routing only after ingress acceptance has been recorded.
   notificationPublicCheckScript = ''
     ${heavyPrelude}
     ${requireActiveStack}
@@ -530,6 +536,7 @@ let
     [ "$websocket_status" = 101 ] || fail_maintenance "public Notification WebSocket"
     echo "Seafile public Notification probe passed"
   '';
+  # Create a temporary document, convert it, simulate a save callback, and verify the reopened revision.
   onlyOfficeProbePython = ''
     import io
     import json
@@ -648,6 +655,7 @@ let
         if not converted.startswith(b"PK") or len(converted) > 16777216:
             raise RuntimeError("OnlyOffice returned an invalid bounded document")
 
+        # Serve converted bytes locally so the save callback can exercise Seafile's revision path.
         class ContentHandler(BaseHTTPRequestHandler):
             def do_GET(self):
                 if self.path != "/document":
@@ -722,6 +730,7 @@ let
     unset INIT_SEAFILE_ADMIN_EMAIL INIT_SEAFILE_ADMIN_PASSWORD
     echo "Seafile OnlyOffice callback and reopen probe passed"
   '';
+  # Record operator acceptance before enabling checks that depend on public ingress.
   enablePublicHealthScript = ''
     state_dir="''${SEAFILE_STATE_DIR:-${cfg.stateDir}}"
     id_command="''${SEAFILE_ID_COMMAND:-id}"
@@ -750,6 +759,7 @@ let
     trap - EXIT HUP INT TERM
     echo "Seafile public health probes enabled"
   '';
+  # Combine local health with recent validated backup evidence and functional application probes.
   extendedHealthScript = ''
     ${heavyPrelude}
     health_command="''${SEAFILE_HEALTH_COMMAND:-seafile-health-check}"
@@ -850,6 +860,7 @@ let
     "$onlyoffice_probe_command" >/dev/null || fail_maintenance "OnlyOffice functional"
     echo "Seafile extended health is healthy"
   '';
+  # Run potentially verbose maintenance with a deadline and private output, reporting only the outcome.
   quietMaintenance = name: command: success: ''
     ${heavyPrelude}
     ${requireActiveStack}
@@ -895,6 +906,7 @@ let
     cd /opt/seafile/seafile-server-latest
     exec ./pro/pro.py search --update
   '' "Seafile SeaSearch update completed";
+  # Explicitly rebuild derived search indexes; this command is available on demand, not scheduled.
   searchRebuildScript = ''
     ${heavyPrelude}
     ${requireActiveStack}
@@ -1121,6 +1133,7 @@ in
       seafile-search-rebuild = timedService "Rebuild derived Seafile search state" searchRebuild 86400;
     };
 
+    # Schedule health and read-only integrity checks; destructive GC and search rebuilds are not automatic.
     systemd.timers = {
       seafile-health-check = persistentTimer "Check local Seafile health every fifteen minutes" {
         OnBootSec = "15m";

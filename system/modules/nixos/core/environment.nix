@@ -1,3 +1,4 @@
+# Establish the NixOS boot, locale, remote-access, and recovery baseline.
 {
   config,
   pkgs,
@@ -52,7 +53,7 @@
       };
     };
 
-    # List of bare minimal requirements for a system to have to bootstrap from
+    # Keep enough tools available to inspect local hardware and graphical sessions.
     environment.systemPackages = with pkgs; [
       pciutils
       xclip

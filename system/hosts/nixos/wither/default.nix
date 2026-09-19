@@ -4,6 +4,7 @@
   ...
 }:
 
+# Wither is the living-room gaming PC, tuned for a console-like GNOME session.
 let
   # gamescope from pinned master: the 3.16.24 release has a cluster of
   # nested-backend bugs we hit on this box (game composited tiny at (0,0)

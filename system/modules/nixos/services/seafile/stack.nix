@@ -1,3 +1,4 @@
+# Own Seafile startup, bootstrap, shutdown, and recovery through a serialized systemd lifecycle.
 {
   config,
   lib,
@@ -50,6 +51,7 @@ let
       checkUpdateInterval = cfg.metadataCheckUpdateInterval;
     };
   };
+  # Use extra credentials only for fresh bootstrap, then verify the exact established stack and runtime links.
   composeStartScript = ''
     set -eEuo pipefail
     umask 077
@@ -165,6 +167,7 @@ let
       printf '%s' "$value"
     }
 
+    # Remove bootstrap residue only when it exactly matches the protected native recovery account.
     validate_admin_residue() {
       local admin_file email password expected
       admin_file="$state_dir/shared/seafile/conf/admin.txt"
@@ -261,6 +264,7 @@ let
         || fail_stack "admin.txt remains after startup"
     }
 
+    # Inspect protected log captures for secret values without emitting matching lines to the journal.
     scan_sensitive_output() (
       local patterns docker_output journal_output line value candidate log_container grep_status
       local log_tree entry_count oversized_count captured_size
@@ -340,6 +344,7 @@ let
           running_services_before+=("''${expected_services[$index]}")
         fi
       done
+      # On startup failure, restore only the services that were running when this attempt began.
       recover_owned_on_failure() {
         status=$?
         trap - ERR
@@ -356,6 +361,7 @@ let
       }
       trap recover_owned_on_failure ERR
       validate_admin_residue
+      # Fresh state needs upstream initialization before managed runtime symlinks can replace its config.
       if [ ! -f "$state_dir/shared/seafile/seafile-data/current_version" ]; then
         fresh=1
         compose_bootstrap up --detach database redis seafile
@@ -384,6 +390,7 @@ let
       stop_known_gracefully "''${expected_names[@]}"
     }
 
+    # Queue the guarded lifecycle only for an unhealthy stack; timer probes never start containers directly.
     run_recover() {
       local actual expected name healthy=1
       actual="$(project_names)"
@@ -412,6 +419,7 @@ let
           stop) run_stop ;;
         esac
         ;;
+      # Do not compete with an active backup or maintenance operation.
       recover)
         install -d -m 0755 "$(dirname "$lock_file")"
         exec 9>"$lock_file"

@@ -1,6 +1,7 @@
 { pkgs, ... }:
 
 {
+  # Warden is the storage and media server for stateful applications and backups.
   imports = [ ./hardware.nix ];
 
   # Use the systemd-boot EFI boot loader.
@@ -8,7 +9,7 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernel.sysctl."vm.max_map_count" = 2147483642;
 
-  # For zfs.
+  # ZFS uses a stable host ID to guard pool ownership across machines.
   networking.hostId = "2118dc3b";
 
   hardware.graphics = {

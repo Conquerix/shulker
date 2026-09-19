@@ -1,3 +1,4 @@
+# Assemble storage, Compose runtime, operator bootstrap tools, and backup lifecycle.
 { ... }:
 {
   imports = [

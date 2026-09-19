@@ -38,6 +38,7 @@ in
       ];
     };
 
+    # Host networking, D-Bus, and device access support LAN discovery and attached smart-home hardware.
     virtualisation.oci-containers.containers."home-assistant" = {
       image = "ghcr.io/home-assistant/home-assistant:stable@sha256:1476924357b46e80735c13e94232ba5c853cac052e9df4bb28d50fa56348097b";
       privileged = true;

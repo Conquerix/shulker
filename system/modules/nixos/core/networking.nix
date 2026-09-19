@@ -1,3 +1,4 @@
+# Provide NetworkManager defaults while waiting for usable links at boot.
 {
   lib,
   ...

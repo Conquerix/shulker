@@ -1,3 +1,4 @@
+# Preserve only declared operating-system state when a host uses an ephemeral root.
 {
   config,
   lib,

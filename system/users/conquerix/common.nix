@@ -1,3 +1,4 @@
+# Define account settings and packages shared across supported operating systems.
 {
   config,
   lib,

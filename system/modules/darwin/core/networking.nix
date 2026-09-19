@@ -1,5 +1,6 @@
 { ... }:
 {
+  # Apply deterministic DNS to the macOS network services managed by nix-darwin.
   config = {
     networking = {
       knownNetworkServices = [

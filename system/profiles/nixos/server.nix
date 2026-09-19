@@ -1,3 +1,4 @@
+# Replace workstation networking with systemd-networkd on server hosts.
 {
   config,
   lib,

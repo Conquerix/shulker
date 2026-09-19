@@ -1,3 +1,4 @@
+# Expose operator commands for SSO administration and the separate native recovery account.
 {
   config,
   lib,
@@ -10,6 +11,7 @@ let
   environmentFile = "/run/seafile-host/environment";
   maintenanceLock = "/run/lock/seafile-maintenance.lock";
   pythonCommand = "/opt/seafile/seafile-server-latest/seahub.sh python-env python -";
+  # Emit invocation-specific completion markers because the upstream Python wrapper can mask failures.
   managementPythonPrelude = ''
     import os
     import re
@@ -34,6 +36,7 @@ let
             _shulker_emit(result)
         print(f"SHULKER_SEAFILE_RESULT:{_shulker_result_token}")
   '';
+  # Bound captured output and accept only payloads with a proven completion marker; suppress other output.
   pythonResultProtocolShell = ''
     run_seafile_python_command() (
       umask 077
@@ -137,6 +140,7 @@ let
         raise SystemExit("Seafile active named-user count exceeds the licensed limit")
     _shulker_finish()
   '';
+  # Preserve the unusable password when granting authority to an active, linked OAuth account.
   promoteAdminPython = ''
     ${managementPythonPrelude}
 
@@ -165,6 +169,7 @@ let
     _shulker_emit("OAuth administrator authority is present; passwordless state preserved")
     _shulker_finish()
   '';
+  # Revoke OAuth account authority and sessions while refusing to disable the native recovery account.
   revokeAdminPython = ''
     ${managementPythonPrelude}
 
@@ -205,6 +210,7 @@ let
     _shulker_emit("OAuth administrator authority, sessions, and tokens revoked; account disabled")
     _shulker_finish()
   '';
+  # Check the licensed identity boundary: one native recovery administrator and passwordless OAuth users.
   bootstrapStatusPython = ''
     ${managementPythonPrelude}
 
@@ -262,6 +268,7 @@ let
     _shulker_emit("Stored native administrator recovery verified after restart")
     _shulker_finish()
   '';
+  # Serialize administration with maintenance and verify the exact live application container.
   commonShell = ''
     if [ "$(id -u)" -ne 0 ]; then
       echo "This Seafile administration command must run as root" >&2
@@ -364,6 +371,7 @@ let
       ${runPython bootstrapStatusScript}
     '';
   };
+  # Restore only the stored recovery credential after explicit operator confirmation, then verify it after restart.
   resetNativeAdminRunnerText = ''
     if [ "$#" -ne 1 ] || [ "$1" != --restore-stored ]; then
       echo "Usage: seafile-reset-native-admin --restore-stored" >&2

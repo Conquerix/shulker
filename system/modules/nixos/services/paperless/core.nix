@@ -1,3 +1,4 @@
+# Declare Paperless storage and identity requirements before the container stack can start.
 {
   config,
   lib,
@@ -7,6 +8,7 @@
 
 let
   cfg = config.shulker.system.modules.paperless;
+  # Reject an unexpected mount or ZFS policy before creating or using persistent state.
   validateStateScript = ''
     readonly state_dir=${lib.escapeShellArg cfg.stateDir}
     readonly dataset=${lib.escapeShellArg cfg.dataset}
@@ -258,6 +260,7 @@ in
       options = [ "nofail" ];
     };
 
+    # Prepare application and database bind mounts with their respective container identities.
     systemd.services.paperless-state = {
       description = "Validate and prepare persistent Paperless state";
       unitConfig.RequiresMountsFor = cfg.stateDir;

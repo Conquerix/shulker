@@ -1,3 +1,4 @@
+# Expose independently enabled monitoring agents and the central hub.
 { ... }:
 {
   imports = [

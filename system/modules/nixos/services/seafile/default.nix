@@ -1,3 +1,4 @@
+# Assemble Seafile modules explicitly; compose.nix is a shared factory, not a NixOS module.
 { ... }:
 {
   imports = [

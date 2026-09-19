@@ -1,3 +1,4 @@
+# Define the reviewed release matrix, storage contract, and guarded state initialization.
 {
   config,
   lib,
@@ -31,6 +32,7 @@ let
     lib.hasInfix ":${version}@sha256:" image
     && builtins.stringLength digest == 64
     && builtins.match "[0-9a-f]+" digest != null;
+  # Validate the exact ZFS mount and permissions; initialize only empty or provably interrupted state.
   validateStateScript = ''
     set -euo pipefail
 
@@ -110,6 +112,7 @@ let
     [ "$(stat --format %F -- "$state_dir")" = directory ] \
       || fail_state "mount target is not a directory"
 
+    # Preparing builds a private empty tree; publishing moves it into place with durable phase markers.
     marker="$state_dir/.seafile-state-transaction"
     marker_next="$state_dir/.seafile-state-transaction.next"
     staging="$state_dir/.seafile-state-staging"
@@ -359,6 +362,7 @@ let
       done
     }
 
+    # Resume only recognized transaction states; foreign files or ambiguous progress require operator review.
     if ! path_present "$marker" && path_present "$marker_next"; then
       [ "$initialize" -eq 1 ] \
         || fail_state "an interrupted initial state transaction requires initialization mode"
@@ -415,6 +419,7 @@ let
       sync -f "$state_dir"
     fi
 
+    # Established state may use the specific owners and modes adopted by the pinned container images.
     validate_path() {
       local relative_path="$1"
       local expected_mode="$2"
@@ -863,6 +868,7 @@ in
 
     environment.systemPackages = [ validateState ];
 
+    # Boot may continue without the dataset, but service dependencies require it before startup.
     fileSystems.${cfg.stateDir} = {
       device = cfg.dataset;
       fsType = "zfs";

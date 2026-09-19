@@ -1,3 +1,4 @@
+# Collect service backup sources into the encrypted Borgmatic repository and retention policy.
 {
   config,
   lib,
@@ -56,6 +57,7 @@ in
         ];
       };
     };
+    # Persist Borgmatic bookkeeping so scheduled consistency checks survive an ephemeral root.
     systemd.services.borgmatic.serviceConfig.StateDirectory = "borgmatic";
     environment.persistence = mkIf config.shulker.system.modules.impermanence.enable {
       "/nix/persist".directories = [ "/var/lib/borgmatic" ];

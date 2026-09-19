@@ -1,3 +1,4 @@
+# Establish the cross-platform Nix, Home Manager, time-zone, and CLI baseline.
 {
   lib,
   pkgs,
@@ -52,7 +53,7 @@ with lib;
 
     time.timeZone = "Europe/Paris";
 
-    # List of bare minimal requirements for a system to have to bootstrap from
+    # Keep enough tools available to inspect and repair a newly built system.
     environment.systemPackages = with pkgs; [
       curl
       git

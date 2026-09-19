@@ -1,3 +1,4 @@
+# Provide explicit operator commands for SSO permissions, account recovery, and mail ingestion.
 {
   config,
   lib,
@@ -9,6 +10,7 @@ let
   cfg = config.shulker.system.modules.paperless;
   environmentFile = config.services.onepassword-secrets.secrets.paperlessEnv.path;
   maintenanceLock = "/run/lock/paperless-maintenance.lock";
+  # Keep global user permissions narrow; family access is assigned per document, not globally.
   groupsPython = ''
     from django.contrib.auth.models import Group, Permission
     from django.db import transaction
@@ -68,6 +70,7 @@ let
             f"\tusable_password={user.has_usable_password()}\tgroups={groups}"
         )
   '';
+  # Grant administrator authority without enabling local password login.
   promoteAdminPython = ''
     import os
     from django.contrib.auth import get_user_model
@@ -88,6 +91,7 @@ let
 
     print(f"Promoted OIDC user {username} without assigning a password")
   '';
+  # Disable the account and invalidate sessions and API tokens in the same transaction.
   revokeAdminPython = ''
     import os
     from django.contrib.auth import get_user_model
@@ -123,6 +127,7 @@ let
         f"tokens={deleted_tokens}, disabled=True"
     )
   '';
+  # Re-enable a revoked SSO user only after all administrator authority has been removed.
   enableUserPython = ''
     import os
     from django.contrib.auth import get_user_model
@@ -149,6 +154,7 @@ let
 
     print(f"Enabled non-administrator Paperless user {username}")
   '';
+  # Reconcile the managed mail account and routes; remove only rules bearing the managed prefix.
   fastmailPython = ''
     import json
     import os
@@ -256,6 +262,7 @@ let
       jq --compact-output --exit-status ${lib.escapeShellArg fastmailRoutesFilter} "$1"
     '';
   };
+  # Serialize operator commands with backups and reject containers outside the expected Compose project.
   commonShell = ''
     if [ "$(id -u)" -ne 0 ]; then
       echo "This Paperless administration command must run as root" >&2
@@ -408,6 +415,7 @@ let
         --command "$(<${fastmailScript})"
     '';
   };
+  # Let systemd load the protected environment file without sourcing it as shell code.
   bootstrapFastmail = pkgs.writeShellApplication {
     name = "paperless-bootstrap-fastmail";
     runtimeInputs = [ pkgs.systemd ];

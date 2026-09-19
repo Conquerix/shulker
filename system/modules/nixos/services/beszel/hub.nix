@@ -34,6 +34,7 @@ in
 
     systemd.tmpfiles.rules = [ "d ${cfg.stateDir} 0750 root root - -" ];
 
+    # Serve the hub on loopback; its working directory holds the persisted application state.
     systemd.services.beszel-hub = {
       description = "Beszel Server Monitoring Web App";
 

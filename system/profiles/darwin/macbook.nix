@@ -1,3 +1,4 @@
+# Add laptop-oriented authentication and fonts to a nix-darwin host.
 {
   config,
   lib,

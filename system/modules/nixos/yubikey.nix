@@ -1,3 +1,4 @@
+# Enable YubiKey challenge-response login and smart-card tooling.
 {
   config,
   lib,

@@ -1,3 +1,4 @@
+# Apply the conquerix Home Manager profile only on nix-darwin hosts.
 {
   config,
   lib,

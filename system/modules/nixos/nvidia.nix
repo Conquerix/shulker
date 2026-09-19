@@ -1,4 +1,5 @@
-# https://nixos.wiki/wiki/Nvidia
+# Configure Nvidia graphics, container GPU access, and optional PRIME hybrid modes.
+# Reference: https://nixos.wiki/wiki/Nvidia
 {
   config,
   lib,

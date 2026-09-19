@@ -1,3 +1,4 @@
+# Apply the conquerix system and Home Manager profile only on NixOS hosts.
 {
   config,
   lib,

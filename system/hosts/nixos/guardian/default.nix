@@ -1,6 +1,7 @@
 { ... }:
 
 {
+  # Guardian is an impermanent server with explicit inbound firewall ports.
   imports = [ ./hardware.nix ];
 
   networking.firewall = {

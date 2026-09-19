@@ -1,5 +1,6 @@
 { ... }:
 {
+  # Enderdragon is an impermanent server that runs Pelican workloads.
   imports = [ ./hardware.nix ];
 
   zramSwap.enable = true;
@@ -45,6 +46,7 @@
   boot.loader.grub.enable = true;
   boot.loader.grub.efiSupport = true;
   boot.loader.grub.device = "nodev";
+  # Install the fallback EFI path so boot does not depend on firmware entries.
   boot.loader.grub.efiInstallAsRemovable = true;
 
   # boot.loader.grub.mirroredBoots = [
@@ -54,5 +56,6 @@
   #   }
   # ];
   boot.supportedFilesystems = [ "zfs" ];
+  # ZFS uses a stable host ID to guard pool ownership across machines.
   networking.hostId = "78986dce";
 }

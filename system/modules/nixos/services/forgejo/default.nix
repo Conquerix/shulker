@@ -4,8 +4,7 @@
   ...
 }:
 
-# To create an admin user without the install wizard
-# sudo -u forgejo forgejo admin user create --admin --email "admin@amphibian.network" --username "root" --password "changeMe!" --config /var/lib/forgejo/custom/conf/app.ini
+# Host the Git forge with external registration and runtime-provided service credentials.
 
 with lib;
 let
@@ -123,6 +122,7 @@ in
       ];
     };
 
+    # Archive Forgejo-generated dumps; persistence separately retains its live state.
     shulker.system.modules.backup.dirs = [ config.services.forgejo.dump.backupDir ];
 
     services.onepassword-secrets.secrets.forgejoSecretKey = {

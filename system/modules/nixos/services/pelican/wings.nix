@@ -96,6 +96,7 @@ in
       ];
     };
 
+    # Archive Wings-generated backups and archives, plus a SQLite dump; live game volumes are persisted above.
     shulker.system.modules.backup.dirs = [
       "${cfg.stateDir}/backups"
       "${cfg.stateDir}/archives"
