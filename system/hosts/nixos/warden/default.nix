@@ -71,6 +71,21 @@
           transcodingAcceleration = "qsv";
           preferredHardwareDevice = "/dev/dri/renderD128";
         };
+        taskview = {
+          enable = true;
+          stateDir = "/storage/flash/taskview";
+          dataset = "flash_pool/flash/storage/taskview";
+          datasetQuotaBytes = 21474836480;
+          publicUrl = "https://tasks.shulker.link";
+          apiPublicUrl = "https://tasks-api.shulker.link";
+          mcpPublicUrl = "https://tasks-mcp.shulker.link/mcp";
+          centrifugoPublicUrl = "wss://tasks-events.shulker.link/connection/websocket";
+          oidcIssuer = "https://sso.shulker.link";
+          webPort = 23242;
+          apiPort = 23243;
+          mcpPort = 23244;
+          centrifugoPort = 23245;
+        };
         paperless = {
           enable = true;
           stateDir = "/storage/flash/paperless";

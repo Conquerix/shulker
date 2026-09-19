@@ -9,7 +9,7 @@ never imported implicitly.
 The retained service families are `backup`, `beszel`, `forgejo`, `git-pages`,
 `hermes-agent`, `home-assistant`, `immich`, `newt`, `nextcloud`, `ollama`,
 `pangolin`, `paperless`, `pelican`, `plex`, `pocket-id`, `seafile`, `sunshine`,
-`torrent`, and `webdav`. This tree does not own the platform or capability
+`taskview`, `torrent`, and `webdav`. This tree does not own the platform or capability
 modules `core/`, `containers.nix`, `impermanence.nix`, `nvidia.nix`,
 `steam.nix`, or `yubikey.nix`.
 

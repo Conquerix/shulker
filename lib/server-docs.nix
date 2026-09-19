@@ -121,6 +121,11 @@ let
       "${modules.seafile.stateDir} (${modules.seafile.dataset})"
       "1.5 TiB quota; Pocket ID OIDC; ${toString modules.seafile.licenseUserLimit} named users maximum; Initial owner-only OAuth enrollment has one native plus one OAuth user initially; the reviewed transition has one native plus two OAuth users after second-user enrollment and no fourth user, with no OIDC secret rotation or 1Password edit during second-user enrollment; password-protected public download/upload links with ${toString modules.seafile.shareLinkExpireDaysDefault}-day default and ${toString modules.seafile.shareLinkExpireDaysMax}-day maximum expiry; Immich exclusively owns photo/video originals; writer-quiesced Borgmatic snapshot coverage ${enabledDisabled modules.seafile.backUpData}"
     )
+    (service "TaskView" modules.taskview.enable
+      "${modules.taskview.publicUrl}; API ${modules.taskview.apiPublicUrl}; MCP ${modules.taskview.mcpPublicUrl}; Notifications ${modules.taskview.centrifugoPublicUrl}"
+      "${modules.taskview.stateDir} (${modules.taskview.dataset})"
+      "TaskView 1.53.0; PostgreSQL 17; Centrifugo notifications; quota ${bytesAsGiB modules.taskview.datasetQuotaBytes}; direct Pangolin/Newt loopback targets; native organization OIDC; logical database backup ${enabledDisabled modules.taskview.backUpData}"
+    )
     (service "Newt" modules.newt.enable modules.newt.endpoint modules.newt.stateDir
       "Outbound Pangolin tunnel"
     )
@@ -258,10 +263,17 @@ let
     ports = composeService.ports or [ ];
   }) modules.seafile.composeConfig.services;
   enabledSeafileComposeContainers = optionals modules.seafile.enable seafileComposeContainers;
+  taskviewComposeContainers = mapAttrsToList (_: component: {
+    name = component.container_name;
+    image = component.image;
+    ports = component.ports or [ ];
+  }) modules.taskview.composeConfig.services;
+  enabledTaskviewComposeContainers = optionals modules.taskview.enable taskviewComposeContainers;
   enabledComposeContainers =
     enabledImmichComposeContainers
     ++ enabledPaperlessComposeContainers
-    ++ enabledSeafileComposeContainers;
+    ++ enabledSeafileComposeContainers
+    ++ enabledTaskviewComposeContainers;
   containerRows =
     mapAttrsToList (name: container: [
       name

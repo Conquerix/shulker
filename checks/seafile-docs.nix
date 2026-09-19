@@ -210,6 +210,7 @@ in
             )
             and (([
                 $warden.dependencies[]
+                | select((.from | startswith("seafile")) or (.to | startswith("seafile")))
                 | "\(.from)|\(.to)|\(.relation)"
               ] | sort) == ([
                 "seafile|backup|writer-quiesced backup",

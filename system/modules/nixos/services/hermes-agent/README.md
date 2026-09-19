@@ -82,3 +82,10 @@ marker; it does not replace OAuth, Telegram, memory, or session state.
 - [Operations](https://github.com/Conquerix/shulker/wiki/Operations)
 - [Backup and restore](https://github.com/Conquerix/shulker/wiki/Operations-Backup-and-Restore)
 - [Security and recovery](https://github.com/Conquerix/shulker/wiki/Operations-Security-and-Recovery)
+
+## TaskView MCP
+
+TaskView's [service runbook](https://github.com/Conquerix/shulker/wiki/Service-TaskView#codex-and-hermes-mcp) describes
+its remote MCP entry and scoped token setup. Supply the dedicated token to both
+the agent and WebUI environments, preserve mutable configuration, and preserve
+current image IDs when activating credentials to avoid an unrelated upgrade.

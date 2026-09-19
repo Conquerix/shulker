@@ -66,6 +66,7 @@ let
     "pocket-id"
     "seafile"
     "sunshine"
+    "taskview"
     "torrent"
     "webdav"
   ];
@@ -163,12 +164,13 @@ let
         "seafile"
         "steam"
         "sunshine"
+        "taskview"
         "torrent"
         "webdav"
         "yubikey"
       ];
     in
-    assert builtins.length retainedServices == 19;
+    assert builtins.length retainedServices == 20;
     assert builtins.length excludedCapabilities == 6;
     assert directServiceDirectories == retainedServices;
     assert builtins.all serviceFilesAreCanonical retainedServices;

@@ -113,6 +113,17 @@ let
         (service "qbittorrent" "qBittorrent" "media" modules.torrent.enable null)
         (service "steam" "Steam" "gaming" modules.steam.enable null)
         (service "sunshine" "Sunshine" "gaming" modules.sunshine.enable null)
+        (service "taskview" "TaskView" "collaboration" modules.taskview.enable modules.taskview.publicUrl)
+        (service "taskview-api" "TaskView API" "collaboration" modules.taskview.enable
+          modules.taskview.apiPublicUrl
+        )
+        (service "taskview-mcp" "TaskView MCP" "automation" modules.taskview.enable
+          modules.taskview.mcpPublicUrl
+        )
+        (service "taskview-events" "TaskView Notifications" "collaboration" modules.taskview.enable
+          modules.taskview.centrifugoPublicUrl
+        )
+        (service "taskview-database" "TaskView PostgreSQL" "storage" modules.taskview.enable null)
         (service "webdav" "WebDAV (SFTPGo)" "backup" modules.webdav.enable
           "http://${modules.webdav.bindAddress}:${toString modules.webdav.port}"
         )
@@ -128,6 +139,9 @@ let
       ];
       # Connections name endpoints; dependencies below link local components by service key.
       connections = concatLists [
+        (connection modules.taskview.enable "taskview-api" modules.taskview.oidcIssuer
+          "organization OIDC authentication"
+        )
         (connection modules.newt.enable "newt" modules.newt.endpoint "outbound tunnel")
         (connection modules.beszel.agent.enable "beszel-agent" modules.beszel.agent.hubEndpoint "metrics")
         (connection modules.pelican.wings.enable "pelican-wings" config.services.wings.node.remote
@@ -138,6 +152,13 @@ let
         (connection modules.seafile.enable "seafile" modules.seafile.oidcIssuer "OIDC authentication")
       ];
       dependencies = concatLists [
+        (dependency modules.taskview.enable "taskview" "taskview-api" "application API")
+        (dependency modules.taskview.enable "taskview-api" "taskview-database" "application data")
+        (dependency modules.taskview.enable "taskview-api" "taskview-events" "notification publishing")
+        (dependency modules.taskview.enable "taskview-mcp" "taskview-api" "caller-scoped task operations")
+        (dependency (
+          modules.taskview.enable && modules.taskview.backUpData
+        ) "taskview" "backup" "validated PostgreSQL dumps")
         (dependency (
           seafileComponentEnabled "seafile" && seafileComponentEnabled "database"
         ) "seafile" "seafile-mariadb" "application metadata")

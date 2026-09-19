@@ -6,6 +6,21 @@
   ...
 }:
 {
+  taskview-contract-suite =
+    pkgs.runCommand "taskview-contract-suite"
+      {
+        contractInputs = [
+          self.checks.${system}.taskview-core-contract
+          self.checks.${system}.taskview-state-contract
+          self.checks.${system}.taskview-runtime-contract
+          self.checks.${system}.taskview-stack-contract
+          self.checks.${system}.taskview-docs-contract
+        ];
+      }
+      ''
+        for contract in $contractInputs; do test -e "$contract"; done
+        touch "$out"
+      '';
   seafile-contract-suite =
     pkgs.runCommand "seafile-contract-suite"
       {
