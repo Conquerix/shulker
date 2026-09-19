@@ -94,7 +94,7 @@
       #
       # ========= Host Configurations =========
       #
-      # Rebuild a host with `nixos-rebuild switch --flake .#hostname`.
+      # Rebuild a host with `sudo shulker-rebuild switch --flake .#hostname`.
       nixosConfigurations = builtins.listToAttrs (
         map (host: {
           name = host;

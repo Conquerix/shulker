@@ -2,7 +2,6 @@
   lib,
   ...
 }:
-with lib;
 {
   config = {
     networking.networkmanager = {
@@ -20,7 +19,6 @@ with lib;
       settings.Resolve.Domains = [ "~." ];
     };
 
-    # Disable this to try and solve the network manager wait online failed after each rebuild.
     systemd.network.wait-online.enable = lib.mkForce true;
     boot.initrd.systemd.network.wait-online.enable = lib.mkForce true;
   };

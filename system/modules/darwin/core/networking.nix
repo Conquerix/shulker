@@ -1,8 +1,4 @@
-{
-  lib,
-  ...
-}:
-with lib;
+{ ... }:
 {
   config = {
     networking = {

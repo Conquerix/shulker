@@ -53,7 +53,7 @@ in
         dash-to-dock # Dock on dekstop
         alttab-mod # Better Alt+Tab
         vitals # CPU temp, etc
-        pop-shell # Better than forge right above ?
+        pop-shell # Tiling window management
         no-overview # Start on the desktop instead of the Activities overview
       ]
       ++ (with pkgs; [

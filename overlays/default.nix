@@ -4,9 +4,6 @@
 { ... }:
 {
   default = final: prev: {
-    # example = prev.example.overrideAttrs (oldAttrs: let ... in {
-    # ...
-    # });
     vesktop = prev.vesktop.overrideAttrs (old: {
       buildPhase = ''
         runHook preBuild

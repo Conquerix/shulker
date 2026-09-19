@@ -36,7 +36,6 @@ in
             direnv.enable = true;
             zsh.enable = true;
             opencode.enable = true;
-            starship.enable = true;
           };
         };
       };

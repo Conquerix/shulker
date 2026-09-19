@@ -1,9 +1,5 @@
-{
-  lib,
-  ...
-}:
+{ ... }:
 
-with lib;
 {
   config = {
     system.stateVersion = 6;

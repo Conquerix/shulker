@@ -1,11 +1,9 @@
 {
   config,
-  lib,
   pkgs,
   ...
 }:
 
-with lib;
 {
   config = {
     system.stateVersion = "22.05";
