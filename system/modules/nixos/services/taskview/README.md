@@ -31,6 +31,22 @@ ID. Trust applies only to these exact domains; `*` is unsupported. Access still
 requires an allowed Pocket ID identity. Retain a secured
 local recovery account and test both OIDC login and organization exclusion.
 
+Keep SSO settings in the dedicated `TaskView access` organization, owned by the
+local recovery account. TaskView ties SSO configurations to organizations:
+deleting that organization also deletes its SSO configurations and identity
+links, preventing Pocket ID login even when personal accounts and workspaces
+still exist. Do not delete it when removing a shared project or workspace.
+SSO users join this organization as members; it is separate from shared tasks.
+
+If the SSO organization is deleted, use the local recovery login to create a
+replacement organization and restore the approved domain configurations using
+the existing OIDC credentials. Update the existing Pocket ID client's callback
+URLs to the new configuration IDs, preserving its allowed groups and PKCE.
+TaskView links a successful SSO login back to the existing account by email.
+Verify the user's actual sign-in; restoring settings alone does not prove the
+complete login flow. Do not restore deleted projects or broaden MCP token scopes
+as part of login recovery without a separate request.
+
 Centrifugo delivers assignment/deadline notifications while the app is open.
 TaskView stores notifications in PostgreSQL. This does not provide native phone
 push or guarantee live task-board refresh. Signed user-limited `personal:#id`
