@@ -23,17 +23,13 @@ let
     unique
     ;
 
-  escapeCell = value: lib.replaceStrings [ "|" "\n" ] [ "\\|" "<br>" ] (toString value);
-  code = value: "`${escapeCell value}`";
-  yesNo = value: if value then "yes" else "no";
-  orNone = values: if values == [ ] then "_None._" else concatStringsSep ", " values;
-  codeList = values: orNone (map code values);
-  markdownTable =
-    headers: rows:
-    let
-      renderRow = row: "| ${concatStringsSep " | " (map escapeCell row)} |\n";
-    in
-    renderRow headers + renderRow (map (_: "---") headers) + concatMapStringsSep "" renderRow rows;
+  inherit (import ./documentation-helpers.nix { inherit lib; })
+    code
+    codeList
+    markdownTable
+    orNone
+    yesNo
+    ;
 
   staticAuthoredPages = {
     "Operations-Backup-and-Restore.md" = wikiSourceDir + "/operations/backup-and-restore.md";
@@ -90,7 +86,6 @@ let
   servicePages = builtins.deepSeq serviceRootChecks (
     import ./service-runbooks.nix { inherit lib; } {
       discovered = discoveredServiceRunbooks;
-      legacy = { };
       reservedPageNames = generatedPageNames ++ builtins.attrNames staticAuthoredPages;
     }
   );

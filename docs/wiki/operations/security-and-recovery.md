@@ -82,7 +82,6 @@ interrupt it:
 pgrep -f 'steamapps/[c]ommon'
 ```
 
-
 ## Related documentation
 
 - [Operations](https://github.com/Conquerix/shulker/wiki/Operations)

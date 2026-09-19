@@ -350,7 +350,6 @@ then repeat OIDC, permission, OCR, Office, mail, health, and backup acceptance.
 Repeat break-glass administrator recovery and public-share create, access,
 expiry, and revocation tests. Scanner networking remains explicitly deferred.
 
-
 ## Related documentation
 
 - [Services](https://github.com/Conquerix/shulker/wiki/Services)

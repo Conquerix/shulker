@@ -40,6 +40,10 @@ Track newly created Nix files before evaluating the flake because Git flakes
 omit untracked files. Pre-commit hooks and `nixfmt` may modify files during a
 commit; review and stage those changes before retrying.
 
+Exported validation contracts are grouped by domain under `checks/`, with
+`checks.nix` as their composition entry point. Shell and Python regression
+drivers remain under `tests/`.
+
 ## Maintenance conventions
 
 - The default branch is `dev`.
@@ -113,7 +117,6 @@ backup, secret names, and routes before committing.
 [Pangolin topology operations](https://github.com/Conquerix/shulker/blob/dev/.github/AUTOMATION.md#pangolin-topology-enrichment)
 documents the sanitized boundary, manual collector, Integration API bootstrap,
 and restart and rollback behavior.
-
 
 ## Related documentation
 

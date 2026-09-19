@@ -9,40 +9,21 @@
 let
   inherit (builtins)
     attrNames
-    concatLists
-    isAttrs
-    isBool
     map
     toString
     ;
   inherit (lib)
-    concatStringsSep
     filter
     hasPrefix
-    mapAttrsToList
-    optionals
     ;
 
-  escapeCell = value: lib.replaceStrings [ "|" "\n" ] [ "\\|" "<br>" ] (toString value);
-  code = value: "`${escapeCell value}`";
-  yesNo = value: if value then "yes" else "no";
-  orNone = values: if values == [ ] then "_None._" else concatStringsSep ", " values;
-  codeList = values: orNone (map code values);
-  markdownTable =
-    headers: rows:
-    let
-      renderRow = row: "| ${concatStringsSep " | " (map escapeCell row)} |\n";
-    in
-    renderRow headers + renderRow (map (_: "---") headers) + concatStringsSep "" (map renderRow rows);
-
-  collectEnabled =
-    path: value:
-    if isAttrs value && value ? enable && isBool value.enable then
-      optionals value.enable [ (concatStringsSep "." path) ]
-    else if isAttrs value then
-      concatLists (mapAttrsToList (name: child: collectEnabled (path ++ [ name ]) child) value)
-    else
-      [ ];
+  inherit (import ./documentation-helpers.nix { inherit lib; })
+    code
+    codeList
+    collectEnabled
+    markdownTable
+    yesNo
+    ;
 
   enabledProfiles = collectEnabled [ ] (config.shulker.system.profiles or { });
   enabledModules = collectEnabled [ ] (config.shulker.system.modules or { });

@@ -1,13 +1,11 @@
 { lib }:
 {
   discovered,
-  legacy,
   reservedPageNames,
 }:
 
 let
   inherit (builtins)
-    attrNames
     deepSeq
     head
     length
@@ -56,23 +54,7 @@ let
       source = record.source;
     };
 
-  normalizeLegacy =
-    pageName: record:
-    let
-      title = record.title;
-      checks = [
-        (require (validTitle title) "legacy '${pageName}' has an invalid title")
-        (require (pageName == titleToPageName title) "legacy '${pageName}' is not derived from its title")
-      ];
-    in
-    deepSeq checks {
-      inherit title pageName;
-      source = record.source;
-    };
-
-  normalizedPages =
-    map normalizeDiscovered discovered
-    ++ map (pageName: normalizeLegacy pageName legacy.${pageName}) (attrNames legacy);
+  normalizedPages = map normalizeDiscovered discovered;
   sortedPages = sort (left: right: left.pageName < right.pageName) normalizedPages;
   names = pageNames sortedPages;
   caseFoldedNames = map lib.toLower names;

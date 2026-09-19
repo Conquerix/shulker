@@ -10,8 +10,6 @@ let
   inherit (builtins)
     attrNames
     concatLists
-    isAttrs
-    isBool
     isString
     map
     toString
@@ -32,32 +30,19 @@ let
   modules = config.shulker.system.modules;
   profiles = config.shulker.system.profiles;
 
-  escapeCell = value: lib.replaceStrings [ "|" "\n" ] [ "\\|" "<br>" ] (toString value);
-  code = value: "`${escapeCell value}`";
-  yesNo = value: if value then "yes" else "no";
+  inherit (import ./documentation-helpers.nix { inherit lib; })
+    code
+    codeList
+    collectEnabled
+    markdownTable
+    orNone
+    yesNo
+    ;
   enabledDisabled = value: if value then "enabled" else "disabled";
   bytesAsGiB = value: "${toString (builtins.div value 1073741824)} GiB";
-  orNone = values: if values == [ ] then "_None._" else concatStringsSep ", " values;
-  codeList = values: orNone (map code values);
   bulletList =
     values:
     if values == [ ] then "_None._\n" else concatMapStringsSep "" (value: "- ${value}\n") values;
-  markdownTable =
-    headers: rows:
-    let
-      renderRow = row: "| ${concatStringsSep " | " (map escapeCell row)} |\n";
-      separator = map (_: "---") headers;
-    in
-    renderRow headers + renderRow separator + concatMapStringsSep "" renderRow rows;
-
-  collectEnabled =
-    path: value:
-    if isAttrs value && value ? enable && isBool value.enable then
-      optionals value.enable [ (concatStringsSep "." path) ]
-    else if isAttrs value then
-      concatLists (mapAttrsToList (name: child: collectEnabled (path ++ [ name ]) child) value)
-    else
-      [ ];
 
   enabledProfiles = collectEnabled [ ] profiles;
   enabledModules = collectEnabled [ ] modules;

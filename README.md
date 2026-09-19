@@ -24,6 +24,8 @@ distribution, so treat it as a reference rather than a drop-in configuration.
 - `home/` contains shared Home Manager modules and defaults.
 - `lib/`, `overlays/`, and `nix/` contain flake helpers, package overrides, and
   compatibility configuration.
+- `checks/` groups validation contracts by area; `tests/` contains their shell
+  and Python regression drivers.
 - `.github/` contains validation, dependency-maintenance, and Wiki automation.
 
 The flake discovers host directories automatically. Each host imports its

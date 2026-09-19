@@ -11,25 +11,14 @@
 let
   inherit (builtins)
     concatLists
-    isAttrs
-    isBool
     map
     ;
   inherit (lib)
     filter
-    mapAttrsToList
     optional
-    optionals
     ;
 
-  collectEnabled =
-    path: value:
-    if isAttrs value && value ? enable && isBool value.enable then
-      optionals value.enable [ (lib.concatStringsSep "." path) ]
-    else if isAttrs value then
-      concatLists (mapAttrsToList (name: child: collectEnabled (path ++ [ name ]) child) value)
-    else
-      [ ];
+  inherit (import ./documentation-helpers.nix { inherit lib; }) collectEnabled;
 
   service =
     key: name: category: enabled: endpoint:

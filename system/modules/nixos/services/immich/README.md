@@ -145,7 +145,6 @@ Linux/amd64 image digests with `skopeo`, and update all four pins together.
 Repeat OAuth, upload, accelerator, and backup acceptance afterward. GitHub may
 propose dependency changes, but no workflow deploys Immich automatically.
 
-
 ## Related documentation
 
 - [Services](https://github.com/Conquerix/shulker/wiki/Services)

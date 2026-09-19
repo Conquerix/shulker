@@ -36,7 +36,6 @@ Database restoration is a separate, destructive operation. Use `borgmatic
 restore --archive latest` only after validating the extracted backup and the
 target database service.
 
-
 ## Related documentation
 
 - [Operations](https://github.com/Conquerix/shulker/wiki/Operations)

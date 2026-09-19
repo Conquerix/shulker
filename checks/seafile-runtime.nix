@@ -1,0 +1,1040 @@
+{
+  system,
+  pkgs,
+  wardenConfig,
+  services,
+  ...
+}:
+
+let
+  seafile = wardenConfig.shulker.system.modules.seafile;
+  seafileConfigService = services."seafile-config";
+  seafileComposeService = services."seafile-compose";
+  seafilePullService = services."seafile-image-pull";
+  seafileStateService = services."seafile-state";
+  systemPackageNames = map pkgs.lib.getName wardenConfig.environment.systemPackages;
+  seafileBootstrapPackageNames = [
+    "seafile-list-users"
+    "seafile-license-status"
+    "seafile-promote-oauth-admin"
+    "seafile-revoke-oauth-admin"
+    "seafile-reset-native-admin"
+    "seafile-bootstrap-status"
+  ];
+  seafileBootstrapPackages = builtins.filter (
+    package: builtins.elem (pkgs.lib.getName package) seafileBootstrapPackageNames
+  ) wardenConfig.environment.systemPackages;
+in
+{
+  seafile-core-contract =
+    assert seafile.enable;
+    assert seafile.version == "13.0.25";
+    assert seafile.licenseUserLimit == 3;
+    assert seafile.stateDir == "/storage/flash/seafile";
+    assert seafile.dataset == "flash_pool/flash/storage/seafile";
+    assert seafile.datasetQuotaBytes == 1649267441664;
+    assert seafile.bindAddress == "127.0.0.1";
+    assert seafile.port == 23239;
+    assert seafile.onlyOfficePort == 23240;
+    assert seafile.notificationPort == 23241;
+    assert seafile.publicUrl == "https://files.shulker.link";
+    assert seafile.onlyOfficePublicUrl == "https://office.shulker.link";
+    assert seafile.oidcIssuer == "https://sso.shulker.link";
+    assert seafile.oauthCallbackUrl == "https://files.shulker.link/oauth/callback/";
+    assert seafile.notificationPublicUrl == "https://files.shulker.link/notification";
+    assert seafile.notificationInternalUrl == "http://seafile-notification:8083";
+    assert seafile.onlyOfficeApiUrl == "https://office.shulker.link/web-apps/apps/api/documents/api.js";
+    assert seafile.metadataFileCountLimit == 100000;
+    assert seafile.metadataCacheSize == "1GB";
+    assert seafile.metadataCheckUpdateInterval == "30m";
+    assert seafile.logicalDumpRetention == 14;
+    assert
+      seafile.editableExtensions == [
+        "docx"
+        "xlsx"
+        "pptx"
+        "csv"
+      ];
+    assert
+      seafile.seafileImage
+      == "docker.io/seafileltd/seafile-pro-mc:13.0.25@sha256:82fa05a844303912066a7ded86864dbf6fb45273f08f6448a0842863beefabb4";
+    assert
+      seafile.databaseImage
+      == "docker.io/library/mariadb:10.11.18@sha256:992d5668eb9a5f153253c2f13d4e72717b7c24a27f271f47647af3b7e5a3c109";
+    assert
+      seafile.redisImage
+      == "docker.io/library/redis:7.4.10-alpine@sha256:9702d01c1f10c3ea9f48211b4362e44f154ff02d063e6f7268eba804059f53bf";
+    assert
+      seafile.seasearchImage
+      == "docker.io/seafileltd/seasearch:1.0.4@sha256:192284f4f2fe7ca879fdfb8301dd0ebc6a5da6efaa4a99c53febfad8a75b7edc";
+    assert
+      seafile.notificationImage
+      == "docker.io/seafileltd/notification-server:13.0.21@sha256:be7b6c6887b921a86ec4990c0c8b0b57f7f5ba3046dcf0adb007bbc80abaec86";
+    assert
+      seafile.metadataImage
+      == "docker.io/seafileltd/seafile-md-server:13.0.22@sha256:8ccee7ea9139c288a24bf1d7e29c5a1579256ee5f887eb93967e790f571eb973";
+    assert
+      seafile.onlyOfficeImage
+      == "docker.io/onlyoffice/documentserver:9.4.0.1@sha256:e231bc62da8c1f0c1f78188f8c7e17e67716f38955d0ad1d703cf911ad6db84b";
+    assert pkgs.lib.all (image: pkgs.lib.hasInfix "@sha256:" image) [
+      seafile.seafileImage
+      seafile.databaseImage
+      seafile.redisImage
+      seafile.seasearchImage
+      seafile.notificationImage
+      seafile.metadataImage
+      seafile.onlyOfficeImage
+    ];
+    assert builtins.hasAttr "seafile-state" services;
+    assert seafileStateService.unitConfig.RequiresMountsFor == seafile.stateDir;
+    assert pkgs.lib.any (
+      package: (package.pname or package.name) == "diffutils"
+    ) seafile.validateStateRuntimeInputs;
+    assert pkgs.lib.any (
+      package: (package.pname or package.name) == "diffutils"
+    ) seafile.parseEnvironmentRuntimeInputs;
+    assert
+      wardenConfig.services.onepassword-secrets.secrets.seafileEnv.services == [
+        "seafile-config"
+        "seafile-image-pull"
+        "seafile-compose"
+      ];
+    pkgs.runCommand "seafile-core-contract" { } ''
+      touch "$out"
+    '';
+
+  seafile-runtime-state-machine-contract =
+    let
+      validator = pkgs.writeText "seafile-validate-state-under-test" ''
+        ${seafile.validateStateScript}
+      '';
+      validatorPackage = pkgs.writeShellApplication {
+        name = "seafile-validate-state-contract-wrapper";
+        text = seafile.validateStateScript;
+      };
+      parserPackage = pkgs.writeShellApplication {
+        name = "seafile-parse-environment";
+        runtimeInputs = [ pkgs.coreutils ];
+        text = seafile.parseEnvironmentScript;
+      };
+      rendererPackage = pkgs.writeShellApplication {
+        name = "seafile-render-runtime-config";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.util-linux
+          parserPackage
+        ];
+        text = seafile.renderRuntimeConfigScript;
+      };
+      reconcilerPackage = pkgs.writeShellApplication {
+        name = "seafile-reconcile-runtime-config";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.util-linux
+          parserPackage
+        ];
+        text = seafile.reconcileRuntimeConfigScript;
+      };
+      composeStartPackage = pkgs.writeShellApplication {
+        name = "seafile-compose-start";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.util-linux
+        ];
+        text = builtins.unsafeDiscardStringContext (
+          builtins.replaceStrings
+            [
+              (toString seafile.composeFile)
+              (toString seafile.bootstrapComposeFile)
+            ]
+            [
+              "/unused/seafile-compose.yml"
+              "/unused/seafile-bootstrap-compose.yml"
+            ]
+            seafile.composeStartScript
+        );
+      };
+    in
+    pkgs.runCommand "seafile-runtime-state-machine-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gawk
+          pkgs.gnugrep
+          pkgs.gnused
+          pkgs.util-linux
+          validatorPackage
+        ];
+      }
+      ''
+        ${pkgs.bash}/bin/bash ${../tests/seafile-runtime-state-machine.sh} \
+          ${validator} \
+          ${rendererPackage}/bin/seafile-render-runtime-config \
+          ${reconcilerPackage}/bin/seafile-reconcile-runtime-config \
+          ${composeStartPackage}/bin/seafile-compose-start
+        touch "$out"
+      '';
+
+  seafile-stack-contract =
+    let
+      compose = seafile.composeConfig;
+      services' = compose.services;
+      environmentKeys = service: builtins.attrNames (service.environment or { });
+      publications = pkgs.lib.concatMap (service: service.ports or [ ]) (builtins.attrValues services');
+      secretFixtureValues = [
+        "fixture-root-secret"
+        "fixture-database-secret"
+        "fixture-redis-secret"
+        "fixture-jwt-secret"
+      ];
+      composeJson = builtins.toJSON compose;
+      redisStartScriptUnderTest = pkgs.writeText "seafile-start-redis-under-test" (
+        seafile.redisStartScriptText
+      );
+      redisStartScriptRuntimeUnderTest = pkgs.writeText "seafile-start-redis-runtime-under-test" (
+        builtins.replaceStrings
+          [
+            "/run/redis"
+            "/usr/bin/setpriv"
+            "/usr/local/bin/redis-server"
+          ]
+          [
+            "$TMPDIR/redis-runtime"
+            "$TMPDIR/redis-stubs/setpriv"
+            "$TMPDIR/redis-stubs/redis-server"
+          ]
+          seafile.redisStartScriptText
+      );
+      notificationHealthCommand = builtins.elemAt services'.notification.healthcheck.test 3;
+      notificationHealthProbeUnderTest = pkgs.writeTextFile {
+        name = "seafile-notification-health-probe-under-test";
+        executable = true;
+        text = ''
+          #!${pkgs.bash}/bin/bash
+          set -e
+          ${builtins.replaceStrings [ "$$" ] [ "$" ] (
+            builtins.replaceStrings
+              [
+                "exec 3<>/dev/tcp/127.0.0.1/8083; printf 'GET /ping HTTP/1.0\\r\\nHost: 127.0.0.1\\r\\nConnection: close\\r\\n\\r\\n' >&3; "
+              ]
+              [ ''exec 3<"$1"; '' ]
+              notificationHealthCommand
+          )}
+        '';
+      };
+      metadataEntrypointText = ''
+        #!/bin/bash
+        cd "$METADATA_TEST_DIR"
+        ./seaf-md-server
+      '';
+      metadataEntrypointUnderTest = pkgs.writeText "seafile-metadata-entrypoint-under-test" metadataEntrypointText;
+      metadataAmbiguousEntrypointText = metadataEntrypointText + ''
+        ./seaf-md-server
+      '';
+      metadataAmbiguousEntrypointUnderTest = pkgs.writeText "seafile-metadata-ambiguous-entrypoint-under-test" metadataAmbiguousEntrypointText;
+      metadataHashDriftEntrypointUnderTest =
+        pkgs.writeText "seafile-metadata-hash-drift-entrypoint-under-test"
+          (metadataEntrypointText + "# upstream drift\n");
+      metadataStartScriptUnderTest = pkgs.writeText "seafile-start-metadata-under-test" (
+        seafile.metadataStartScriptText
+      );
+      metadataStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-metadata-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [
+              "/opt/scripts/entrypoint.sh"
+              seafile.metadataEntrypointHash
+              "/bin/bash"
+            ]
+            [
+              (toString metadataEntrypointUnderTest)
+              (builtins.hashString "sha256" metadataEntrypointText)
+              "${pkgs.bash}/bin/bash"
+            ]
+            seafile.metadataStartScriptText;
+      };
+      metadataAmbiguousStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-metadata-ambiguous-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [
+              "/opt/scripts/entrypoint.sh"
+              seafile.metadataEntrypointHash
+              "/bin/bash"
+            ]
+            [
+              (toString metadataAmbiguousEntrypointUnderTest)
+              (builtins.hashString "sha256" metadataAmbiguousEntrypointText)
+              "${pkgs.bash}/bin/bash"
+            ]
+            seafile.metadataStartScriptText;
+      };
+      metadataHashDriftStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-metadata-hash-drift-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [
+              "/opt/scripts/entrypoint.sh"
+              "/bin/bash"
+            ]
+            [
+              (toString metadataHashDriftEntrypointUnderTest)
+              "${pkgs.bash}/bin/bash"
+            ]
+            seafile.metadataStartScriptText;
+      };
+      metadataServerUnderTest = pkgs.writeTextFile {
+        name = "seaf-md-server-under-test";
+        executable = true;
+        text = ''
+          #!${pkgs.bash}/bin/bash
+          trap 'sleep 1; printf completed >"$METADATA_TEST_DIR/completed"; exit 0' TERM
+          printf ready >"$METADATA_TEST_DIR/ready"
+          while :; do
+            sleep 1
+          done
+        '';
+      };
+      seasearchEntrypointText = ''
+        #!/bin/bash
+        cd "$SEASEARCH_TEST_DIR"
+        ./seasearch
+        echo idle
+      '';
+      seasearchEntrypointUnderTest = pkgs.writeText "seafile-seasearch-entrypoint-under-test" seasearchEntrypointText;
+      seasearchHashDriftEntrypointUnderTest =
+        pkgs.writeText "seafile-seasearch-hash-drift-entrypoint-under-test"
+          (seasearchEntrypointText + "# upstream drift\n");
+      seasearchStartScriptUnderTest = pkgs.writeText "seafile-start-seasearch-under-test" (
+        seafile.seasearchStartScriptText
+      );
+      seasearchStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-seasearch-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [
+              "/opt/scripts/entrypoint.sh"
+              seafile.seasearchEntrypointHash
+              "/bin/bash"
+            ]
+            [
+              (toString seasearchEntrypointUnderTest)
+              (builtins.hashString "sha256" seasearchEntrypointText)
+              "${pkgs.bash}/bin/bash"
+            ]
+            seafile.seasearchStartScriptText;
+      };
+      seasearchHashDriftStartScriptRuntimeUnderTest = pkgs.writeTextFile {
+        name = "seafile-start-seasearch-hash-drift-runtime-under-test";
+        executable = true;
+        text =
+          builtins.replaceStrings
+            [
+              "/opt/scripts/entrypoint.sh"
+              "/bin/bash"
+            ]
+            [
+              (toString seasearchHashDriftEntrypointUnderTest)
+              "${pkgs.bash}/bin/bash"
+            ]
+            seafile.seasearchStartScriptText;
+      };
+      seasearchServerUnderTest = pkgs.writeTextFile {
+        name = "seasearch-under-test";
+        executable = true;
+        text = ''
+          #!${pkgs.bash}/bin/bash
+          trap 'sleep 1; printf completed >"$SEASEARCH_TEST_DIR/completed"; exit 0' TERM
+          printf ready >"$SEASEARCH_TEST_DIR/ready"
+          while :; do
+            sleep 1
+          done
+        '';
+      };
+      seasearchFailingServerUnderTest = pkgs.writeTextFile {
+        name = "seasearch-failing-under-test";
+        executable = true;
+        text = ''
+          #!${pkgs.bash}/bin/bash
+          exit 23
+        '';
+      };
+    in
+    assert compose.name == "seafile";
+    assert
+      builtins.attrNames services' == [
+        "database"
+        "metadata"
+        "notification"
+        "onlyoffice"
+        "redis"
+        "seafile"
+        "seasearch"
+      ];
+    assert
+      map (name: services'.${name}.container_name) (builtins.attrNames services') == [
+        "seafile-mariadb"
+        "seafile-metadata"
+        "seafile-notification"
+        "seafile-onlyoffice"
+        "seafile-redis"
+        "seafile"
+        "seafile-seasearch"
+      ];
+    assert
+      compose.networks == {
+        seafile-net-egress = {
+          name = "seafile-net-egress";
+          internal = false;
+        };
+        seafile-net = {
+          name = "seafile-net";
+          internal = true;
+        };
+      };
+    assert
+      services'.seafile.networks == [
+        "seafile-net"
+        "seafile-net-egress"
+      ];
+    assert services'.seafile.environment.SEAFILE_LOG_TO_STDOUT == "true";
+    assert
+      services'.seafile.healthcheck.test == [
+        "CMD-SHELL"
+        "pgrep -f '[s]eafevents.main' >/dev/null && curl --fail --silent http://127.0.0.1:80/ >/dev/null"
+      ];
+    assert
+      services'.onlyoffice.networks == [
+        "seafile-net"
+        "seafile-net-egress"
+      ];
+    assert
+      services'.notification.networks == [
+        "seafile-net"
+        "seafile-net-egress"
+      ];
+    assert pkgs.lib.all (name: services'.${name}.networks == [ "seafile-net" ]) [
+      "database"
+      "redis"
+      "seasearch"
+      "metadata"
+    ];
+    assert
+      publications == [
+        "127.0.0.1:23241:8083/tcp"
+        "127.0.0.1:23240:80/tcp"
+        "127.0.0.1:23239:80/tcp"
+      ];
+    assert pkgs.lib.all (service: service.restart == "no") (builtins.attrValues services');
+    assert pkgs.lib.all (service: !(service.privileged or false)) (builtins.attrValues services');
+    assert services'.redis.tmpfs == [ "/run/redis" ];
+    assert services'.redis.entrypoint == [ "/usr/local/sbin/seafile-start-redis" ];
+    assert services'.redis.command == [ "/run/redis/redis.conf" ];
+    assert
+      services'.seafile.volumes == [
+        "/storage/flash/seafile/shared:/shared"
+        "/run/seafile-app:/run/seafile:ro"
+      ];
+    assert
+      services'.database.volumes == [
+        "/storage/flash/seafile/database:/var/lib/mysql"
+      ];
+    assert
+      services'.seasearch.volumes == [
+        "/storage/flash/seafile/search:/opt/seasearch/data"
+        {
+          type = "bind";
+          source = toString seafile.seasearchStartScript;
+          target = "/usr/local/sbin/seafile-start-seasearch";
+          read_only = true;
+          bind.create_host_path = false;
+        }
+      ];
+    assert
+      services'.notification.volumes == [
+        "/storage/flash/seafile/shared/seafile/logs:/shared/seafile/logs"
+      ];
+    assert
+      services'.metadata.volumes == [
+        "/storage/flash/seafile/shared:/shared"
+        "/run/seafile-metadata:/run/seafile:ro"
+        {
+          type = "bind";
+          source = toString seafile.metadataStartScript;
+          target = "/usr/local/sbin/seafile-start-metadata";
+          read_only = true;
+          bind.create_host_path = false;
+        }
+      ];
+    assert
+      map (volume: volume.source) (
+        builtins.filter (volume: builtins.isAttrs volume) services'.onlyoffice.volumes
+      ) == [
+        "/storage/flash/seafile/onlyoffice/logs"
+        "/storage/flash/seafile/onlyoffice/data"
+        "/storage/flash/seafile/onlyoffice/lib"
+        (toString seafile.onlyOfficeConfig)
+      ];
+    assert pkgs.lib.all (volume: volume.bind.create_host_path == false) (
+      builtins.filter (volume: builtins.isAttrs volume) services'.onlyoffice.volumes
+    );
+    assert environmentKeys services'.redis == [ "REDIS_PASSWORD" ];
+    assert
+      environmentKeys services'.onlyoffice == [
+        "EXAMPLE_ENABLED"
+        "JWT_ENABLED"
+        "JWT_SECRET"
+      ];
+    assert
+      environmentKeys services'.notification == [
+        "JWT_PRIVATE_KEY"
+        "NOTIFICATION_SERVER_LOG_LEVEL"
+        "SEAFILE_LOG_TO_STDOUT"
+        "SEAFILE_MYSQL_DB_CCNET_DB_NAME"
+        "SEAFILE_MYSQL_DB_HOST"
+        "SEAFILE_MYSQL_DB_PASSWORD"
+        "SEAFILE_MYSQL_DB_PORT"
+        "SEAFILE_MYSQL_DB_SEAFILE_DB_NAME"
+        "SEAFILE_MYSQL_DB_USER"
+      ];
+    assert
+      environmentKeys services'.metadata == [
+        "CACHE_PROVIDER"
+        "JWT_PRIVATE_KEY"
+        "MD_CHECK_UPDATE_INTERVAL"
+        "MD_FILE_COUNT_LIMIT"
+        "MD_MAX_CACHE_SIZE"
+        "MD_STORAGE_TYPE"
+        "REDIS_HOST"
+        "REDIS_PASSWORD"
+        "REDIS_PORT"
+        "SEAFILE_LOG_TO_STDOUT"
+        "SEAFILE_MYSQL_DB_HOST"
+        "SEAFILE_MYSQL_DB_PASSWORD"
+        "SEAFILE_MYSQL_DB_PORT"
+        "SEAFILE_MYSQL_DB_SEAFILE_DB_NAME"
+        "SEAFILE_MYSQL_DB_USER"
+        "SEAF_SERVER_STORAGE_TYPE"
+      ];
+    assert !(builtins.hasAttr "MYSQL_ROOT_PASSWORD" services'.database.environment);
+    assert
+      environmentKeys services'.seasearch == [
+        "SS_FIRST_ADMIN_PASSWORD"
+        "SS_FIRST_ADMIN_USER"
+        "SS_LOG_LEVEL"
+        "SS_LOG_TO_STDOUT"
+        "SS_MAX_OBJ_CACHE_SIZE"
+        "SS_STORAGE_TYPE"
+      ];
+    assert
+      services'.seasearch.environment.SS_FIRST_ADMIN_USER
+      == "\${INIT_SS_ADMIN_USER:?INIT_SS_ADMIN_USER is required}";
+    assert
+      services'.seasearch.environment.SS_FIRST_ADMIN_PASSWORD
+      == "\${INIT_SS_ADMIN_PASSWORD:?INIT_SS_ADMIN_PASSWORD is required}";
+    assert
+      seafile.bootstrapComposeConfig.services.database.environment.MYSQL_ROOT_PASSWORD
+      == "\${INIT_SEAFILE_MYSQL_ROOT_PASSWORD:?INIT_SEAFILE_MYSQL_ROOT_PASSWORD is required}";
+    assert !(builtins.hasAttr "seasearch" seafile.bootstrapComposeConfig.services);
+    assert
+      services'.onlyoffice.environment.EXAMPLE_ENABLED == "false"
+      && services'.onlyoffice.environment.JWT_ENABLED == "true";
+    assert
+      services'.seafile.depends_on.database.condition == "service_healthy"
+      && services'.seafile.depends_on.redis.condition == "service_healthy";
+    assert
+      services'.notification.depends_on.seafile.condition == "service_healthy"
+      && services'.metadata.depends_on.seafile.condition == "service_healthy";
+    assert pkgs.lib.all (value: !(pkgs.lib.hasInfix value composeJson)) secretFixtureValues;
+    assert pkgs.lib.all (forbidden: !(pkgs.lib.hasInfix forbidden composeJson)) [
+      "/storage/flash/immich"
+      "caddy"
+      "seadoc"
+      "webdav"
+      "elasticsearch"
+      "network_mode"
+      "privileged"
+    ];
+    assert pkgs.lib.all (
+      name:
+      services'.${name}.image == {
+        database = seafile.databaseImage;
+        metadata = seafile.metadataImage;
+        notification = seafile.notificationImage;
+        onlyoffice = seafile.onlyOfficeImage;
+        redis = seafile.redisImage;
+        seafile = seafile.seafileImage;
+        seasearch = seafile.seasearchImage;
+      }
+      .${name}
+    ) (builtins.attrNames services');
+    assert seafilePullService.serviceConfig.Type == "oneshot";
+    assert seafilePullService.serviceConfig.RemainAfterExit;
+    assert seafilePullService.serviceConfig.TimeoutStartSec == 10800;
+    assert builtins.elem "COMPOSE_PARALLEL_LIMIT=1" seafilePullService.serviceConfig.Environment;
+    assert
+      seafilePullService.unitConfig.ConditionFileNotEmpty
+      == seafileComposeService.unitConfig.ConditionFileNotEmpty;
+    assert builtins.elem "seafile-image-pull.service" seafileComposeService.requires;
+    assert builtins.elem "seafile-config.service" seafileComposeService.requires;
+    assert builtins.elem "seafile-image-pull.service" seafileComposeService.after;
+    assert builtins.elem "seafile-config.service" seafileComposeService.after;
+    assert builtins.elem "docker.service" seafileComposeService.unitConfig.BindsTo;
+    assert seafileComposeService.serviceConfig.TimeoutStartSec > 1800;
+    assert builtins.hasAttr "seafile-compose-recovery" services;
+    assert builtins.hasAttr "seafile-compose-recovery" wardenConfig.systemd.timers;
+    assert !(builtins.elem seafile.port wardenConfig.networking.firewall.allowedTCPPorts);
+    assert !(builtins.elem seafile.onlyOfficePort wardenConfig.networking.firewall.allowedTCPPorts);
+    assert !(builtins.elem seafile.notificationPort wardenConfig.networking.firewall.allowedTCPPorts);
+    assert
+      services'.database.healthcheck.test == [
+        "CMD"
+        "/usr/bin/timeout"
+        "--signal=TERM"
+        "--kill-after=1s"
+        "4s"
+        "/usr/local/bin/healthcheck.sh"
+        "--connect"
+        "--mariadbupgrade"
+        "--innodb_initialized"
+      ];
+    assert services'.database.healthcheck.timeout == "8s";
+    assert
+      services'.notification.healthcheck.test == [
+        "CMD"
+        "/bin/bash"
+        "-ec"
+        "exec 3<>/dev/tcp/127.0.0.1/8083; printf 'GET /ping HTTP/1.0\\r\\nHost: 127.0.0.1\\r\\nConnection: close\\r\\n\\r\\n' >&3; IFS= read -r -u 3 status; [[ \"$$status\" == HTTP/*\" 200 \"* ]]; while IFS= read -r -u 3 header; do [[ \"$$header\" != $$'\\r' ]] || break; done; body=; IFS= read -r -u 3 body || [[ -n \"$$body\" ]]; [[ \"$$body\" == '{\"ret\": \"pong\"}' ]]"
+      ];
+    assert services'.metadata.init;
+    assert services'.metadata.command == [ "/usr/local/sbin/seafile-start-metadata" ];
+    assert !(builtins.hasAttr "TINI_KILL_PROCESS_GROUP" services'.metadata.environment);
+    assert
+      seafile.metadataEntrypointHash
+      == "cd9a0609e3928af93c4601a9565ea9e0e3795915c206d1bd6375eb6e55649f98";
+    assert services'.seasearch.init;
+    assert services'.seasearch.command == [ "/usr/local/sbin/seafile-start-seasearch" ];
+    assert
+      services'.seasearch.healthcheck.test == [
+        "CMD"
+        "/bin/bash"
+        "-ec"
+        "token=$$(printf '%s:%s' \"$$SS_FIRST_ADMIN_USER\" \"$$SS_FIRST_ADMIN_PASSWORD\" | /usr/bin/base64 | /usr/bin/tr -d '\\n'); exec 3<>/dev/tcp/127.0.0.1/4080; printf 'GET /api/permissions HTTP/1.0\\r\\nHost: 127.0.0.1\\r\\nAuthorization: Basic %s\\r\\nConnection: close\\r\\n\\r\\n' \"$$token\" >&3; IFS= read -r -u 3 status; [[ \"$$status\" == HTTP/*\" 200 \"* ]]"
+      ];
+    assert
+      seafile.seasearchEntrypointHash
+      == "6e091fbbe7453bb577f2243b85bbae36735a8a22339677ad9d1a052ef3304995";
+    pkgs.runCommand "seafile-stack-contract" { } ''
+      test "$(head -n 1 ${redisStartScriptUnderTest})" = '#!/bin/sh'
+      ! grep -F '/nix/store' ${redisStartScriptUnderTest}
+      test "$(head -n 1 ${metadataStartScriptUnderTest})" = '#!/bin/bash'
+      grep -F -x 'exec /bin/bash "$patched_entrypoint"' ${metadataStartScriptUnderTest} >/dev/null
+      test "$(head -n 1 ${seasearchStartScriptUnderTest})" = '#!/bin/bash'
+      grep -F -x 'exec /bin/bash "$patched_entrypoint"' ${seasearchStartScriptUnderTest} >/dev/null
+
+      redis_runtime_dir="$TMPDIR/redis-runtime"
+      redis_stub_dir="$TMPDIR/redis-stubs"
+      redis_tool_log="$TMPDIR/redis-tools.log"
+      mkdir -p "$redis_runtime_dir" "$redis_stub_dir"
+      : >"$redis_runtime_dir/redis.conf"
+      chmod 0777 "$redis_runtime_dir"
+      chmod 0666 "$redis_runtime_dir/redis.conf"
+      cat >"$redis_stub_dir/chown" <<'EOF'
+      #!${pkgs.runtimeShell}
+      set -eu
+      printf 'chown:%s\n' "$*" >>"$REDIS_TOOL_LOG"
+      EOF
+      cat >"$redis_stub_dir/setpriv" <<'EOF'
+      #!${pkgs.runtimeShell}
+      set -eu
+      test "$1" = --reuid
+      test "$2" = 999
+      test "$3" = --regid
+      test "$4" = 1000
+      test "$5" = --clear-groups
+      shift 5
+      printf 'setpriv:%s\n' "''${1##*/}" >>"$REDIS_TOOL_LOG"
+      exec "$@"
+      EOF
+      cat >"$redis_stub_dir/redis-server" <<'EOF'
+      #!${pkgs.runtimeShell}
+      set -eu
+      test "$#" -eq 1
+      test -r "$1"
+      test "''${REDIS_PASSWORD+x}" != x
+      grep -E '^requirepass .+$' "$1" >/dev/null
+      grep -F -x 'save ""' "$1" >/dev/null
+      grep -F -x 'appendonly no' "$1" >/dev/null
+      EOF
+      chmod +x "$redis_stub_dir/chown" "$redis_stub_dir/setpriv" "$redis_stub_dir/redis-server"
+      REDIS_TOOL_LOG="$redis_tool_log" \
+        REDIS_PASSWORD=fixture-redis-password \
+        PATH="$redis_stub_dir:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin" \
+        ${pkgs.runtimeShell} ${redisStartScriptRuntimeUnderTest}
+      test "$(grep -F -c 'setpriv:test' "$redis_tool_log")" -eq 1
+      test "$(grep -F -c 'setpriv:redis-server' "$redis_tool_log")" -eq 1
+      grep -F -x 'chown:999:1000 '$TMPDIR'/redis-runtime' "$redis_tool_log" >/dev/null
+      grep -F -x 'chown:999:1000 '$TMPDIR'/redis-runtime/redis.conf' "$redis_tool_log" >/dev/null
+      test "$(stat -c %a "$redis_runtime_dir")" = 700
+      test "$(stat -c %a "$redis_runtime_dir/redis.conf")" = 600
+
+      printf 'HTTP/1.0 200 OK\r\nContent-Length: 16\r\n\r\n{"ret": "pong"}\n' \
+        >notification-good.response
+      printf 'HTTP/1.0 200 OK\r\nContent-Length: 17\r\n\r\n{"ret": "wrong"}\n' \
+        >notification-wrong.response
+      ${notificationHealthProbeUnderTest} notification-good.response
+      if ${notificationHealthProbeUnderTest} notification-wrong.response; then
+        echo "Notification health probe accepted an unexpected response body" >&2
+        exit 1
+      fi
+
+      metadata_test_dir="$TMPDIR/metadata-wrapper"
+      mkdir -p "$metadata_test_dir"
+      ln -s ${metadataServerUnderTest} "$metadata_test_dir/seaf-md-server"
+      if METADATA_TEST_DIR="$metadata_test_dir" \
+        ${metadataHashDriftStartScriptRuntimeUnderTest} >metadata-hash-drift.output 2>&1
+      then
+        echo "Metadata wrapper accepted an unexpected upstream entrypoint hash" >&2
+        exit 1
+      fi
+      grep -F 'metadata entrypoint does not match the pinned image' metadata-hash-drift.output >/dev/null
+
+      if METADATA_TEST_DIR="$metadata_test_dir" \
+        ${metadataAmbiguousStartScriptRuntimeUnderTest} >metadata-ambiguous.output 2>&1
+      then
+        echo "Metadata wrapper accepted an ambiguous server launch" >&2
+        exit 1
+      fi
+      grep -F 'metadata entrypoint server launch is ambiguous' metadata-ambiguous.output >/dev/null
+
+      ${
+        if pkgs.stdenv.hostPlatform.isLinux then
+          ''TINI_SUBREAPER=1 METADATA_TEST_DIR="$metadata_test_dir" ${pkgs.tini}/bin/tini -- ${pkgs.bash}/bin/bash ${metadataStartScriptRuntimeUnderTest}''
+        else
+          ''METADATA_TEST_DIR="$metadata_test_dir" ${pkgs.bash}/bin/bash ${metadataStartScriptRuntimeUnderTest}''
+      } &
+      metadata_pid=$!
+      cleanup_metadata_fixture() {
+        kill -KILL "$metadata_pid" 2>/dev/null || true
+        wait "$metadata_pid" 2>/dev/null || true
+      }
+      trap cleanup_metadata_fixture EXIT
+      for _ in $(seq 1 500); do
+        test ! -e "$metadata_test_dir/ready" || break
+        sleep 0.01
+      done
+      test -e "$metadata_test_dir/ready"
+      kill -TERM "$metadata_pid"
+      wait "$metadata_pid"
+      test -e "$metadata_test_dir/completed"
+      trap - EXIT
+
+      seasearch_test_dir="$TMPDIR/seasearch-wrapper"
+      mkdir -p "$seasearch_test_dir"
+      ln -s ${seasearchServerUnderTest} "$seasearch_test_dir/seasearch"
+      if SEASEARCH_TEST_DIR="$seasearch_test_dir" \
+        ${seasearchHashDriftStartScriptRuntimeUnderTest} >seasearch-hash-drift.output 2>&1
+      then
+        echo "SeaSearch wrapper accepted an unexpected upstream entrypoint hash" >&2
+        exit 1
+      fi
+      grep -F 'SeaSearch entrypoint does not match the pinned image' seasearch-hash-drift.output >/dev/null
+
+      ${
+        if pkgs.stdenv.hostPlatform.isLinux then
+          ''TINI_SUBREAPER=1 SEASEARCH_TEST_DIR="$seasearch_test_dir" ${pkgs.tini}/bin/tini -- ${pkgs.bash}/bin/bash ${seasearchStartScriptRuntimeUnderTest}''
+        else
+          ''SEASEARCH_TEST_DIR="$seasearch_test_dir" ${pkgs.bash}/bin/bash ${seasearchStartScriptRuntimeUnderTest}''
+      } &
+      seasearch_pid=$!
+      cleanup_seasearch_fixture() {
+        kill -KILL "$seasearch_pid" 2>/dev/null || true
+        wait "$seasearch_pid" 2>/dev/null || true
+      }
+      trap cleanup_seasearch_fixture EXIT
+      for _ in $(seq 1 500); do
+        test ! -e "$seasearch_test_dir/ready" || break
+        sleep 0.01
+      done
+      test -e "$seasearch_test_dir/ready"
+      kill -TERM "$seasearch_pid"
+      wait "$seasearch_pid"
+      test -e "$seasearch_test_dir/completed"
+      trap - EXIT
+
+      seasearch_failure_dir="$TMPDIR/seasearch-wrapper-failure"
+      mkdir -p "$seasearch_failure_dir"
+      ln -s ${seasearchFailingServerUnderTest} "$seasearch_failure_dir/seasearch"
+      set +e
+      SEASEARCH_TEST_DIR="$seasearch_failure_dir" \
+        ${pkgs.bash}/bin/bash ${seasearchStartScriptRuntimeUnderTest} \
+        >seasearch-immediate-failure.output 2>&1
+      seasearch_failure_status=$?
+      set -e
+      test "$seasearch_failure_status" -eq 23
+      ! grep -F -x idle seasearch-immediate-failure.output
+      touch "$out"
+    '';
+
+  seafile-secret-contract =
+    assert
+      seafile.requiredEnvironmentKeys == [
+        "INIT_SEAFILE_MYSQL_ROOT_PASSWORD"
+        "SEAFILE_MYSQL_DB_PASSWORD"
+        "REDIS_PASSWORD"
+        "JWT_PRIVATE_KEY"
+        "SEAHUB_SECRET_KEY"
+        "INIT_SEAFILE_ADMIN_EMAIL"
+        "INIT_SEAFILE_ADMIN_PASSWORD"
+        "INIT_SS_ADMIN_USER"
+        "INIT_SS_ADMIN_PASSWORD"
+        "SEAFILE_OAUTH_CLIENT_ID"
+        "SEAFILE_OAUTH_CLIENT_SECRET"
+        "ONLYOFFICE_JWT_SECRET"
+      ];
+    assert
+      builtins.attrNames wardenConfig.shulker.system.secretPreflight.schemas.seafileEnv.exactKeys
+      == builtins.sort builtins.lessThan seafile.requiredEnvironmentKeys;
+    assert
+      wardenConfig.shulker.system.secretPreflight.schemas.seafileEnv.exactKeys.SEAFILE_MYSQL_DB_PASSWORD.pattern
+      == "^[A-Za-z0-9._~!@+,/:=-]+$";
+    assert
+      wardenConfig.shulker.system.secretPreflight.schemas.seafileEnv.exactKeys.SEAHUB_SECRET_KEY.minLength
+      == 50;
+    assert seafileConfigService.serviceConfig.Type == "oneshot";
+    assert seafileConfigService.serviceConfig.RemainAfterExit;
+    assert seafileConfigService.serviceConfig.RuntimeDirectoryPreserve == "yes";
+    assert
+      seafileConfigService.unitConfig.ConditionFileNotEmpty
+      == wardenConfig.services.onepassword-secrets.secrets.seafileEnv.path;
+    assert builtins.elem "opnix-secrets.service" seafileConfigService.requires;
+    assert builtins.elem "seafile-state.service" seafileConfigService.requires;
+    assert builtins.elem "opnix-secrets.service" seafileConfigService.after;
+    assert builtins.elem "seafile-state.service" seafileConfigService.after;
+    assert pkgs.lib.hasInfix "/run/seafile-host" seafile.runtimeConfigContractText;
+    assert pkgs.lib.hasInfix "/run/seafile-app" seafile.runtimeConfigContractText;
+    assert pkgs.lib.hasInfix "/run/seafile-metadata" seafile.runtimeConfigContractText;
+    assert pkgs.lib.hasInfix "RuntimeDirectoryPreserve" seafile.runtimeConfigContractText;
+    assert pkgs.lib.hasInfix "--container-project" seafile.renderRuntimeConfigScript;
+    assert pkgs.lib.hasInfix "label=com.docker.compose.project=$container_project"
+      seafile.renderRuntimeConfigScript;
+    pkgs.runCommand "seafile-secret-contract" { } ''
+      touch "$out"
+    '';
+
+  seafile-identity-boundary-contract =
+    pkgs.runCommand "seafile-identity-boundary-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.jq
+        ];
+      }
+      ''
+        ${pkgs.bash}/bin/bash ${../tests/seafile-identity-boundary.sh} \
+          ${../.}/scripts/validate-seafile-identities.sh
+        touch "$out"
+      '';
+
+  seafile-restore-identity-contract =
+    let
+      identify = pkgs.writeText "seafile-restore-identify-native-admin.py" seafile.restoreIdentifyNativeAdminScript;
+      reset = pkgs.writeText "seafile-restore-reset-native-admin.py" seafile.restoreResetNativeAdminScript;
+      verify = pkgs.writeText "seafile-restore-verify-native-admin.py" seafile.restoreVerifyNativeAdminScript;
+    in
+    pkgs.runCommand "seafile-restore-identity-contract"
+      {
+        nativeBuildInputs = [ pkgs.python3 ];
+      }
+      ''
+        python ${../tests/seafile-restore-identity.py} \
+          --identify ${identify} \
+          --reset ${reset} \
+          --verify ${verify}
+        touch "$out"
+      '';
+
+  seafile-bootstrap-contract =
+    let
+      settings = pkgs.writeText "seahub_settings.py" seafile.seahubSettingsText;
+      status = pkgs.writeText "seafile-bootstrap-status.py" seafile.bootstrapStatusPython;
+      contract = seafile.bootstrapContractText;
+      pythonResultProtocol = pkgs.writeShellApplication {
+        name = "seafile-python-result-protocol-under-test";
+        runtimeInputs = [
+          pkgs.coreutils
+          pkgs.gawk
+        ];
+        text = ''
+          ${seafile.pythonResultProtocolShell}
+          run_seafile_python_command "$@"
+        '';
+      };
+      pythonResultEmitter = pkgs.writeShellScript "seafile-python-result-emitter" ''
+        marker="SHULKER_SEAFILE_RESULT:''${SHULKER_SEAFILE_RESULT_TOKEN:?}"
+        payload="SHULKER_SEAFILE_PAYLOAD:''${SHULKER_SEAFILE_RESULT_TOKEN:?}:"
+        case "''${1:-}" in
+          success) printf '%s\n' "''${payload}fixture-result" "$marker" "" 'Done.' ;;
+          noisy-success)
+            printf '%s\n' \
+              'Load disk config: fixture commits' \
+              'Load disk config: fixture fs' \
+              'Load disk config: fixture blocks' \
+              "''${payload}fixture-result" "$marker" "" 'Done.'
+            ;;
+          empty) printf '%s\n' "$marker" "" 'Done.' ;;
+          masked-failure) printf '%s\n' 'Traceback: fixture child failure' "" 'Done.' ;;
+          nonzero) printf '%s\n' "''${payload}fixture-result" "$marker" "" 'Done.'; exit 7 ;;
+          reversed) printf '%s\n' "''${payload}fixture-result" 'Done.' "$marker" ;;
+          trailing) printf '%s\n' "''${payload}fixture-result" "$marker" unexpected 'Done.' ;;
+          duplicate) printf '%s\n' "''${payload}fixture-result" "$marker" "$marker" 'Done.' ;;
+          oversized)
+            head --bytes=1048577 /dev/zero | tr '\0' x
+            printf '%s\n' "$marker" "" 'Done.'
+            ;;
+          *) exit 64 ;;
+        esac
+      '';
+      revokeStart = "from django.contrib.sessions.models import Session";
+      revokeAfterStart = builtins.elemAt (pkgs.lib.splitString revokeStart contract) 1;
+      revokeBody = builtins.unsafeDiscardStringContext (
+        builtins.elemAt (pkgs.lib.splitString "\nfrom seaserv import ccnet_api" revokeAfterStart) 0
+      );
+      revokeScript = pkgs.writeText "seafile-revoke-oauth-admin.py" ''
+        ${seafile.managementPythonPrelude}
+
+        ${revokeStart}${revokeBody}
+      '';
+
+    in
+    assert pkgs.lib.all (name: builtins.elem name systemPackageNames) seafileBootstrapPackageNames;
+    assert builtins.length seafileBootstrapPackages == builtins.length seafileBootstrapPackageNames;
+    assert pkgs.lib.hasInfix "/run/lock/seafile-maintenance.lock" contract;
+    assert pkgs.lib.hasInfix "com.docker.compose.project" contract;
+    assert pkgs.lib.hasInfix "SEAFILE_ADMIN_USER_ID" contract;
+    assert pkgs.lib.hasInfix "SocialAuthUser" contract;
+    assert pkgs.lib.hasInfix "provider=\"pocket-id\"" contract;
+    assert pkgs.lib.hasInfix "license_user_limit = 3" contract;
+    assert pkgs.lib.hasInfix "active_user_count > license_user_limit" contract;
+    assert pkgs.lib.hasInfix "docker restart seafile" contract;
+    assert pkgs.lib.hasInfix "reset-admin.sh" contract;
+    assert pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_EMAIL" contract;
+    assert pkgs.lib.hasInfix "INIT_SEAFILE_ADMIN_PASSWORD" contract;
+    assert pkgs.lib.hasInfix "DJANGO_SETTINGS_MODULE" seafile.managementPythonPrelude;
+    assert pkgs.lib.hasInfix "django.setup()" seafile.managementPythonPrelude;
+    assert pkgs.lib.hasInfix "SHULKER_SEAFILE_RESULT_TOKEN" contract;
+    assert pkgs.lib.hasInfix "run_seafile_python_command" contract;
+    assert !(pkgs.lib.hasInfix "set_password(" contract);
+    assert !(pkgs.lib.hasInfix "create_user(" contract);
+    assert !(pkgs.lib.hasInfix "DISABLE_ADFS_USER_PWD_LOGIN" seafile.seahubSettingsText);
+    assert !(pkgs.lib.hasInfix "pangolin" (pkgs.lib.toLower (contract + seafile.seahubSettingsText)));
+    pkgs.runCommand "seafile-bootstrap-contract"
+      {
+        nativeBuildInputs = [
+          pkgs.python3
+        ]
+        ++ pkgs.lib.optionals (system == "x86_64-linux") seafileBootstrapPackages;
+      }
+      ''
+        export SEAHUB_SECRET_KEY=fixture-secret-key
+        export JWT_PRIVATE_KEY=fixture-private-key
+        export SEAFILE_MYSQL_DB_PASSWORD=fixture-database-password
+        export SEAFILE_OAUTH_CLIENT_ID=fixture-client-id
+        export SEAFILE_OAUTH_CLIENT_SECRET=fixture-client-secret
+        export ONLYOFFICE_JWT_SECRET=fixture-office-secret
+        python - ${settings} <<'PY'
+        import runpy
+        import sys
+
+        settings = runpy.run_path(sys.argv[1])
+        expected = {
+            "TIME_ZONE": "Europe/Paris",
+            "ENABLE_OAUTH": True,
+            "OAUTH_CREATE_UNKNOWN_USER": True,
+            "OAUTH_ACTIVATE_USER_AFTER_CREATION": True,
+            "OAUTH_ENABLE_INSECURE_TRANSPORT": False,
+            "OAUTH_PROVIDER": "pocket-id",
+            "OAUTH_REDIRECT_URL": "https://files.shulker.link/oauth/callback/",
+            "OAUTH_AUTHORIZATION_URL": "https://sso.shulker.link/authorize",
+            "OAUTH_TOKEN_URL": "https://sso.shulker.link/api/oidc/token",
+            "OAUTH_USER_INFO_URL": "https://sso.shulker.link/api/oidc/userinfo",
+            "OAUTH_SCOPE": ["openid", "profile", "email"],
+            "OAUTH_ATTRIBUTE_MAP": {
+                "sub": (True, "uid"),
+                "name": (False, "name"),
+                "email": (False, "contact_email"),
+            },
+            "CLIENT_SSO_VIA_LOCAL_BROWSER": True,
+            "ENABLE_SSO_USER_CHANGE_PASSWORD": False,
+            "ENABLE_SETTINGS_VIA_WEB": False,
+            "ENABLE_METADATA_MANAGEMENT": True,
+            "METADATA_SERVER_URL": "http://seafile-metadata:8084",
+            "SHARE_LINK_FORCE_USE_PASSWORD": True,
+            "SHARE_LINK_PASSWORD_MIN_LENGTH": 12,
+            "SHARE_LINK_PASSWORD_STRENGTH_LEVEL": 3,
+            "SHARE_LINK_EXPIRE_DAYS_DEFAULT": 7,
+            "SHARE_LINK_EXPIRE_DAYS_MAX": 30,
+            "UPLOAD_LINK_EXPIRE_DAYS_DEFAULT": 7,
+            "UPLOAD_LINK_EXPIRE_DAYS_MAX": 30,
+            "SHARE_LINK_LOGIN_REQUIRED": False,
+            "ENABLE_ONLYOFFICE": True,
+            "ONLYOFFICE_APIJS_URL": "https://office.shulker.link/web-apps/apps/api/documents/api.js",
+            "ONLYOFFICE_EDIT_FILE_EXTENSION": ("docx", "xlsx", "pptx", "csv"),
+            "ENABLE_WIKI": False,
+        }
+        for key, value in expected.items():
+            assert settings.get(key) == value, (key, settings.get(key))
+        assert not any(
+            key.startswith("OAUTH_") and any(term in key for term in ("ADMIN", "GROUP", "ROLE"))
+            for key in settings
+        )
+        assert settings["DATABASES"] == {
+            "default": {
+                "ENGINE": "django.db.backends.mysql",
+                "NAME": "seahub_db",
+                "USER": "seafile",
+                "PASSWORD": "fixture-database-password",
+                "HOST": "database",
+                "PORT": "3306",
+                "OPTIONS": {"charset": "utf8mb4"},
+            }
+        }
+        assert settings["ONLYOFFICE_JWT_SECRET"] == "fixture-office-secret"
+        PY
+
+        python ${../tests/seafile-revoke-admin.py} ${revokeScript}
+        python ${../tests/seafile-bootstrap-identity.py} --status ${status}
+
+        protocol=${pythonResultProtocol}/bin/seafile-python-result-protocol-under-test
+        emitter=${pythonResultEmitter}
+        test "$("$protocol" "$emitter" success)" = fixture-result
+        test "$("$protocol" "$emitter" noisy-success)" = fixture-result
+        test -z "$("$protocol" "$emitter" empty)"
+        for mode in masked-failure nonzero reversed trailing duplicate oversized; do
+          if "$protocol" "$emitter" "$mode" >protocol.stdout 2>protocol.stderr; then
+            echo "result protocol unexpectedly accepted $mode" >&2
+            exit 1
+          fi
+          grep -F 'Seafile management Python operation' protocol.stderr >/dev/null
+          ! grep -F 'Traceback: fixture child failure' protocol.stdout protocol.stderr
+        done
+        ! "$protocol" "$emitter" success \
+          | grep -E 'SHULKER_SEAFILE_(RESULT|PAYLOAD)|Done\.|Load disk config'
+
+        touch "$out"
+      '';
+}
