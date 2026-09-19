@@ -1,9 +1,8 @@
-#
-# This file defines overlays/custom modifications to upstream packages
-#
+# Package overrides applied to every host's shared nixpkgs instance.
 { ... }:
 {
   default = final: prev: {
+    # Use the packaged Electron bundle and disable signing for sandboxed macOS builds.
     vesktop = prev.vesktop.overrideAttrs (old: {
       buildPhase = ''
         runHook preBuild

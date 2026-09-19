@@ -1,3 +1,4 @@
+# Shared Markdown formatting and enabled-module discovery for generated reports.
 { lib }:
 
 let
@@ -5,6 +6,7 @@ let
   code = value: "`${escapeCell value}`";
   orNone = values: if values == [ ] then "_None._" else lib.concatStringsSep ", " values;
 
+  # A boolean enable flag is the module boundary; do not enumerate its settings.
   collectEnabled =
     path: value:
     if builtins.isAttrs value && value ? enable && builtins.isBool value.enable then

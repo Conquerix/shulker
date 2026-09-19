@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Render validated documentation into a checkout, replacing only managed pages.
 
 set -euo pipefail
 
@@ -72,6 +73,7 @@ if [ ! -d "$wiki_docs_dir" ]; then
 	exit 1
 fi
 
+# Require an exact non-host page inventory before touching the destination checkout.
 manifest="$wiki_docs_dir/wiki-pages.txt"
 if [ -L "$manifest" ]; then
 	echo "refusing symlinked Wiki page manifest: $manifest" >&2
@@ -133,6 +135,7 @@ if [ -s "$comparison_names" ]; then
 	exit 1
 fi
 
+# Unmarked pages belong to humans; only the known legacy Home page can be adopted.
 assert_managed_or_absent() {
 	page="$1"
 	if [ -L "$page" ]; then
@@ -234,6 +237,7 @@ if [ "$report_count" -eq 0 ]; then
 	exit 1
 fi
 
+# Finish rendering in a private sibling directory before replacing managed pages.
 staging_dir="$(mktemp -d "$wiki_dir/.shulker-wiki-stage.XXXXXX")"
 chmod 700 "$staging_dir"
 

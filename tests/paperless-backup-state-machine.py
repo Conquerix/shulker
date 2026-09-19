@@ -15,6 +15,7 @@ del sys.argv[1:3]
 SERVICES = ("webserver", "database", "broker", "tika", "gotenberg")
 NAMES = ("paperless_webserver", "paperless_postgres", "paperless_broker", "paperless_tika", "paperless_gotenberg")
 
+# Each intercepted command updates shared JSON state and records transaction ordering.
 STUB = r'''
 import json, os, re, signal, sys, time
 from pathlib import Path

@@ -1,9 +1,8 @@
+# Assemble fleet configurations, validation checks, and generated operator documentation.
 {
   description = "Conquerix's Nix-Config";
   inputs = {
-    #
-    # ========= Official NixOS, Darwin, and HM Package Sources =========
-    #
+    # Follow one nixpkgs input so system modules and user packages share the same revision.
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
@@ -14,9 +13,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    #
-    # ========= Utilities =========
-    #
+    # External modules provide persistence, secrets, checks, and application integrations.
     impermanence = {
       url = "github:nix-community/impermanence";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -63,14 +60,13 @@
     let
       inherit (self) outputs;
 
-      #
-      # ========= Architectures =========
-      #
+      # Build tools and reports for Linux and Apple Silicon development hosts.
       forAllSystems = nixpkgs.lib.genAttrs [
         "x86_64-linux"
         "aarch64-darwin"
       ];
 
+      # Each direct host directory becomes a flake configuration with the same name.
       nixosHostNames = builtins.attrNames (
         nixpkgs.lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./system/hosts/nixos)
       );
@@ -78,22 +74,16 @@
         nixpkgs.lib.filterAttrs (_: type: type == "directory") (builtins.readDir ./system/hosts/darwin)
       );
 
-      # ========== Extend lib with lib.custom ==========
-      # NOTE: This approach allows lib.custom to propagate into hm
-      # see: https://github.com/nix-community/home-manager/pull/3454
+      # Extend lib so the same custom helpers also reach Home Manager modules.
+      # https://github.com/nix-community/home-manager/pull/3454
       lib = nixpkgs.lib.extend (self: super: { custom = import ./lib { inherit (nixpkgs) lib; }; });
 
     in
     {
-      #
-      # ========= Overlays =========
-      #
-      # Custom modifications/overrides to upstream packages
+      # Apply local package fixes to every host.
       overlays = import ./overlays { inherit inputs; };
 
-      #
-      # ========= Host Configurations =========
-      #
+      # Common module availability; each host selects its profiles and enabled services.
       # Rebuild a host with `sudo shulker-rebuild switch --flake .#hostname`.
       nixosConfigurations = builtins.listToAttrs (
         map (host: {
@@ -125,6 +115,7 @@
         }) nixosHostNames
       );
 
+      # macOS shares common modules and users, with its own platform modules and profiles.
       darwinConfigurations = builtins.listToAttrs (
         map (host: {
           name = host;
@@ -183,6 +174,7 @@
               value = nixosDocs."host-docs-${host}";
             }) serverHostNames
           );
+          # Never feed private or live API data directly into published documentation.
           infrastructureData = import ./lib/infrastructure-data.nix {
             inherit darwinHostNames;
             darwinConfigurations = self.darwinConfigurations;
@@ -224,27 +216,22 @@
             wikiSourceDir = ./docs/wiki;
           };
         }
+        # The deployment wrapper depends on nixos-rebuild and is Linux-only.
         // lib.optionalAttrs pkgs.stdenv.isLinux {
           checked-rebuild = checkedRebuild;
         }
       );
 
-      #
-      # ========= Formatting =========
-      #
-      # Nix formatter available through 'nix fmt' https://github.com/NixOS/nixfmt
+      # Keep local formatting aligned with the validation hooks.
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
-      # Pre-commit checks
+      # Export the same contracts used by local validation and CI.
       checks = forAllSystems (
         system:
         import ./checks.nix {
           inherit inputs self system;
         }
       );
-      #
-      # ========= DevShell =========
-      #
-      # Development shell for maintaining and validating this configuration.
+      # Development tools inherit their hooks and packages from these checks.
       devShells = forAllSystems (
         system:
         import ./shell.nix {

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Enable Pangolin API routing on its host, with protected backups and rollback.
 
 set -Eeuo pipefail
 
@@ -32,6 +33,7 @@ for file in "$config_file" "$dynamic_file"; do
 	yq eval '.' "$file" >/dev/null
 done
 
+# Protect backups and stage both files before replacing either live configuration.
 umask 077
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 backup_dir="$config_dir/codex-backups/integration-api-$timestamp"
@@ -116,6 +118,7 @@ chmod --reference="$config_file" "$config_tmp"
 chown --reference="$dynamic_file" "$dynamic_tmp"
 chmod --reference="$dynamic_file" "$dynamic_tmp"
 
+# Keep rollback armed through the restart and internal readiness check.
 rollback_needed=1
 mv -f "$config_tmp" "$config_file"
 mv -f "$dynamic_tmp" "$dynamic_file"
@@ -145,6 +148,7 @@ trap - ERR
 echo "Pangolin Integration API enabled for https://$api_host/v1/."
 echo "Root-only backups: $backup_dir"
 
+# External routing may lag after a healthy internal API; report it separately.
 external_ready=0
 for _ in $(seq 1 30); do
 	if curl -fsS "https://$api_host/v1/docs" >/dev/null 2>&1; then

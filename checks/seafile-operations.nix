@@ -1,3 +1,4 @@
+# Check Seafile maintenance and backup helpers against isolated failure fixtures.
 {
   pkgs,
   wardenConfig,
@@ -30,6 +31,7 @@ let
   ) wardenConfig.environment.systemPackages;
 in
 {
+  # Repackage evaluated helpers so the driver can substitute external service calls.
   seafile-maintenance-contract =
     let
       contract = seafile.maintenanceContractText;
@@ -163,6 +165,7 @@ in
         touch "$out"
       '';
 
+  # Bind generated restore identity programs into the same simulated backup lifecycle.
   seafile-backup-state-machine-contract =
     let
       restoreIdentify = pkgs.writeText "seafile-restore-identify-native-admin.py" seafile.restoreIdentifyNativeAdminScript;
@@ -274,6 +277,7 @@ in
       borgmatic.exclude_patterns;
     assert !(borgmatic.follow_symlinks or false);
     assert !(borgmatic.read_special or false);
+    # Restore resources need a separate namespace and invocation ownership labels.
     assert seafile.restoreComposeConfig.name == "seafile-restore";
     assert seafile.restoreComposeConfig.services.seafile.ports == [ ];
     assert seafile.restoreComposeConfig.services.onlyoffice.ports == [ ];
@@ -301,6 +305,7 @@ in
     assert pkgs.lib.hasInfix "--kill-after=1 \"$validator_probe_timeout\"" contract;
     assert pkgs.lib.hasInfix "validator database authentication did not become ready" contract;
     assert !(pkgs.lib.hasInfix "mariadb-admin --user root ping" contract);
+    # Confine scratch-data cleanup instead of widening Borgmatic host privileges.
     assert pkgs.lib.hasInfix "--network=none --pull=never --read-only" contract;
     assert pkgs.lib.hasInfix "--security-opt=no-new-privileges=true --pids-limit=16" contract;
     assert pkgs.lib.hasInfix "--user 0:0 --cap-drop=ALL --cap-add=DAC_OVERRIDE" contract;

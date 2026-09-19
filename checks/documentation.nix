@@ -1,3 +1,4 @@
+# Validate service discovery, public documentation, and safe Wiki publication.
 {
   self,
   system,
@@ -9,6 +10,7 @@ let
   witherHostDocs = self.packages.${system}."host-docs-wither";
   infrastructureData = self.packages.${system}.infrastructure-data;
   wikiDocs = self.packages.${system}.wiki-docs;
+  # Store-backed fixtures exercise report names, link chains, and escaping targets.
   wikiSyncWardenReport = pkgs.writeTextDir "warden.md" "# Warden\n";
   wikiSyncDecoyReport = pkgs.writeTextDir "shulker.md" "# Shulker\n";
   wikiSyncWardenReportName = builtins.baseNameOf (toString wikiSyncWardenReport);
@@ -45,6 +47,7 @@ let
     report_target=${wikiSyncWardenReport}/warden.md
     ln -s "$report_target"$'\r\n' "$out/warden.md"
   '';
+  # The explicit inventory catches accidental service moves or discovery expansion.
   retainedServices = [
     "backup"
     "beszel"
@@ -183,6 +186,7 @@ let
     assert rootImportNames == expectedRootImportNames;
     true;
   serviceRunbooks = import ../lib/service-runbooks.nix { lib = pkgs.lib; };
+  # Force lazy discovery results so malformed names and collisions fail evaluation.
   serviceRunbookContract =
     let
       evaluate = arguments: builtins.tryEval (builtins.deepSeq (serviceRunbooks arguments) true);
@@ -297,6 +301,7 @@ in
       touch "$out"
     '';
 
+    # Build checks cover rendered content and publication wiring beyond Nix assertions.
     wiki-docs-contract =
       pkgs.runCommand "wiki-docs-contract"
         {
@@ -672,6 +677,7 @@ in
           touch "$out"
         '';
 
+    # Use real store outputs with the isolated synchronizer regression driver.
     wiki-sync-contract =
       pkgs.runCommand "wiki-sync-contract"
         {

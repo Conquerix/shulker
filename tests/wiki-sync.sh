@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Test Wiki ownership and path boundaries using isolated Git checkouts.
 
 set -euo pipefail
 
@@ -107,6 +108,7 @@ expect_diagnostic() {
 	grep -Fqx -- "$1" "$case_dir/stderr" || fail "missing diagnostic: $1"
 }
 
+# Start from the supported workflow layout before testing malformed inputs and ownership.
 new_case clean-manifest
 write_standard_pages
 expect_success "clean manifest"
@@ -167,6 +169,7 @@ printf 'Host-shadow.md\n' >"$wiki_docs_dir/wiki-pages.txt"
 expect_failure "Host-shadow.md"
 expect_diagnostic "reserved Wiki page name in manifest"
 
+# Destination ownership checks must preserve manual and stale pages on refusal.
 new_case unmarked-collision
 write_standard_pages
 printf '# Manual Services\n' >"$wiki_dir/Services.md"
@@ -248,6 +251,7 @@ expect_failure "destination symlink"
 expect_diagnostic "refusing symlinked Wiki destination: $wiki_dir/Services.md"
 cmp "$case_dir/outside.before" "$case_dir/outside.md" || fail "destination symlink target changed"
 
+# Reject writable, chained, escaping, or renamed reports even when their content looks valid.
 new_case report-symlink
 write_standard_pages
 replace_reports_dir

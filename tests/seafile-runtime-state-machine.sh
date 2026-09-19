@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Exercise storage initialization, runtime rendering, and guarded Compose recovery.
 set -euo pipefail
 
 write_bash_stub() {
@@ -31,6 +32,7 @@ real_rmdir="$(command -v rmdir)"
 real_stat="$(command -v stat)"
 real_unlink="$(command -v unlink)"
 
+# Simulate mount metadata and crash points while keeping filesystem mutations in the fixture.
 write_bash_stub "$stub_dir/findmnt" <<'EOF'
 set -euo pipefail
 case " $* " in

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Exercise administrator revocation against in-memory Django and Seafile APIs.
 
 import contextlib
 import io
@@ -28,6 +29,7 @@ def module(name, **attributes):
     return value
 
 
+# Minimal model and query objects record account, session, token, and transaction effects.
 class UserRecord:
     def __init__(self, password="!"):
         self.id = USER_ID
@@ -187,6 +189,7 @@ def run_script():
     return output.getvalue()
 
 
+# Native recovery access must be rejected before the first mutation.
 reset(password="stored-native-hash", oauth_linked=False)
 try:
     run_script()

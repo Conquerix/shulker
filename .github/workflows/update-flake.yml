@@ -1,3 +1,5 @@
+# Validate weekly input updates before publishing the shared automation branch.
+# Serialize branch updates; repository and pull-request writes support that handoff.
 name: Update flake inputs
 
 on:

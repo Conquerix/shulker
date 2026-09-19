@@ -1,3 +1,4 @@
+# Bundle related contracts so CI and operators can build one named check.
 {
   self,
   system,

@@ -1,3 +1,5 @@
+# Validate evaluated configuration and regression contracts; retain generated reports.
+# New pushes supersede older checks, and the job needs only repository read access.
 name: Checks
 
 on:

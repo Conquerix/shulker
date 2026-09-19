@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Exercise maintenance probes with synthetic services, credentials, and API replies.
 set -euo pipefail
 
 write_bash_stub() {
@@ -108,6 +109,7 @@ transaction_kind=writers_quiesced=true
 EOF
 chmod 0600 "$state/control/seafile-29990101T000000-11111111-1111-4111-8111-111111111111.validated"
 
+# Command stubs expose individual probe failures and record all attempted external calls.
 write_bash_stub "$bin/systemctl" <<'EOF'
 set -euo pipefail
 printf 'systemctl %s\n' "$*" >>"${STUB_CALLS:?}"
@@ -284,6 +286,7 @@ set -euo pipefail
 printf '%s\n' 0
 EOF
 
+# The OnlyOffice API fixture succeeds through reopen, then deliberately rejects cleanup.
 site_packages="$root/site-packages"
 mkdir -p "$site_packages"
 cat >"$site_packages/sitecustomize.py" <<'PY'
@@ -510,6 +513,7 @@ expect_failure() {
 	fi
 }
 
+# Each health dependency must fail independently with its own bounded diagnostic.
 expect_failure inactive 'Seafile Compose service is not active'
 expect_failure compose 'Seafile does not have exactly seven running Compose services'
 expect_failure sql 'Seafile SQL probe failed'
@@ -627,6 +631,7 @@ if grep -F -- fixture-root-password <<<"$output" >/dev/null; then
 fi
 rm -f "$state/shared/logs/bootstrap-secret.log"
 
+# Check the special monitor-log size limit and scan beyond the ordinary log bound.
 monitor_log="$state/shared/seafile/logs/seafile-monitor.log"
 truncate -s 56623104 "$monitor_log"
 run_health >/dev/null
@@ -679,6 +684,7 @@ fi
 STUB_INHERITED_LOCK_HELD=1 SEAFILE_MAINTENANCE_LOCK_HELD=1 run_health >/dev/null
 exec 9>&-
 
+# Use real competing locks to distinguish an inherited descriptor from a held lock.
 real_flock="$(command -v flock)"
 holder_ready="$root/holder-ready"
 holder_release="$root/holder-release"
@@ -715,6 +721,7 @@ SEAFILE_FLOCK_COMMAND_OVERRIDE="$real_flock" SEAFILE_MAINTENANCE_LOCK_HELD=1 run
 "$real_flock" -u 9
 exec 9>&-
 
+# Extended health joins local probes with matching backup validation and completion evidence.
 run_extended() {
 	env \
 		STUB_CALLS="$calls" \
@@ -837,6 +844,7 @@ if env SEAFILE_STATE_DIR="$state" "$enable_public" >/dev/null 2>&1; then
 fi
 [ ! -e "$state/control/public-ingress-accepted" ]
 
+# A functional probe is unsuccessful when its temporary document cannot be removed.
 driver_status=0
 env \
 	INIT_SEAFILE_ADMIN_EMAIL=fixture-admin@example.invalid \

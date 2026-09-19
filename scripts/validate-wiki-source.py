@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Validate authored Markdown before it is copied unchanged into the Wiki.
 
 import re
 import sys
@@ -37,6 +38,7 @@ def canonical_target(raw_target: str) -> bool:
     return bool(ABSOLUTE_URI.match(target))
 
 
+# The publication path copies Markdown unchanged, so links must work outside the source tree.
 def validate_links(path: Path, line: str) -> None:
     if REFERENCE_DEFINITION.match(line) or REFERENCE_LINK.search(line):
         fail(path, "unsupported Markdown reference link")
@@ -59,6 +61,7 @@ def validate(path: Path) -> None:
     if PUBLISHER_MARKER in text:
         fail(path, "publisher marker")
 
+    # Ignore code examples when counting headings and validating prose links.
     fence_character = None
     fence_length = 0
     headings = 0

@@ -1,3 +1,4 @@
+# Render a NixOS host runbook from evaluated services, storage, and recovery settings.
 {
   config,
   hostName,
@@ -67,6 +68,7 @@ let
     "${repo.name}: ${modules.git-pages.bindAddress}:${toString port} from ${repo.url}@${repo.branch}"
   ) modules.git-pages.repos;
 
+  # Curate operational fields rather than serializing entire service configurations.
   configuredServices = concatLists [
     (service "Borgmatic" modules.backup.enable
       "Hetzner Storage Box ${modules.backup.hetznerStorageBoxAccount}"
@@ -198,6 +200,7 @@ let
     (map toString config.networking.firewall.allowedUDPPorts)
     ++ (map formatPortRange config.networking.firewall.allowedUDPPortRanges);
 
+  # Compose-managed containers are absent from the NixOS OCI inventory; include them explicitly.
   immichComposeContainers = [
     {
       name = "immich_server";
@@ -273,6 +276,7 @@ let
       (codeList [ "Compose private network" ])
     ]) enabledComposeContainers;
 
+  # Docker exposure is checked separately from the host firewall's allowed ports.
   publishedContainerPorts =
     concatLists (
       mapAttrsToList (_: container: container.ports) config.virtualisation.oci-containers.containers
@@ -304,6 +308,7 @@ let
 
   persistenceRoot = "/nix/persist";
   persistence = config.environment.persistence.${persistenceRoot};
+  # Impermanence accepts both plain paths and records with ownership metadata.
   persistenceDirectories = sort builtins.lessThan (
     unique (map (entry: if isString entry then entry else entry.directory) persistence.directories)
   );
@@ -342,6 +347,7 @@ let
   ]) sqliteDatabases;
   backupChecks = config.services.borgmatic.settings.checks or [ ];
 
+  # Publish logical secret names only, never references, values, or generated file paths.
   secretNames = attrNames config.services.onepassword-secrets.secrets;
   normalUsers = mapAttrsToList (name: _: name) (
     lib.filterAttrs (_: user: user.isNormalUser) config.users.users
@@ -353,6 +359,7 @@ let
     (if config.boot.loader.generic-extlinux-compatible.enable then "generic extlinux" else null)
   ];
 
+  # Flag declared coverage gaps; live health and restore acceptance still require runtime checks.
   warnings =
     optional (!modules.backup.enable && backupSources != [ ])
       "Backup sources are registered, but Borgmatic is disabled; those sources are not actively backed up."

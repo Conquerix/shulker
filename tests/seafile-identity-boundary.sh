@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Check identity counts, collisions, file protection, and quiet diagnostics.
 
 set -euo pipefail
 

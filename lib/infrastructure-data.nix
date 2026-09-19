@@ -1,3 +1,4 @@
+# Build a selected host/service inventory for diagrams and Wiki pages.
 {
   darwinConfigurations,
   darwinHostNames,
@@ -20,6 +21,7 @@ let
 
   inherit (import ./documentation-helpers.nix { inherit lib; }) collectEnabled;
 
+  # Disabled services are omitted from the inventory.
   service =
     key: name: category: enabled: endpoint:
     if enabled then
@@ -34,6 +36,7 @@ let
     else
       null;
 
+  # Endpoint connections require a known destination; local dependencies use service keys.
   connection =
     enabled: from: to: relation:
     optional (enabled && to != null && to != "") {
@@ -52,6 +55,7 @@ let
       config = nixosConfigurations.${hostName}.config;
       modules = config.shulker.system.modules;
       profiles = config.shulker.system.profiles;
+      # Discover Seafile components from the actual Compose stack, including optional ones.
       seafileComposeServices =
         if modules.seafile.enable then modules.seafile.composeConfig.services else { };
       seafileComponent =
@@ -122,6 +126,7 @@ let
           modules.seafile.onlyOfficePublicUrl
         )
       ];
+      # Connections name endpoints; dependencies below link local components by service key.
       connections = concatLists [
         (connection modules.newt.enable "newt" modules.newt.endpoint "outbound tunnel")
         (connection modules.beszel.agent.enable "beszel-agent" modules.beszel.agent.hubEndpoint "metrics")
@@ -190,6 +195,7 @@ let
 in
 {
   schema = 2;
+  # The flake supplies only the sanitized external topology snapshot.
   inherit external revision;
   hosts = (map nixosHost hostNames) ++ (map darwinHost darwinHostNames);
 }

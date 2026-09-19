@@ -1,3 +1,4 @@
+# Render a macOS host report from its merged nix-darwin and Home Manager settings.
 {
   config,
   hostName,
@@ -29,6 +30,7 @@ let
   enabledModules = collectEnabled [ ] (config.shulker.system.modules or { });
   enabledUsers = collectEnabled [ ] (config.shulker.users or { });
   homeManagerUsers = attrNames (config.home-manager.users or { });
+  # Build workers are implementation details, not operator-managed accounts.
   systemUsers = filter (name: !(hasPrefix "_nixbld" name)) (attrNames (config.users.users or { }));
   systemPackages = map lib.getName (config.environment.systemPackages or [ ]);
   fontPackages = map lib.getName (config.fonts.packages or [ ]);

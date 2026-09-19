@@ -1,3 +1,4 @@
+# Local caches, generated hooks, build outputs, and macOS metadata.
 .pre-commit-config.yaml
 .direnv
 tmp

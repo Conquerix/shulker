@@ -1,3 +1,4 @@
+# Run the same formatting and source-hygiene hooks locally and in CI.
 { inputs, system, ... }:
 {
   pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {

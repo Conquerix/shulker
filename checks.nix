@@ -1,3 +1,4 @@
+# Collect named flake checks around the evaluated Warden configuration.
 {
   inputs,
   self,
@@ -19,6 +20,7 @@ let
     services = wardenConfig.systemd.services;
   };
   documentation = import ./checks/documentation.nix context;
+  # Keep groups independent; the merge below rejects duplicate public check names.
   groups = [
     documentation.checks
     (import ./checks/host.nix context)

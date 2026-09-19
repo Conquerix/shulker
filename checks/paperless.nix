@@ -1,3 +1,4 @@
+# Check Paperless configuration, backup recovery, and published operating policy.
 {
   self,
   system,
@@ -142,6 +143,7 @@ in
         touch "$out"
       '';
 
+  # Replace command paths and the lock location while retaining the real transaction.
   paperless-backup-state-machine-contract =
     let
       prepare = pkgs.writeText "paperless-backup-prepare-under-test.sh" (
@@ -204,6 +206,7 @@ in
       touch "$out"
     '';
 
+  # Public output must agree on access policy and exclude private configuration.
   paperless-docs-contract = pkgs.runCommand "paperless-docs-contract" { } ''
     combined="$TMPDIR/paperless-generated-docs"
     paperless_runbook=${wikiDocs}/Service-Paperless.md

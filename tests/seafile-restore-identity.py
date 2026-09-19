@@ -92,6 +92,7 @@ class FakeUserManager:
         return matches[0]
 
 
+# Run generated helpers against shared in-memory users to observe identity-preserving changes.
 class SeafileFixture:
     def __init__(self, users: list[FakeUser], oauth_usernames: list[str]) -> None:
         self.users = users

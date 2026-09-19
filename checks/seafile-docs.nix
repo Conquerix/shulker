@@ -1,3 +1,4 @@
+# Keep Seafile reports, runbooks, and release monitoring consistent and public-safe.
 {
   self,
   system,
@@ -287,6 +288,7 @@ in
         touch "$out"
       '';
 
+  # Source contracts constrain issue ownership, release lines, and workflow permissions.
   seafile-release-workflow-contract =
     pkgs.runCommand "seafile-release-workflow-contract"
       {

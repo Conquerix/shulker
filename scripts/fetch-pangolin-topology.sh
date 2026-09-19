@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Fetch private API data and publish only the allowlisted topology fields.
 
 set -euo pipefail
 
@@ -46,6 +47,7 @@ api_get() {
 	jq -e '.success == true and .error == false' "$destination" >/dev/null
 }
 
+# Raw responses stay in the private temporary tree and are removed on exit.
 sites_file="$temporary_dir/sites.json"
 resources_file="$temporary_dir/resources.json"
 domains_file="$temporary_dir/domains.json"
@@ -76,6 +78,7 @@ while IFS= read -r resource_id; do
 		}' >>"$targets_file"
 done < <(jq -r '.data.resources // .data // [] | .[].resourceId' "$resources_file")
 
+# Construct a fresh allowlisted object rather than removing fields from raw responses.
 collected_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
 jq -n \

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Test the supported Markdown subset with valid and deliberately invalid sources.
 
 set -euo pipefail
 

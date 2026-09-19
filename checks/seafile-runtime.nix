@@ -1,3 +1,4 @@
+# Guard Seafile storage, container startup, secrets, and account boundaries.
 {
   system,
   pkgs,
@@ -103,6 +104,7 @@ in
       touch "$out"
     '';
 
+  # Run evaluated scripts with fixture paths and simulated host/container boundaries.
   seafile-runtime-state-machine-contract =
     let
       validator = pkgs.writeText "seafile-validate-state-under-test" ''
@@ -196,6 +198,7 @@ in
         "fixture-jwt-secret"
       ];
       composeJson = builtins.toJSON compose;
+      # Adapt container paths only; keep entrypoint text available for portability checks.
       redisStartScriptUnderTest = pkgs.writeText "seafile-start-redis-under-test" (
         seafile.redisStartScriptText
       );
@@ -230,6 +233,7 @@ in
           )}
         '';
       };
+      # Matching, ambiguous, and changed entrypoints test the pinned-image patch boundary.
       metadataEntrypointText = ''
         #!/bin/bash
         cd "$METADATA_TEST_DIR"
@@ -373,6 +377,7 @@ in
         '';
       };
     in
+    # The exact component and network sets prevent accidental exposure or stack expansion.
     assert compose.name == "seafile";
     assert
       builtins.attrNames services' == [
@@ -440,6 +445,7 @@ in
       ];
     assert pkgs.lib.all (service: service.restart == "no") (builtins.attrValues services');
     assert pkgs.lib.all (service: !(service.privileged or false)) (builtins.attrValues services');
+    # Bind mounts and environment allowlists enforce per-container state and secret access.
     assert services'.redis.tmpfs == [ "/run/redis" ];
     assert services'.redis.entrypoint == [ "/usr/local/sbin/seafile-start-redis" ];
     assert services'.redis.command == [ "/run/redis/redis.conf" ];
@@ -581,6 +587,7 @@ in
       }
       .${name}
     ) (builtins.attrNames services');
+    # Pull/config ordering and systemd recovery own the stack lifecycle.
     assert seafilePullService.serviceConfig.Type == "oneshot";
     assert seafilePullService.serviceConfig.RemainAfterExit;
     assert seafilePullService.serviceConfig.TimeoutStartSec == 10800;
@@ -789,6 +796,7 @@ in
       touch "$out"
     '';
 
+  # Secret schema and unit dependencies must match runtime rendering requirements.
   seafile-secret-contract =
     assert
       seafile.requiredEnvironmentKeys == [
@@ -868,6 +876,7 @@ in
         touch "$out"
       '';
 
+  # Verify account policy and explicit Python success proofs despite wrapper noise.
   seafile-bootstrap-contract =
     let
       settings = pkgs.writeText "seahub_settings.py" seafile.seahubSettingsText;

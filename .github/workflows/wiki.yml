@@ -1,3 +1,5 @@
+# Publish validated documentation from the default branch into the repository Wiki.
+# A newer run supersedes stale publication; repository write access permits Wiki pushes.
 name: Publish repository Wiki
 
 on:

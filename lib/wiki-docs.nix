@@ -1,3 +1,4 @@
+# Assemble authored runbooks and evaluated inventory into the publishable Wiki bundle.
 {
   data,
   infrastructureDiagram,
@@ -31,6 +32,7 @@ let
     yesNo
     ;
 
+  # Fleet runbooks are mapped explicitly; service runbooks are discovered beside their modules.
   staticAuthoredPages = {
     "Operations-Backup-and-Restore.md" = wikiSourceDir + "/operations/backup-and-restore.md";
     "Operations-Security-and-Recovery.md" = wikiSourceDir + "/operations/security-and-recovery.md";
@@ -41,6 +43,7 @@ let
   serviceDirectoryNames = sort builtins.lessThan (
     builtins.attrNames (lib.filterAttrs (_: entryType: entryType == "directory") serviceSourceEntries)
   );
+  # Reject unexpected root entries before discovering individual service READMEs.
   serviceRootChecks = [
     (
       if serviceEntryType "README.md" == "regular" then
@@ -102,6 +105,7 @@ let
   findHost = name: findFirst (host: host.name == name) null hosts;
   hostLinkByName = name: hostLink (findHost name);
 
+  # Attach host ownership before grouping repeated services into fleet-wide rows.
   allServices = concatLists (
     map (
       host:
@@ -149,6 +153,7 @@ let
     ) hosts
   );
 
+  # Dependency rows must resolve within the host that declared them.
   localService =
     host: key:
     let
@@ -191,6 +196,7 @@ let
     ) hosts
   );
 
+  # Public-ingress details come from the optional sanitized snapshot, not a live API call.
   pangolin =
     data.external.pangolin or {
       collectedAt = null;
@@ -609,6 +615,7 @@ let
     Generated from [Conquerix/shulker](https://github.com/Conquerix/shulker) at ${revisionText}. Pangolin snapshot: ${collectionText}.
   '';
 
+  # Host-* pages are published separately; this bundle owns only non-host pages.
   generatedPages = {
     "Home.md" = pkgs.writeText "Home.md" home;
     "Fleet.md" = pkgs.writeText "Fleet.md" fleet;
@@ -634,10 +641,12 @@ let
   authoredPageNames = builtins.attrNames authoredPages;
   pages = generatedPages // authoredPages;
   pageNames = sort builtins.lessThan (builtins.attrNames pages);
+  # The publisher uses this exact ownership list when synchronizing the Wiki.
   pageManifest = pkgs.writeText "wiki-pages.txt" (concatStringsSep "\n" pageNames + "\n");
 in
 assert lib.intersectLists reservedPageNames authoredPageNames == [ ];
 assert lib.all (name: !lib.hasPrefix "Host-" name) authoredPageNames;
+# Validate authored content before copying it unchanged into the generated bundle.
 pkgs.runCommand "wiki-docs" { nativeBuildInputs = [ pkgs.python3 ]; } ''
   mkdir -p "$out"
   ${concatMapStringsSep "\n" (

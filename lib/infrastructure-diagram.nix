@@ -1,3 +1,4 @@
+# Render management, local-service, and public-ingress Mermaid diagrams from inventory data.
 {
   data,
   lib,
@@ -19,6 +20,7 @@ let
     unique
     ;
 
+  # Keep Mermaid identifiers separate from human-readable labels and their escaping.
   safeId =
     value:
     concatStringsSep "" (
@@ -74,6 +76,7 @@ let
       )
     );
 
+  # A dangling local dependency is a configuration error, not an omitted diagram edge.
   localService =
     host: key:
     let
@@ -115,6 +118,7 @@ let
   renderSite =
     site:
     let
+      # Link external sites to fleet hosts only when their names or IDs match.
       matchingHost = findFirst (
         host:
         lib.toLower host.name == lib.toLower site.name
@@ -179,6 +183,7 @@ let
     else
       "Sanitized Pangolin snapshot collected at `${pangolin.collectedAt}`.";
 
+  # External collection is optional; an absent snapshot must not imply no public ingress.
   publicDiagram =
     if pangolinResources == [ ] then
       "_No sanitized Pangolin snapshot is available._"

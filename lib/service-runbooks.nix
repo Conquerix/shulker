@@ -1,3 +1,4 @@
+# Validate colocated service READMEs and derive their unique Wiki page names.
 { lib }:
 {
   discovered,
@@ -27,6 +28,7 @@ let
   validFolder = folder: builtins.match "[a-z0-9]+(-[a-z0-9]+)*" folder != null;
   pageNames = pages: map (page: page.pageName) pages;
 
+  # Derive names from the title so folders and published pages cannot drift apart.
   normalizeDiscovered =
     record:
     let
@@ -48,6 +50,7 @@ let
         ) "${folder}/README.md title does not normalize to its folder")
       ];
     in
+    # Force every validation before returning a lazily evaluated page record.
     deepSeq checks {
       inherit title;
       pageName = titleToPageName title;
@@ -60,6 +63,7 @@ let
   caseFoldedNames = map lib.toLower names;
   reservedNames = reservedPageNames;
   caseFoldedReservedNames = map lib.toLower reservedNames;
+  # GitHub Wiki names must not collide with each other or reserved generated pages.
   checks = [
     (require (
       length reservedNames == length (unique reservedNames)

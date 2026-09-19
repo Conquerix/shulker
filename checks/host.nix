@@ -1,3 +1,4 @@
+# Guard host-level backup, SSH recovery, and service startup contracts.
 {
   inputs,
   system,

@@ -1,3 +1,4 @@
+# Package the rebuild preflight with its tools, independent of the caller's PATH.
 {
   opnix,
   pkgs,

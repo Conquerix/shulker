@@ -1,3 +1,5 @@
+# Compare upstream releases and maintain a review issue.
+# Serialize issue updates; repository reads and issue writes are the only permissions.
 name: Check Paperless-ngx release
 
 on:

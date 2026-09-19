@@ -58,6 +58,7 @@ class FakeManager:
         )
 
 
+# Install only the API surface used by the generated helper; no application database is needed.
 class SeafileFixture:
     def __init__(self, oauth_count: int) -> None:
         native = FakeUser("native@example.test", "native-password-hash", is_staff=True)

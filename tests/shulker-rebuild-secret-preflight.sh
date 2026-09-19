@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Check structured-secret rejection and cleanup using fake Nix, OpNix, and rebuild commands.
 set -euo pipefail
 
 write_bash_stub() {
@@ -23,6 +24,7 @@ rebuild_marker="$fixture_root/rebuild-called"
 mkdir -p "$stub_dir"
 printf '%s\n' synthetic-token >"$token_file"
 
+# The three fake commands model evaluation, secret resolution, and the final handoff.
 write_bash_stub "$stub_dir/nix" <<'EOF'
 set -euo pipefail
 jq -n --arg token "${STUB_TOKEN_FILE:?}" '
@@ -134,6 +136,7 @@ assert_sanitized_output() {
 	fi
 }
 
+# Every case checks quiet diagnostics; only validated input may reach the rebuild stub.
 run_case() {
 	local name="$1"
 	local expectation="$2"

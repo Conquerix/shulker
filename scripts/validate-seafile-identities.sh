@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Validate protected identity input without printing account details.
 
 set -euo pipefail
 
@@ -19,6 +20,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Files require private ownership and modes; stdin is copied into a private temporary file.
 if [ "$source_path" = - ]; then
 	temporary="$(mktemp)"
 	chmod 0600 "$temporary"
@@ -32,6 +34,7 @@ else
 	[ "$(stat -c %h -- "$source_path")" -eq 1 ] || fail_identity
 fi
 
+# Accept one native identity and one or two OAuth identities, with no case-folded collisions.
 jq --exit-status '
     def valid_email:
         type == "string" and

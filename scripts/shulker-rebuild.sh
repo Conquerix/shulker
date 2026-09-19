@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Check prospective host secrets before handing arguments to nixos-rebuild.
 
 set -euo pipefail
 
@@ -29,6 +30,7 @@ rollback=false
 show_help=false
 rebuild_args=()
 
+# Consume only wrapper options; preserve the rebuild argument order.
 while (($# > 0)); do
 	case "$1" in
 	--skip-secret-check)
@@ -103,6 +105,7 @@ if [[ ! $host_name =~ ^[a-zA-Z0-9_-]+$ ]]; then
 	exit 2
 fi
 
+# Keep resolved values and provider diagnostics private until preflight cleanup.
 umask 077
 temporary_root="${XDG_RUNTIME_DIR:-/tmp}"
 temporary_dir="$(mktemp -d "$temporary_root/shulker-secret-preflight.XXXXXX")"
@@ -240,6 +243,7 @@ fail_schema() {
 	exit 1
 }
 
+# Validate literal dotenv records without sourcing or evaluating secret values.
 validate_dotenv_secret() {
 	local logical_secret="$1"
 	local resolved_file="$output_dir/$logical_secret"
@@ -310,6 +314,7 @@ while IFS= read -r logical_secret; do
 	validate_dotenv_secret "$logical_secret"
 done < <(jq -r '.schemas | keys[]' "$metadata_file")
 
+# Delete resolved values before transferring control to the rebuild process.
 cleanup
 trap - EXIT
 exec "$rebuild_command" "${rebuild_args[@]}"

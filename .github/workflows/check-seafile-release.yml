@@ -1,3 +1,5 @@
+# Monitor the reviewed release lines and maintain one marked review issue.
+# Serialize issue updates; repository reads and issue writes are the only permissions.
 name: Check Seafile stack releases
 
 on:

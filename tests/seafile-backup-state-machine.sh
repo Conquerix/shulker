@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Exercise backup and restore transactions with file-backed Docker and ZFS stubs.
 set -euo pipefail
 
 write_bash_stub() {
@@ -43,6 +44,7 @@ mkdir -p "$bin" "$state/backups" "$state/control" "$state/shared/logs" \
 : >"$restore_network_state"
 real_install="$(command -v install)"
 
+# Intercept privileged operations and record their order without touching host services.
 write_bash_stub "$bin/install" <<'EOF'
 set -euo pipefail
 arguments=()

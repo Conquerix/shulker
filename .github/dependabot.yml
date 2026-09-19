@@ -1,3 +1,4 @@
+# Group pinned GitHub Actions updates into one weekly maintenance pull request.
 version: 2
 updates:
   - package-ecosystem: github-actions
