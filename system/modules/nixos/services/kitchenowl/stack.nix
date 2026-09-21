@@ -49,7 +49,8 @@ let
         interval = "30s";
         timeout = "10s";
         retries = 5;
-        start_period = "30s";
+        # Initial Python imports and migrations can be slow during shared ZFS I/O.
+        start_period = "10m";
       };
     };
   };
@@ -153,7 +154,7 @@ in
         UMask = "0077";
         ExecStart = "${runtime}/bin/kitchenowl-runtime start";
         ExecStop = "${runtime}/bin/kitchenowl-runtime stop";
-        TimeoutStartSec = 1200;
+        TimeoutStartSec = 2100;
         TimeoutStopSec = 1080;
       };
     };

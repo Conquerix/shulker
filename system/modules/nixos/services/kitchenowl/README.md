@@ -59,6 +59,8 @@ application receives a `before-start` snapshot before migrations run.
 Docker's on-failure restart policy does not resurrect the container on daemon
 startup before the mount guard. Health checks require the custom OIDC provider
 and disabled password/registration modes, not merely an HTTP 200 response.
+Startup allows 15 minutes for first migrations and Python imports under shared
+ZFS I/O contention; successful health checks finish the wait immediately.
 
 ```sh
 systemctl status kitchenowl-compose.service

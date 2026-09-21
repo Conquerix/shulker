@@ -19,7 +19,7 @@ start)
 		remove_snapshot "$dataset@before-start"
 		zfs snapshot "$dataset@before-start"
 	fi
-	"$compose" up --detach --wait --wait-timeout 180
+	"$compose" up --detach --wait --wait-timeout 900
 	;;
 stop)
 	"$compose" down --timeout 60
@@ -37,7 +37,7 @@ backup)
 		status=$?
 		trap - EXIT INT TERM
 		if [ "$restart_needed" -eq 1 ]; then
-			"$compose" up --detach --wait --wait-timeout 180 || status=1
+			"$compose" up --detach --wait --wait-timeout 900 || status=1
 		fi
 		if [ "$status" -ne 0 ] && [ "$snapshot_created" -eq 1 ]; then
 			zfs destroy "$snapshot" || true
@@ -50,7 +50,7 @@ backup)
 	"$compose" stop server
 	zfs snapshot "$snapshot"
 	snapshot_created=1
-	"$compose" up --detach --wait --wait-timeout 180
+	"$compose" up --detach --wait --wait-timeout 900
 	restart_needed=0
 	trap - EXIT INT TERM
 	;;
