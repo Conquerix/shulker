@@ -7,9 +7,9 @@ canonical `README.md` runbook. Split implementations use an explicit, sorted
 never imported implicitly.
 
 The retained service families are `actual-budget`, `backup`, `beszel`, `forgejo`, `git-pages`,
-`hermes-agent`, `hermes-trial`, `home-assistant`, `immich`, `kitchenowl`, `newt`, `nextcloud`, `ollama`, `openhands`,
+`hermes-agent`, `home-assistant`, `immich`, `kitchenowl`, `newt`, `nextcloud`, `ollama`, `openhands`,
 `pangolin`, `paperless`, `pelican`, `plex`, `pocket-id`, `seafile`, `sunshine`,
-`taskview`, `torrent`, `webdav`, and `zulip`. This tree does not own the platform or capability
+`taskview`, `torrent`, and `webdav`. This tree does not own the platform or capability
 modules `core/`, `containers.nix`, `impermanence.nix`, `nvidia.nix`,
 `steam.nix`, or `yubikey.nix`.
 

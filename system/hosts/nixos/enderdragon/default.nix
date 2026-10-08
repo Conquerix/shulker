@@ -1,11 +1,11 @@
-{ config, lib, ... }:
+{ ... }:
 {
   # Enderdragon is an impermanent server that runs Pelican workloads.
   imports = [ ./hardware.nix ];
 
   zramSwap.enable = true;
 
-  # Changing the live D-Bus backend requires a separate planned reboot.
+  # Preserve the running D-Bus backend; changing it requires a planned reboot.
   services.dbus.implementation = "dbus";
 
   shulker = {
@@ -14,9 +14,9 @@
       profiles.server.enable = true;
       modules = {
         impermanence.enable = true;
-        openhands.worker = {
+        openhands = {
           enable = true;
-          secretReference = "op://Shulker/OpenHands/Worker environment";
+          impermanence = true;
         };
         backup = {
           enable = true;
@@ -44,23 +44,25 @@
     };
   };
 
-  # Session-key HTTP and first-frame WebSocket auth protect all coding operations.
-  services.newt.blueprint.public-resources.openhands-worker =
-    lib.mkIf config.shulker.system.modules.openhands.worker.enable
+  services.newt.blueprint.public-resources.openhands-canvas = {
+    name = "OpenHands";
+    mode = "http";
+    full-domain = "code.shulker.link";
+    ssl = true;
+    auth = {
+      sso-enabled = true;
+      sso-users = [ "conquerix@shulker.link" ];
+      sso-roles = [ ];
+      whitelist-users = [ ];
+    };
+    targets = [
       {
-        name = "OpenHands Agent Server";
-        mode = "http";
-        full-domain = "coding-api.shulker.link";
-        ssl = true;
-        auth.sso-enabled = false;
-        targets = [
-          {
-            hostname = "127.0.0.1";
-            port = 23249;
-            method = "http";
-          }
-        ];
-      };
+        hostname = "127.0.0.1";
+        port = 23249;
+        method = "http";
+      }
+    ];
+  };
 
   services.wings.node = {
     uuid = "96308644-40c2-4277-96bb-3bd69754240a";

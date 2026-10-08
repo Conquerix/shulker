@@ -86,17 +86,10 @@ let
           "https://${modules.forgejo.subDomain}.${modules.forgejo.baseUrl}"
         )
         (service "git-pages" "Git Pages" "development" modules.git-pages.enable null)
-        (service "hermes-trial" "Overseer trial" "automation" modules.hermes-trial.enable null)
-        (service "openhands-canvas" "OpenHands Canvas" "development" modules.openhands.frontend.enable
-          modules.openhands.frontend.publicUrl
+        (service "hermes-agent" "Hermes Agent" "automation" modules.hermes-agent.enable
+          modules.hermes-agent.publicUrl
         )
-        (service "openhands-worker" "OpenHands Worker" "development" modules.openhands.worker.enable null)
-        (service "openhands-broker" "OpenHands Broker" "development" modules.openhands.broker.enable null)
-        (service "zulip" "Zulip" "collaboration" modules.zulip.enable modules.zulip.publicUrl)
-        (service "hermes-agent" "Hermes Agent" "automation" modules.hermes-agent.enable null)
-        (service "hermes-webui" "Hermes WebUI" "automation" (
-          modules.hermes-agent.enable && modules.hermes-agent.webUi.enable
-        ) modules.hermes-agent.webUi.publicUrl)
+        (service "openhands" "OpenHands" "development" modules.openhands.enable modules.openhands.publicUrl)
         (service "home-assistant" "Home Assistant" "automation" modules.home-assistant.enable null)
         (service "immich" "Immich (server, OpenVINO ML, PostgreSQL, Valkey)" "media" modules.immich.enable
           modules.immich.publicUrl

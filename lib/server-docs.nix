@@ -92,35 +92,15 @@ let
     (service "Git Pages" modules.git-pages.enable gitPageDetails modules.git-pages.stateDir
       "Static sites synchronized from Git"
     )
-    (service "Hermes Trial" modules.hermes-trial.enable "Overseer Zulip gateway; no inbound host port"
-      "/var/lib/hermes-trial/overseer"
-      "Isolated opt-in trial; no host administration"
-    )
-    (service "OpenHands Canvas" modules.openhands.frontend.enable
-      "${modules.openhands.frontend.publicUrl}/canvas/ via 127.0.0.1:23250"
-      null
-      "Private static frontend"
-    )
-    (service "OpenHands Worker" modules.openhands.worker.enable "127.0.0.1:23249" "/var/lib/openhands"
-      "Isolated coding project; private consistent backups"
-    )
-    (service "OpenHands Broker" modules.openhands.broker.enable "Unix socket for Overseer"
-      "/var/lib/openhands-broker"
-      "No backend credential in Hermes"
-    )
-    (service "Zulip" modules.zulip.enable
-      "${modules.zulip.publicUrl} via 127.0.0.1:${toString modules.zulip.port}"
-      modules.zulip.stateDir
-      "Native OIDC; trial stack"
-    )
-    (service "Hermes Agent" modules.hermes-agent.enable "Telegram gateway; no published host port"
+    (service "Hermes Agent" modules.hermes-agent.enable
+      "${modules.hermes-agent.publicUrl} via 127.0.0.1:${toString modules.hermes-agent.port}"
       modules.hermes-agent.stateDir
-      "Containerized agent"
+      "Upstream container with built-in dashboard"
     )
-    (service "Hermes WebUI" (modules.hermes-agent.enable && modules.hermes-agent.webUi.enable)
-      "${modules.hermes-agent.webUi.publicUrl} via ${modules.hermes-agent.webUi.bindAddress}:${toString modules.hermes-agent.webUi.port}"
-      "${modules.hermes-agent.stateDir}/.hermes/webui"
-      "Community WebUI and native client backend; password authentication required"
+    (service "OpenHands" modules.openhands.enable
+      "${modules.openhands.publicUrl} via 127.0.0.1:${toString modules.openhands.port}"
+      "${modules.openhands.stateDir}; projects ${modules.openhands.projectsDir}"
+      "Upstream all-in-one container; native OpenHands agent"
     )
     (service "Home Assistant" modules.home-assistant.enable
       "Host network; firewall ${enabledDisabled modules.home-assistant.openFirewall}"

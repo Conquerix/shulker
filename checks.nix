@@ -29,8 +29,6 @@ let
     (import ./checks/seafile-docs.nix context)
     (import ./checks/paperless.nix context)
     (import ./checks/taskview.nix context)
-    (import ./checks/hermes-zulip.nix context)
-    (import ./checks/openhands.nix context)
     (import ./checks/actual-budget.nix context)
     (import ./checks/kitchenowl.nix context)
     (import ./checks/suites.nix context)
