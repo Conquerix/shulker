@@ -85,6 +85,14 @@ GPT-6.1 Sol, GPT-6 Sol and GPT-6 Luna, so adding them requires a separately vali
 SDK update. OpenAI model/provider names may still include “Codex”; that names the
 subscription model service, not the coding agent. No paid API fallback is configured.
 
+Use **Authentication → ChatGPT subscription**, rather than the separate LiteLLM
+`chatgpt` provider. That legacy provider starts a synchronous device-code login
+during metadata lookup, which can block the entire agent server. Its token
+directory points to an absent path on the read-only root so it fails promptly;
+native OpenHands OAuth retains its writable owner-only store. If an older worker
+is stuck in that login, check active conversations, restart only the coding
+worker, and reconnect through the native subscription control.
+
 Select `overseer-coding` as the default Agent Profile in Canvas. Changing its LLM
 Profile's provider, endpoint or model changes future tasks without changing the
 coding agent. API credentials entered in Canvas are encrypted at rest using the

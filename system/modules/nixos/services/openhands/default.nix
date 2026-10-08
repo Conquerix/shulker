@@ -205,6 +205,9 @@ in
         environment = {
           HOME = "/state/home";
           OH_PERSISTENCE_DIR = "/state/settings";
+          # LiteLLM metadata must not start a blocking device login. This absent
+          # path is on the read-only root; native OAuth uses OH_PERSISTENCE_DIR.
+          CHATGPT_TOKEN_DIR = "/run/openhands/disabled-litellm-login";
           OPENHANDS_AGENT_SERVER_CONFIG_PATH = "/run/openhands/config.json";
           OH_ENABLE_VSCODE = "false";
           OH_ENABLE_BROWSER = "false";

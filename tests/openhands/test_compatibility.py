@@ -112,3 +112,31 @@ def test_real_server_worktree_message_result_and_pause(tmp_path, monkeypatch):
 
         assert len(calls)==2
         assert (next((tmp_path/'worktrees').glob('*/repository'))/'NATIVE_FIXTURE.md').read_text()=='NATIVE_WORKSPACE_OK\n'
+
+
+def test_legacy_chatgpt_metadata_cannot_start_interactive_login(tmp_path, monkeypatch):
+    """The read-only container guard blocks implicit auth during validation."""
+    import errno
+    from litellm.llms.chatgpt.authenticator import Authenticator
+    from openhands.sdk import LLM
+    blocked = '/run/openhands/disabled-litellm-login'
+    monkeypatch.setenv('CHATGPT_TOKEN_DIR', blocked)
+    original_makedirs = os.makedirs
+    denied = []
+    def makedirs(path, *args, **kwargs):
+        if str(path) == blocked:
+            denied.append(path)
+            raise OSError(errno.EROFS, 'Read-only file system', path)
+        return original_makedirs(path, *args, **kwargs)
+    monkeypatch.setattr(os, 'makedirs', makedirs)
+    def unexpected_login(*args, **kwargs):
+        pytest.fail('Metadata lookup must never start an interactive login')
+    monkeypatch.setattr(Authenticator, 'get_access_token', unexpected_login)
+    # Unknown legacy-provider metadata may be absent; it must return promptly.
+    LLM(model='chatgpt/gpt-6-astra')
+    assert denied
+    # The intended native profile remains valid without triggering legacy auth.
+    before = len(denied)
+    llm = LLM(model='openai/gpt-6-astra', auth_type='subscription', subscription_vendor='openai')
+    assert llm.auth_type == 'subscription'
+    assert len(denied) == before

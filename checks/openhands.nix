@@ -111,6 +111,7 @@ in
         "/srv/openhands/projects/shulker/*"
         "/projects/shulker/*"
       ];
+    assert container.environment.CHATGPT_TOKEN_DIR == "/run/openhands/disabled-litellm-login";
     assert container.user == "10011:10011";
     assert container.ports == [ "127.0.0.1:23249:8000" ];
     assert
