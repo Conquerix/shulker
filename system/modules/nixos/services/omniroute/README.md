@@ -36,13 +36,18 @@ proof that the subscription can run it.
 
 The published preview lacked Sol, so the installed image was built from the
 unchanged upstream Dockerfile at
-`61e07fb7e0d4e1e76111495d3718c9e4d06d2a62`. The Shulker host pins its immutable
+`61e07fb7e0d4e1e76111495d3718c9e4d06d2a62`. A small
+`dashboard-translations.patch` beside this runbook restores the full
+language catalog for flat dashboard routes; upstream's namespace layout otherwise
+renders translation keys instead of labels. Remove the patch after an upstream
+route-namespace fix passes rendered-page checks. The Shulker host pins its immutable
 local image ID. A root-only compressed `docker save` archive lives in
-`/var/lib/omniroute-images/omniroute-61e07fb7.tar.gz`, with a SHA-256 checksum.
+`/var/lib/omniroute-images/omniroute-61e07fb7-labels1.tar.gz`, with a SHA-256 checksum.
 
 An update needs a verified published digest or a new source build. For a source
 build, check out an exact upstream commit and use its Dockerfile's `runner-base`
-target. The successful build used these limits and arguments:
+target. Apply the dashboard patch to this revision before building; the Dockerfile
+itself is unchanged. The successful build used these limits and arguments:
 
 ```sh
 docker buildx create --name omniroute-build --driver docker-container \

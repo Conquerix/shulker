@@ -55,8 +55,8 @@
         omniroute = {
           enable = true;
           impermanence = true;
-          # Unchanged upstream Dockerfile at 61e07fb7; retain its recovery archive.
-          image = "sha256:9e5854f203b540b6182f88ec31dd7bd3d6f1d0227b98213f7b97b059c6dbbeb6";
+          # Upstream 61e07fb7 with dashboard translation patch; retain its recovery archive.
+          image = "sha256:e3e3aeacb01179cbc6c20163f34745e214504fcbe168bcf59a8ce6e1f69910ff";
         };
         pelican = {
           panel = {
