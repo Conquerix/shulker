@@ -2,6 +2,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 
@@ -25,6 +26,10 @@ in
   };
 
   config = mkIf cfg.enable {
+    # SQLite dumps need sqlite3 in scheduled services and manual recovery commands.
+    environment.systemPackages = [ pkgs.sqlite ];
+    systemd.services.borgmatic.path = [ pkgs.sqlite ];
+
     programs.ssh.knownHosts."hetzner-storage-box" = {
       hostNames = [ "[${cfg.hetznerStorageBoxAccount}.your-storagebox.de]:23" ];
       publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIICf9svRenC/PLKIL9nk6K/pxQgoiFC41wTNvoIncOxs";

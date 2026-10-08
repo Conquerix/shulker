@@ -61,6 +61,7 @@ let
     "newt"
     "nextcloud"
     "ollama"
+    "omniroute"
     "openhands"
     "pangolin"
     "paperless"
@@ -161,6 +162,7 @@ let
         "nextcloud"
         "nvidia"
         "ollama"
+        "omniroute"
         "openhands"
         "pangolin"
         "paperless"
@@ -176,7 +178,7 @@ let
         "yubikey"
       ];
     in
-    assert builtins.length retainedServices == 23;
+    assert builtins.length retainedServices == 24;
     assert builtins.length excludedCapabilities == 6;
     assert directServiceDirectories == retainedServices;
     assert builtins.all serviceFilesAreCanonical retainedServices;

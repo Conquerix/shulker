@@ -102,6 +102,11 @@ let
       "${modules.openhands.stateDir}; projects ${modules.openhands.projectsDir}"
       "Upstream all-in-one container; native OpenHands agent"
     )
+    (service "OmniRoute" modules.omniroute.enable
+      "${modules.omniroute.publicUrl} via 127.0.0.1:${toString modules.omniroute.port}"
+      modules.omniroute.stateDir
+      "Private subscription gateway; consistent SQLite backups"
+    )
     (service "Home Assistant" modules.home-assistant.enable
       "Host network; firewall ${enabledDisabled modules.home-assistant.openFirewall}"
       modules.home-assistant.stateDir

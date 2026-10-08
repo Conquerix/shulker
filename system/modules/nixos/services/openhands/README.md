@@ -11,14 +11,35 @@ the same host project directory. The workspace ACL lets both the container and
 Conquerix edit files. Model profiles and credentials are configured in Canvas;
 no agent profiles are created or rewritten by NixOS. Use the native OpenHands
 agent, not an ACP agent. Model access must use the owner's ChatGPT subscription;
-paid API fallback is not authorized. The pinned SDK's native subscription
-catalog includes gpt-6-astra but does not yet include gpt-6.1-sol. Subscription
-model access remains unverified until a real agent turn completes.
+paid API fallback is not authorized.
 
 The initial workspace is the dev branch of Conquerix/shulker at
 /srv/ai-projects/shulker (VS Code) and /projects/shulker (Canvas). Model profiles
-are editable application settings, not Nix seeds. The initial API-based model
-test failed because API billing was inactive; the owner revoked that key.
+are editable application settings, not Nix seeds.
+
+## Subscription gateway
+
+Canvas has editable `omniroute-sol` and `omniroute-astra` profiles. They use
+`https://ai.shulker.link/v1`, with models `openai/cx/gpt-6.1-sol` and
+`openai/cx/gpt-6-astra`. Their native LLM settings select chat mode, streaming,
+native tool calls and medium reasoning effort. The model prefix selects the
+OpenAI-compatible protocol; authentication to ChatGPT happens in OmniRoute.
+There is no Codex CLI coding agent or paid API provider in this path.
+
+The gateway inference key allows only those two models. Native `extra_headers`
+hold `P-Access-Token-Id` and `P-Access-Token`, so Pangolin admits Enderdragon
+without opening anonymous API exceptions. Keep OmniRoute API Key and both
+Pangolin token fields in the OpenHands section of the existing enderdragon
+1Password item. The token is revocable and has no expiry. Revoke it in
+Pangolin's Shareable Links page if compromised; update native profiles after
+rotating any client credential.
+
+Gateway access and its authentication boundaries have been verified from
+Enderdragon. ChatGPT OAuth sign-in and native streaming/tool-call acceptance
+with each model are still pending; the profiles have not been made active.
+Model discovery alone does not prove subscription model availability.
+
+## Host credentials and workspace
 
 OpNix provisions LOCAL_BACKEND_API_KEY and OH_SECRET_KEY from the OpenHands
 section of the enderdragon server item in 1Password. The container waits for

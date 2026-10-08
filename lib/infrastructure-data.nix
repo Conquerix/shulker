@@ -97,6 +97,7 @@ let
         (service "newt" "Newt" "edge" modules.newt.enable modules.newt.endpoint)
         (service "nextcloud" "Nextcloud AIO" "collaboration" modules.nextcloud.enable null)
         (service "ollama" "Ollama" "ai" modules.ollama.enable null)
+        (service "omniroute" "OmniRoute" "ai" modules.omniroute.enable modules.omniroute.publicUrl)
         (service "paperless" "Paperless-ngx (PostgreSQL, Valkey, Tika, Gotenberg)" "storage"
           modules.paperless.enable
           modules.paperless.publicUrl

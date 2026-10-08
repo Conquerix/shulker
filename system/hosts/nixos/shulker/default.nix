@@ -52,6 +52,12 @@
           enable = true;
           impermanence = true;
         };
+        omniroute = {
+          enable = true;
+          impermanence = true;
+          # Unchanged upstream Dockerfile at 61e07fb7; retain its recovery archive.
+          image = "sha256:9e5854f203b540b6182f88ec31dd7bd3d6f1d0227b98213f7b97b059c6dbbeb6";
+        };
         pelican = {
           panel = {
             enable = true;
@@ -102,6 +108,26 @@
       {
         hostname = "127.0.0.1";
         port = 23234;
+        method = "http";
+      }
+    ];
+  };
+
+  services.newt.blueprint.public-resources.omniroute = {
+    name = "OmniRoute";
+    mode = "http";
+    full-domain = "ai.shulker.link";
+    ssl = true;
+    auth = {
+      sso-enabled = true;
+      sso-users = [ "conquerix@shulker.link" ];
+      sso-roles = [ ];
+      whitelist-users = [ ];
+    };
+    targets = [
+      {
+        hostname = "127.0.0.1";
+        port = 23250;
         method = "http";
       }
     ];
