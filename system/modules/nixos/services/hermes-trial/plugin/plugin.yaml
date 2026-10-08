@@ -1,0 +1,72 @@
+name: zulip-platform
+label: Zulip
+kind: platform
+version: 1.1.0
+description: Zulip gateway adapter for Hermes Agent using the Zulip Events API.
+author: Nous Research / contributor
+requires_env:
+  - name: ZULIP_SITE_URL
+    description: "Zulip organization URL, e.g. https://example.zulipchat.com"
+    prompt: "Zulip site URL"
+    password: false
+  - name: ZULIP_BOT_EMAIL
+    description: "Zulip bot email address"
+    prompt: "Zulip bot email"
+    password: false
+  - name: ZULIP_API_KEY
+    description: "Zulip bot API key"
+    prompt: "Zulip API key"
+    password: true
+optional_env:
+  - name: ZULIP_ALLOWED_USER_IDS
+    description: "Comma-separated Zulip sender user IDs allowed to use Hermes"
+    prompt: "Allowed Zulip user IDs"
+    password: false
+  - name: ZULIP_BOT_FULL_NAME
+    description: "Zulip bot display name used for mention matching (e.g. 'Hermes Product Manager'). Configure per profile when multiple Hermes bots share a stream."
+    prompt: "Zulip bot full name"
+    password: false
+  - name: ZULIP_BOT_NAME
+    description: "Alias for ZULIP_BOT_FULL_NAME"
+    prompt: "Zulip bot name"
+    password: false
+  - name: ZULIP_DISPLAY_NAME
+    description: "Alias for ZULIP_BOT_FULL_NAME"
+    prompt: "Zulip display name"
+    password: false
+  - name: ZULIP_RESPOND_TO_ALL_AUTHORIZED_STREAM_MESSAGES
+    description: "When truthy (1/true/yes/on), respond to every stream message from an authorized sender without requiring an @bot mention"
+    prompt: "Respond to all authorized stream messages"
+    password: false
+  - name: ZULIP_HOME_CHANNEL
+    description: "Default Zulip chat_id for cron/background delivery, e.g. dm_user:12345 or stream:12345:topic:Example%20topic"
+    prompt: "Zulip home channel"
+    password: false
+  - name: ZULIP_HOME_EMAIL
+    description: "Legacy default Zulip DM email for cron/background delivery"
+    prompt: "Zulip home DM email"
+    password: false
+  - name: ZULIP_HOME_USER_ID
+    description: "Legacy default Zulip DM user ID for cron/background delivery"
+    prompt: "Zulip home DM user ID"
+    password: false
+  - name: ZULIP_MAX_MESSAGE_CHARS
+    description: "Optional maximum outbound Zulip message length before splitting"
+    prompt: "Zulip max message chars"
+    password: false
+  - name: ZULIP_ATTACHMENT_MAX_BYTES
+    description: "Maximum downloaded attachment size in bytes"
+    prompt: "Zulip attachment max bytes"
+    password: false
+  - name: ZULIP_ATTACHMENT_MAX_COUNT
+    description: "Maximum number of attachments to materialize from one message"
+    prompt: "Zulip attachment max count"
+    password: false
+  - name: ZULIP_ATTACHMENT_ALLOWED_EXTS
+    description: "Comma-separated list of allowed attachment extensions"
+    prompt: "Zulip attachment allowed extensions"
+    password: false
+  - name: ZULIP_ALLOWED_CHANNEL_IDS
+    description: "Comma-separated numeric private channel IDs allowed for Overseer"
+    prompt: "Allowed Zulip channel IDs"
+    password: false

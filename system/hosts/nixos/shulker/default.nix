@@ -1,4 +1,4 @@
-{ ... }:
+{ config, lib, ... }:
 {
   # Shulker hosts the fleet's ingress, identity, monitoring, and collaboration services.
   imports = [ ./hardware.nix ];
@@ -48,6 +48,36 @@
           hubEndpoint = "https://monitor.shulker.link";
           extraFilesystems = "/nix__Nix Store,/nix/persist__Persistent Partition";
         };
+        # Separate provider home and narrow coding broker keep production Hermes isolated.
+        hermes-trial = {
+          enable = true;
+          impermanence = true;
+          allowedUsers = [ 9 ];
+          allowedChannels = [ 4 ];
+          model = "gpt-6.1-sol";
+          # Stable item identity avoids invalid URI characters in its display name.
+          secretReference = "op://Shulker/tiszplnlwtnaxf5kuofd6mctwq/Environment";
+        };
+        openhands = {
+          frontend.enable = true;
+          broker = {
+            enable = true;
+            secretReference = "op://Shulker/OpenHands/Broker key";
+          };
+        };
+        # Zulip stays on loopback; Newt provides HTTPS with native Zulip authentication.
+        zulip = {
+          enable = true;
+          impermanence = true;
+          administratorEmail = "pierre@fournier.live";
+          oidcClientId = "e925593b-ff69-492f-83bd-7e9115e3748f";
+          secretReference = "op://Shulker/Zulip Trial/Secrets";
+          # Verified source address of requests through the loopback Docker port.
+          trustedProxyAddresses = [
+            "127.0.0.1"
+            "172.21.0.1"
+          ];
+        };
         hermes-agent = {
           enable = true;
           impermanence = true;
@@ -91,6 +121,47 @@
       };
     };
   };
+
+  # Native Zulip login protects the API; a second proxy login breaks mobile clients.
+  services.newt.blueprint.public-resources.zulip-trial =
+    lib.mkIf config.shulker.system.modules.zulip.enable
+      {
+        name = "Zulip Trial";
+        mode = "http";
+        full-domain = "chat.shulker.link";
+        ssl = true;
+        auth.sso-enabled = false;
+        targets = [
+          {
+            hostname = "127.0.0.1";
+            port = config.shulker.system.modules.zulip.port;
+            method = "http";
+          }
+        ];
+      };
+
+  # The owner signs in through Pangolin; the coding API uses native key auth.
+  services.newt.blueprint.public-resources.openhands-canvas =
+    lib.mkIf config.shulker.system.modules.openhands.frontend.enable
+      {
+        name = "OpenHands Canvas";
+        mode = "http";
+        full-domain = "code.shulker.link";
+        ssl = true;
+        auth = {
+          sso-enabled = true;
+          sso-users = [ "conquerix@shulker.link" ];
+          sso-roles = [ ];
+          whitelist-users = [ ];
+        };
+        targets = [
+          {
+            hostname = "127.0.0.1";
+            port = 23250;
+            method = "http";
+          }
+        ];
+      };
 
   services.wings.node = {
     uuid = "fb07692f-4f13-47f5-b2e3-8a99b71141d6";

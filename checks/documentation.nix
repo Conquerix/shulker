@@ -55,12 +55,14 @@ let
     "forgejo"
     "git-pages"
     "hermes-agent"
+    "hermes-trial"
     "home-assistant"
     "immich"
     "kitchenowl"
     "newt"
     "nextcloud"
     "ollama"
+    "openhands"
     "pangolin"
     "paperless"
     "pelican"
@@ -71,6 +73,7 @@ let
     "taskview"
     "torrent"
     "webdav"
+    "zulip"
   ];
   excludedCapabilities = [
     {
@@ -152,6 +155,7 @@ let
         "forgejo"
         "git-pages"
         "hermes-agent"
+        "hermes-trial"
         "home-assistant"
         "immich"
         "impermanence"
@@ -160,6 +164,7 @@ let
         "nextcloud"
         "nvidia"
         "ollama"
+        "openhands"
         "pangolin"
         "paperless"
         "pelican"
@@ -172,9 +177,10 @@ let
         "torrent"
         "webdav"
         "yubikey"
+        "zulip"
       ];
     in
-    assert builtins.length retainedServices == 22;
+    assert builtins.length retainedServices == 25;
     assert builtins.length excludedCapabilities == 6;
     assert directServiceDirectories == retainedServices;
     assert builtins.all serviceFilesAreCanonical retainedServices;

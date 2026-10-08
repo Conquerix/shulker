@@ -1,0 +1,6 @@
+name: overseer-coding
+label: OpenHands coding
+kind: tool
+version: 1.0.0
+description: Restricted server-side OpenHands task delegation.
+author: Shulker maintainers

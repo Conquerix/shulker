@@ -1,0 +1,27 @@
+{
+  "agent_profile": {
+    "id": "8dcb2360-3c3f-4e30-bb75-626b5f7d27d6",
+    "name": "overseer-coding",
+    "agent_kind": "openhands",
+    "llm_profile_ref": "overseer-coding",
+    "tools": [
+      {
+        "name": "terminal"
+      },
+      {
+        "name": "file_editor"
+      },
+      {
+        "name": "task_tracker"
+      }
+    ],
+    "mcp_server_refs": [],
+    "secret_refs": []
+  },
+  "llm": {
+    "model": "openai/gpt-6-astra",
+    "auth_type": "subscription",
+    "subscription_vendor": "openai",
+    "api_key": null
+  }
+}

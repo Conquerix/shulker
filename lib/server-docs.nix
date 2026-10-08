@@ -92,6 +92,27 @@ let
     (service "Git Pages" modules.git-pages.enable gitPageDetails modules.git-pages.stateDir
       "Static sites synchronized from Git"
     )
+    (service "Hermes Trial" modules.hermes-trial.enable "Overseer Zulip gateway; no inbound host port"
+      "/var/lib/hermes-trial/overseer"
+      "Isolated opt-in trial; no host administration"
+    )
+    (service "OpenHands Canvas" modules.openhands.frontend.enable
+      "${modules.openhands.frontend.publicUrl}/canvas/ via 127.0.0.1:23250"
+      null
+      "Private static frontend"
+    )
+    (service "OpenHands Worker" modules.openhands.worker.enable "127.0.0.1:23249" "/var/lib/openhands"
+      "Isolated coding project; private consistent backups"
+    )
+    (service "OpenHands Broker" modules.openhands.broker.enable "Unix socket for Overseer"
+      "/var/lib/openhands-broker"
+      "No backend credential in Hermes"
+    )
+    (service "Zulip" modules.zulip.enable
+      "${modules.zulip.publicUrl} via 127.0.0.1:${toString modules.zulip.port}"
+      modules.zulip.stateDir
+      "Native OIDC; trial stack"
+    )
     (service "Hermes Agent" modules.hermes-agent.enable "Telegram gateway; no published host port"
       modules.hermes-agent.stateDir
       "Containerized agent"
