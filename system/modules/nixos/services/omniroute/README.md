@@ -22,15 +22,26 @@ subscription authentication; OpenHands remains the coding agent. Leave paid
 credits disabled and quota filtering enabled. Connect no billable API provider
 and use explicit Sol/Astra model IDs without automatic paid fallback.
 
+For remote browser login, keep OmniRoute's original connection dialog open.
+OpenAI redirects to `http://localhost:1455/auth/callback`, which points to the
+browser's machine and can show an unreachable-page error. Copy the complete URL
+from that page's address bar into the callback URL field in the original
+OmniRoute dialog, then click Connect. If the dialog was closed or reloaded,
+start a new login so its PKCE session matches. Enter callback URLs only in the
+dashboard; they contain a temporary authorization code.
+
 OpenHands on Enderdragon will use `https://ai.shulker.link/v1`, an inference key
 restricted to `cx/gpt-6.1-sol` and `cx/gpt-6-astra`, and resource-scoped Pangolin
 headers in native Canvas settings. Store its credentials in Enderdragon's
 existing server item. Avoid unauthenticated exceptions for API paths.
 
 Deployment startup, dashboard password authentication and anonymous inference
-rejection have passed. Subscription sign-in and native OpenHands streaming/tool
-calls remain acceptance steps; finding a model in the compiled image is not
-proof that the subscription can run it.
+rejection have passed. The owner completed subscription sign-in; native
+OpenHands agent checks passed with streamed tool calls for Sol and Astra. The
+saved account has paid credits disabled, quota filtering enabled and refresh
+state present. Automatic refresh after expiry and subscription-exhaustion
+behavior have not been forced in a live test; finding a model in the compiled
+image alone is not proof that the subscription can run it.
 
 ## Image and updates
 

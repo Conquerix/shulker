@@ -35,9 +35,13 @@ Pangolin's Shareable Links page if compromised; update native profiles after
 rotating any client credential.
 
 Gateway access and its authentication boundaries have been verified from
-Enderdragon. ChatGPT OAuth sign-in and native streaming/tool-call acceptance
-with each model are still pending; the profiles have not been made active.
-Model discovery alone does not prove subscription model availability.
+Enderdragon. The owner completed ChatGPT OAuth sign-in. Both models passed
+bounded native OpenHands agent checks with streamed tool calls that read the
+shared repository's README and returned a summary without changing the
+workspace. `omniroute-sol` is active; Astra remains selectable. Automatic token
+refresh after expiry and subscription-exhaustion behavior have not been forced
+in a live test. Model discovery alone does not prove subscription model
+availability.
 
 ## Host credentials and workspace
 
