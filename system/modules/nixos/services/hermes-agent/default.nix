@@ -2,6 +2,7 @@
 { config, lib, ... }:
 let
   cfg = config.shulker.system.modules.hermes-agent;
+  useOmniroute = config.shulker.system.modules.omniroute.enable;
 in
 {
   options.shulker.system.modules.hermes-agent = {
@@ -58,12 +59,21 @@ in
         API_SERVER_HOST = "127.0.0.1";
         TERMINAL_CWD = "/workspace";
       };
-      environmentFiles = [ config.services.onepassword-secrets.secrets.hermesDashboardEnv.path ];
+      environmentFiles = [
+        config.services.onepassword-secrets.secrets.hermesDashboardEnv.path
+      ]
+      ++ lib.optional useOmniroute config.services.onepassword-secrets.secrets.hermesProviderEnv.path;
       extraOptions = [
         "--memory=4g"
         "--cpus=2"
         "--pids-limit=512"
-      ];
+      ]
+      ++ lib.optional useOmniroute "--network=omniroute";
+    };
+    services.onepassword-secrets.secrets.hermesProviderEnv = lib.mkIf useOmniroute {
+      reference = "op://Shulker/${config.networking.hostName}/Hermes/Provider environment";
+      services = [ "docker-hermes" ];
+      mode = "0400";
     };
     services.onepassword-secrets.secrets.hermesDashboardEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Hermes/Dashboard environment";
@@ -71,7 +81,11 @@ in
       mode = "0400";
     };
     systemd.services.docker-hermes = {
-      requires = [ "opnix-secrets.service" ];
+      requires = [
+        "opnix-secrets.service"
+      ]
+      ++ lib.optional useOmniroute "docker-network-omniroute.service";
+      after = lib.optional useOmniroute "docker-network-omniroute.service";
       unitConfig.RequiresMountsFor = [ cfg.stateDir ];
     };
     environment.persistence = lib.mkIf cfg.impermanence {

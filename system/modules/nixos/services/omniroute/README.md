@@ -1,5 +1,11 @@
 # OmniRoute
 
+Hermes on Shulker connects through the shared `omniroute` Docker bridge using
+its own inference key. Its key permits Sol and Astra, disables prompt logging,
+and has no management access or additional request budget. External clients
+continue to use the private Pangolin endpoint. NixOS creates the bridge before
+starting either local container and retains it across service restarts.
+
 OmniRoute is a private, OpenAI-compatible gateway for the owner's ChatGPT
 subscription. Shulker runs one Docker container managed by NixOS, without
 Compose, Redis or added request budgets. Upstream subscription quotas apply.

@@ -1,5 +1,10 @@
 # Private subscription gateway; application state stays writable across image updates.
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.shulker.system.modules.omniroute;
 in
@@ -39,6 +44,17 @@ in
       }
     ];
     shulker.system.modules.containers.enable = true;
+    # Local clients use Docker DNS without exposing inference outside loopback.
+    systemd.services.docker-network-omniroute = {
+      requires = [ "docker.service" ];
+      after = [ "docker.service" ];
+      path = [ pkgs.docker ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = "docker network inspect omniroute >/dev/null 2>&1 || docker network create omniroute --driver=bridge";
+    };
     users.groups.omniroute.gid = 10002;
     users.users.omniroute = {
       isSystemUser = true;
@@ -71,6 +87,7 @@ in
       };
       environmentFiles = [ config.services.onepassword-secrets.secrets.omnirouteEnv.path ];
       extraOptions = [
+        "--network=omniroute"
         "--memory=10g"
         "--cpus=2"
         "--pids-limit=512"
@@ -82,7 +99,11 @@ in
       mode = "0400";
     };
     systemd.services.docker-omniroute = {
-      requires = [ "opnix-secrets.service" ];
+      requires = [
+        "opnix-secrets.service"
+        "docker-network-omniroute.service"
+      ];
+      after = [ "docker-network-omniroute.service" ];
       unitConfig.RequiresMountsFor = [ cfg.stateDir ];
     };
     environment.persistence = lib.mkIf cfg.impermanence {
