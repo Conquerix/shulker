@@ -7,9 +7,10 @@ to a tested tag/digest to upgrade; configuration remains editable inside Hermes.
 Data is under /var/lib/hermes-clean/data, and the mounted workspace is under
 /var/lib/hermes-clean/workspace. The dashboard listens on loopback port 23234
 and is published privately through Pangolin at https://hermes.shulker.link.
-Dashboard authentication is configured in the owner-only dashboard.env file
-under the state directory. Model credentials belong in Hermes' data directory,
-never in Nix or Git.
+Dashboard credentials are provisioned by OpNix from the Hermes section of the
+shulker server item in 1Password. The container waits for secret provisioning;
+the generated environment file is readable only by root. Model credentials
+belong in Hermes' data directory, never in Nix or Git.
 
 Configure the model and messaging with upstream Hermes commands:
 

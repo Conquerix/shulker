@@ -58,15 +58,22 @@ in
         API_SERVER_HOST = "127.0.0.1";
         TERMINAL_CWD = "/workspace";
       };
-      # Dashboard credentials live in an owner-only runtime file, never in Nix.
-      environmentFiles = [ "${cfg.stateDir}/dashboard.env" ];
+      environmentFiles = [ config.services.onepassword-secrets.secrets.hermesDashboardEnv.path ];
       extraOptions = [
         "--memory=4g"
         "--cpus=2"
         "--pids-limit=512"
       ];
     };
-    systemd.services.docker-hermes.unitConfig.RequiresMountsFor = [ cfg.stateDir ];
+    services.onepassword-secrets.secrets.hermesDashboardEnv = {
+      reference = "op://Shulker/${config.networking.hostName}/Hermes/Dashboard environment";
+      services = [ "docker-hermes" ];
+      mode = "0400";
+    };
+    systemd.services.docker-hermes = {
+      requires = [ "opnix-secrets.service" ];
+      unitConfig.RequiresMountsFor = [ cfg.stateDir ];
+    };
     environment.persistence = lib.mkIf cfg.impermanence {
       "/nix/persist".directories = [
         {

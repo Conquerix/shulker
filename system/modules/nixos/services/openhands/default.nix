@@ -72,17 +72,25 @@ in
         # The only published port is loopback; Pangolin admits only the owner.
         AGENT_CANVAS_ALLOW_LAN_SESSION_KEY = "true";
       };
-      environmentFiles = [ "${cfg.stateDir}/server.env" ];
+      environmentFiles = [ config.services.onepassword-secrets.secrets.openhandsEnv.path ];
       extraOptions = [
         "--memory=4g"
         "--cpus=2"
         "--pids-limit=512"
       ];
     };
-    systemd.services.docker-openhands.unitConfig.RequiresMountsFor = [
-      cfg.stateDir
-      cfg.projectsDir
-    ];
+    services.onepassword-secrets.secrets.openhandsEnv = {
+      reference = "op://Shulker/${config.networking.hostName}/OpenHands/Environment";
+      services = [ "docker-openhands" ];
+      mode = "0400";
+    };
+    systemd.services.docker-openhands = {
+      requires = [ "opnix-secrets.service" ];
+      unitConfig.RequiresMountsFor = [
+        cfg.stateDir
+        cfg.projectsDir
+      ];
+    };
     environment.persistence = lib.mkIf cfg.impermanence {
       "/nix/persist".directories = [
         {

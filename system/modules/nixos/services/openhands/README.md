@@ -14,7 +14,10 @@ agent, not an ACP agent. For an OpenAI API key, choose the OpenAI provider;
 gpt-6.1-sol can be entered as a custom model. API usage is billed separately.
 The pinned SDK's native subscription picker still needs upstream 6.1 Sol support.
 
-The owner-only server.env file holds LOCAL_BACKEND_API_KEY and OH_SECRET_KEY.
+OpNix provisions LOCAL_BACKEND_API_KEY and OH_SECRET_KEY from the OpenHands
+section of the enderdragon server item in 1Password. The container waits for
+secret provisioning; the generated environment file is readable only by root.
+The same section holds the saved OpenAI API key for manual model setup in Canvas.
 Only the Pangolin-protected loopback frontend receives the backend key. Neither
 the Docker socket nor host credentials are mounted in the container. The home
 and project directories are persistent and included in encrypted backups.
