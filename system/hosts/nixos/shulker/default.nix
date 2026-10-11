@@ -51,6 +51,10 @@
         hermes-agent = {
           enable = true;
           impermanence = true;
+          discord = {
+            enable = true;
+            allowedUsers = [ "240780407442767873" ];
+          };
         };
         omniroute = {
           enable = true;

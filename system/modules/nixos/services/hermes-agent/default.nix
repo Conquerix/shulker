@@ -24,8 +24,22 @@ in
       type = lib.types.str;
       default = "https://hermes.shulker.link";
     };
+    discord = {
+      enable = lib.mkEnableOption "native Discord messaging";
+      allowedUsers = lib.mkOption {
+        type = lib.types.listOf (lib.types.strMatching "[0-9]+");
+        default = [ ];
+        description = "Discord user IDs allowed to interact with this Hermes agent.";
+      };
+    };
   };
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !cfg.discord.enable || cfg.discord.allowedUsers != [ ];
+        message = "Hermes Discord requires an explicit user ID allowlist.";
+      }
+    ];
     shulker.system.modules.containers.enable = true;
     users.groups.hermes.gid = 10000;
     users.users.hermes = {
@@ -58,11 +72,18 @@ in
         API_SERVER_ENABLED = "true";
         API_SERVER_HOST = "127.0.0.1";
         TERMINAL_CWD = "/workspace";
+      }
+      // lib.optionalAttrs cfg.discord.enable {
+        DISCORD_ALLOWED_USERS = lib.concatStringsSep "," cfg.discord.allowedUsers;
+        DISCORD_ALLOW_ALL_USERS = "false";
+        DISCORD_REQUIRE_MENTION = "true";
+        DISCORD_ALLOW_BOTS = "none";
       };
       environmentFiles = [
         config.services.onepassword-secrets.secrets.hermesDashboardEnv.path
       ]
-      ++ lib.optional useOmniroute config.services.onepassword-secrets.secrets.hermesProviderEnv.path;
+      ++ lib.optional useOmniroute config.services.onepassword-secrets.secrets.hermesProviderEnv.path
+      ++ lib.optional cfg.discord.enable config.services.onepassword-secrets.secrets.hermesDiscordEnv.path;
       extraOptions = [
         "--memory=4g"
         "--cpus=2"
@@ -77,6 +98,11 @@ in
     };
     services.onepassword-secrets.secrets.hermesDashboardEnv = {
       reference = "op://Shulker/${config.networking.hostName}/Hermes/Dashboard environment";
+      services = [ "docker-hermes" ];
+      mode = "0400";
+    };
+    services.onepassword-secrets.secrets.hermesDiscordEnv = lib.mkIf cfg.discord.enable {
+      reference = "op://Shulker/${config.networking.hostName}/Hermes/Discord environment";
       services = [ "docker-hermes" ];
       mode = "0400";
     };

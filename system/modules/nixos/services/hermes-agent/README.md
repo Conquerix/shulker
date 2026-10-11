@@ -47,8 +47,40 @@ sudo docker logs --tail 100 hermes
 sudo systemctl restart docker-hermes
 ```
 
+## Discord Overseer
+
+Overseer uses the bundled Discord adapter in the existing Hermes container.
+Enable `discord.enable` and set `discord.allowedUsers` to numeric Discord user
+IDs. NixOS requires an explicit allowlist, requires mentions in server channels
+and disables replies to other bots. Direct messages do not require a mention.
+
+OpNix loads the bot token from the concealed **Discord environment** field in
+the Hermes section of the existing shulker server item. The field contains
+`DISCORD_BOT_TOKEN=<token>`; keep its value out of Nix and Git. Activate the
+bundled adapter through Hermes after provisioning the environment:
+
+```sh
+sudo docker exec hermes hermes plugins enable discord-platform
+sudo systemctl restart docker-hermes
+sudo docker exec hermes hermes plugins show discord-platform
+```
+
+Grant the bot messaging, history, attachment, reaction and thread permissions,
+and enable Message Content and Server Members intents in Discord's developer
+portal. Channel permissions determine where the bot can participate; dedicated
+mention-free channels can be configured with Hermes' native
+`discord.free_response_channels` setting. Shared channels can use mentions to
+choose an agent. Future agents need their own bot credentials and isolated
+Hermes state; bot collaboration must be enabled deliberately when they exist.
+
+Before deployment, use an idle window: reprovisioning OpNix can also restart
+OmniRoute and its dependent clients. Afterward, verify the Discord gateway
+connects, send a DM and a channel mention, and check the replies. Inspect logs
+through the private Hermes dashboard. An enabled plugin alone does not prove
+that Discord messages are being received.
+
 The built-in dashboard can inspect sessions and logs. There is one Hermes home
-and one gateway. Messaging, knowledge publishing and coding delegation can be
-configured later using upstream features. No custom gateway adapter is installed.
+and one gateway. Knowledge publishing and coding delegation can be configured
+later using upstream features. No custom gateway adapter is installed.
 The state directory is persistent and included in the existing encrypted backups.
 The retired installations remain in their old persistent directories for recovery.
