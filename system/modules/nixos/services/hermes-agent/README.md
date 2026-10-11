@@ -101,10 +101,11 @@ Quartz publication is a separate future step. Memory and skill writes remain
 enabled, while installation and host permissions remain managed by NixOS.
 
 The `ssh shulker` alias uses a dedicated `hermes-operator` account, a verified
-host key and a read-only private-key mount. Save **Host SSH private key** as a
-concealed field in the Hermes section of the existing shulker 1Password item.
-Only public keys belong in the host configuration. The account has no Docker,
-wheel or journal group membership and cannot forward ports or agents.
+host key and a read-only private-key mount. Its key is stored in the dedicated
+**overseer ssh** SSH Key item in the Shulker 1Password vault. The other Hermes
+credentials remain in the shulker server item. Only public keys belong in the
+host configuration. The account has no Docker, wheel or journal group membership
+and cannot forward ports or agents.
 
 Its only passwordless root commands are exact restarts and bounded journal reads
 for `docker-hermes.service` and `docker-omniroute.service`. Normal accessible

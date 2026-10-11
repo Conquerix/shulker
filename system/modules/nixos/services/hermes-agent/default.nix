@@ -218,7 +218,7 @@ in
       mode = "0400";
     };
     services.onepassword-secrets.secrets.hermesHostKey = lib.mkIf operator.enable {
-      reference = "op://Shulker/${config.networking.hostName}/Hermes/Host SSH private key";
+      reference = "op://Shulker/p5yzdcosjfv3qdpepcsjes5kwi/private_key?ssh-format=openssh";
       services = [ "docker-hermes" ];
       owner = "hermes";
       group = "hermes";
