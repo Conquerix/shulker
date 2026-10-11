@@ -97,6 +97,11 @@ let
       modules.hermes-agent.stateDir
       "Upstream container with built-in dashboard"
     )
+    (service "Quartz" modules.quartz.enable
+      "${modules.quartz.publicUrl} via 127.0.0.1:${toString modules.quartz.port}"
+      modules.quartz.stateDir
+      "Private agent knowledge; source notes backed up by each agent"
+    )
     (service "OpenHands" modules.openhands.enable
       "${modules.openhands.publicUrl} via 127.0.0.1:${toString modules.openhands.port}"
       "${modules.openhands.stateDir}; projects ${modules.openhands.projectsDir}"

@@ -67,6 +67,15 @@
           # Upstream 61e07fb7 with dashboard translation patch; retain its recovery archive.
           image = "sha256:e3e3aeacb01179cbc6c20163f34745e214504fcbe168bcf59a8ce6e1f69910ff";
         };
+        quartz = {
+          enable = true;
+          impermanence = true;
+          image = "sha256:4f5bc1470044e9beb8442b98d5c3742ddfb8b40c2711adbcaf2fa2af274a61d1";
+          agents.overseer = {
+            name = "Overseer";
+            contentDir = "/var/lib/hermes-clean/workspace/knowledge";
+          };
+        };
         pelican = {
           panel = {
             enable = true;
@@ -137,6 +146,26 @@
       {
         hostname = "127.0.0.1";
         port = 23250;
+        method = "http";
+      }
+    ];
+  };
+
+  services.newt.blueprint.public-resources.agent-notes = {
+    name = "Agent knowledge";
+    mode = "http";
+    full-domain = "notes.shulker.link";
+    ssl = true;
+    auth = {
+      sso-enabled = true;
+      sso-users = [ "conquerix@shulker.link" ];
+      sso-roles = [ ];
+      whitelist-users = [ ];
+    };
+    targets = [
+      {
+        hostname = "127.0.0.1";
+        port = 23251;
         method = "http";
       }
     ];

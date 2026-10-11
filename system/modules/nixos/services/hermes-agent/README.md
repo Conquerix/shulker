@@ -97,7 +97,8 @@ conversation's memory snapshot.
 
 Compact native memory lives in `data/memories/`; longer Markdown reports live in
 `workspace/knowledge/`. Both are already covered by the Hermes backup directory.
-Quartz publication is a separate future step. Memory and skill writes remain
+The private Quartz site publishes the knowledge folder in its Overseer section;
+compact memory remains available in Hermes. Memory and skill writes remain
 enabled, while installation and host permissions remain managed by NixOS.
 
 The `ssh shulker` alias uses a dedicated `hermes-operator` account, a verified

@@ -89,6 +89,7 @@ let
         (service "hermes-agent" "Hermes Agent" "automation" modules.hermes-agent.enable
           modules.hermes-agent.publicUrl
         )
+        (service "quartz" "Agent knowledge" "automation" modules.quartz.enable modules.quartz.publicUrl)
         (service "openhands" "OpenHands" "development" modules.openhands.enable modules.openhands.publicUrl)
         (service "home-assistant" "Home Assistant" "automation" modules.home-assistant.enable null)
         (service "immich" "Immich (server, OpenVINO ML, PostgreSQL, Valkey)" "media" modules.immich.enable
