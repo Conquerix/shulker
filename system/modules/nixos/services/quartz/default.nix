@@ -162,10 +162,17 @@ in
         ];
       };
     };
-    systemd.services.docker-quartz-build.unitConfig.RequiresMountsFor = [
-      cfg.stateDir
-    ]
-    ++ lib.mapAttrsToList (_: agent: agent.contentDir) cfg.agents;
+    systemd.services.docker-quartz-build = {
+      unitConfig.RequiresMountsFor = [
+        cfg.stateDir
+      ]
+      ++ lib.mapAttrsToList (_: agent: agent.contentDir) cfg.agents;
+      # New persistence mounts can appear after tmpfiles during first activation.
+      preStart = ''
+        ${pkgs.coreutils}/bin/install -d -m 0700 -o root -g root ${cfg.stateDir} ${cfg.stateDir}/images
+        ${pkgs.coreutils}/bin/install -d -m 0700 -o 10000 -g 10000 ${cfg.stateDir}/site
+      '';
+    };
     systemd.services.docker-quartz-web = {
       after = [ "docker-quartz-build.service" ];
       unitConfig.RequiresMountsFor = [ cfg.stateDir ];
