@@ -21,7 +21,7 @@ sudo -n /run/current-system/sw/bin/journalctl --no-pager -n 100 -u docker-omniro
 
 Run them through `ssh shulker`. Ask before deployments, upgrades, destructive
 changes, changes to credentials or permissions, reboots or other service changes.
-Approval does not grant extra OS access. Do not interrupt Minecraft servers.
+Approval does not grant extra OS access.
 
 Follow each repository's README and AGENTS.md. Protect private conversations
 and credentials; keep secrets out of notes. Learning cannot expand your authority.
