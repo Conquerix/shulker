@@ -84,3 +84,41 @@ and one gateway. Knowledge publishing and coding delegation can be configured
 later using upstream features. No custom gateway adapter is installed.
 The state directory is persistent and included in the existing encrypted backups.
 The retired installations remain in their old persistent directories for recovery.
+
+## Overseer context and host access
+
+`overseer.enable` seeds native identity, memory and workspace instructions once.
+The files under `overseer/` are initial context, not templates reapplied over
+learned state. Existing files are preserved, including an upstream starter
+`SOUL.md`; replace that starter deliberately during initial activation, after
+keeping a private recovery copy. New sessions load the updated context. Use
+`/new` in Discord after setup; restarting the gateway alone does not reset a
+conversation's memory snapshot.
+
+Compact native memory lives in `data/memories/`; longer Markdown reports live in
+`workspace/knowledge/`. Both are already covered by the Hermes backup directory.
+Quartz publication is a separate future step. Memory and skill writes remain
+enabled, while installation and host permissions remain managed by NixOS.
+
+The `ssh shulker` alias uses a dedicated `hermes-operator` account, a verified
+host key and a read-only private-key mount. Save **Host SSH private key** as a
+concealed field in the Hermes section of the existing shulker 1Password item.
+Only public keys belong in the host configuration. The account has no Docker,
+wheel or journal group membership and cannot forward ports or agents.
+
+Its only passwordless root commands are exact restarts and bounded journal reads
+for `docker-hermes.service` and `docker-omniroute.service`. Normal accessible
+host status can be inspected without sudo. The workspace instructions require
+an idle check and prohibit other live changes without approval. Those
+instructions guide behavior; the account and sudo grants enforce the actual
+authority. Approval in chat does not grant deployment/root access automatically.
+Shulker uses sudo-rs; its execution gate permits this non-wheel account to invoke
+sudo, while its command rules retain the four exact grants. Context seeding runs
+as the unprivileged Hermes user, so writable directory symlinks cannot redirect
+root filesystem operations.
+
+Validate access with `ssh shulker 'id; systemctl is-active docker-hermes.service
+docker-omniroute.service'`, then inspect `sudo -l` and confirm a nonpermitted
+command is rejected using sudo's list mode, which does not execute it. Test
+knowledge and native memory writes, and start a fresh Discord session to check
+recall. Do not restart services merely to test permissions.

@@ -55,6 +55,11 @@
             enable = true;
             allowedUsers = [ "240780407442767873" ];
           };
+          overseer = {
+            enable = true;
+            sshPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICgZaOYzOg5WrqkUwb8gXAraKJ6fNCCgGfQciEph5PtZ hermes-overseer-shulker";
+            hostPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHsMHVJJq7B5xr8y49tstCoN9DotgIPg1eSOMCBQ4MaT";
+          };
         };
         omniroute = {
           enable = true;
