@@ -14,6 +14,17 @@ OmniRoute inference key in the same server item's Hermes section. OpNix injects
 it into the container; native model configuration references the environment
 variable, so the key never belongs in Nix or Git.
 
+At startup, NixOS also combines the provisioned environment files into a private
+runtime file mounted read-only as `/etc/hermes/.env`. Hermes' managed-secret
+layer keeps these credentials available inside isolated profile scopes; Docker
+environment variables alone are not sufficient when gateway multiplexing is
+enabled. The runtime file is readable by the Hermes user, regenerated from
+OpNix on each service start, and excluded from persistent state and backups.
+Never copy these keys into the writable profile's `.env` to work around a missing
+credential. Future agents with different credentials need separate managed state.
+The same managed layer carries the NixOS Discord allowlist, mention requirement
+and bot-reply policy so profile isolation preserves those access restrictions.
+
 When OmniRoute is enabled on the host, both containers join the `omniroute`
 Docker bridge. Hermes uses `http://omniroute:20128/v1` directly; the dashboard
 remains private through Pangolin. The network permits outbound provider traffic.

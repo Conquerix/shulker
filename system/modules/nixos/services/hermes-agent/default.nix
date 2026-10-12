@@ -8,6 +8,24 @@
 let
   cfg = config.shulker.system.modules.hermes-agent;
   useOmniroute = config.shulker.system.modules.omniroute.enable;
+  discordPolicy = lib.optionalAttrs cfg.discord.enable {
+    DISCORD_ALLOWED_USERS = lib.concatStringsSep "," cfg.discord.allowedUsers;
+    DISCORD_ALLOW_ALL_USERS = "false";
+    DISCORD_REQUIRE_MENTION = "true";
+    DISCORD_ALLOW_BOTS = "none";
+  };
+  managedEnv = "/run/hermes-managed/.env";
+  managedEnvSources = [
+    config.services.onepassword-secrets.secrets.hermesDashboardEnv.path
+  ]
+  ++ lib.optional useOmniroute config.services.onepassword-secrets.secrets.hermesProviderEnv.path
+  ++ lib.optional cfg.discord.enable config.services.onepassword-secrets.secrets.hermesDiscordEnv.path
+  ++ lib.optional cfg.discord.enable (
+    pkgs.writeText "hermes-discord-policy.env" (
+      lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: "${name}=${value}") discordPolicy)
+      + "\n"
+    )
+  );
   operator = cfg.overseer;
   operatorUser = "hermes-operator";
   sshConfig = pkgs.writeText "hermes-host-ssh-config" ''
@@ -167,6 +185,8 @@ in
       volumes = [
         "${cfg.stateDir}/data:/opt/data:rw"
         "${cfg.stateDir}/workspace:/workspace:rw"
+        # Profile isolation reads managed credentials instead of ambient Docker env.
+        "${managedEnv}:/etc/hermes/.env:ro"
       ]
       ++ lib.optionals operator.enable [
         "${sshConfig}:/etc/ssh/ssh_config.d/90-overseer.conf:ro"
@@ -183,12 +203,7 @@ in
         TERMINAL_CWD = "/workspace";
         HERMES_WRITE_SAFE_ROOT = "/opt/data:/workspace";
       }
-      // lib.optionalAttrs cfg.discord.enable {
-        DISCORD_ALLOWED_USERS = lib.concatStringsSep "," cfg.discord.allowedUsers;
-        DISCORD_ALLOW_ALL_USERS = "false";
-        DISCORD_REQUIRE_MENTION = "true";
-        DISCORD_ALLOW_BOTS = "none";
-      };
+      // discordPolicy;
       environmentFiles = [
         config.services.onepassword-secrets.secrets.hermesDashboardEnv.path
       ]
@@ -225,9 +240,25 @@ in
       mode = "0400";
     };
     systemd.services.docker-hermes = {
-      # Seed new homes only; learning and user edits survive every deployment.
-      preStart = lib.mkIf operator.enable ''
-        ${pkgs.util-linux}/bin/runuser -u hermes -- ${seedBootstrap}
+      serviceConfig = {
+        RuntimeDirectory = "hermes-managed";
+        RuntimeDirectoryMode = "0700";
+      };
+      preStart = ''
+        set -eu
+        umask 077
+        # Keep secrets out of the store and writable profile; regenerate from OpNix.
+        {
+          ${lib.concatMapStringsSep "\n" (path: ''
+            cat ${lib.escapeShellArg path}
+            printf '\n'
+          '') managedEnvSources}
+        } > ${managedEnv}
+        chown hermes:hermes ${managedEnv}
+        chmod 0400 ${managedEnv}
+        ${lib.optionalString operator.enable ''
+          ${pkgs.util-linux}/bin/runuser -u hermes -- ${seedBootstrap}
+        ''}
       '';
       requires = [
         "opnix-secrets.service"
