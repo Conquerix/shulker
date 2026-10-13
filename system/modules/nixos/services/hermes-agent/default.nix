@@ -14,18 +14,53 @@ let
     DISCORD_REQUIRE_MENTION = "true";
     DISCORD_ALLOW_BOTS = "none";
   };
-  managedEnv = "/run/hermes-managed/.env";
-  managedEnvSources = [
-    config.services.onepassword-secrets.secrets.hermesDashboardEnv.path
-  ]
-  ++ lib.optional useOmniroute config.services.onepassword-secrets.secrets.hermesProviderEnv.path
-  ++ lib.optional cfg.discord.enable config.services.onepassword-secrets.secrets.hermesDiscordEnv.path
-  ++ lib.optional cfg.discord.enable (
-    pkgs.writeText "hermes-discord-policy.env" (
-      lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: "${name}=${value}") discordPolicy)
-      + "\n"
-    )
+  managedDir = "/run/hermes-managed";
+  managedEnv = "${managedDir}/current/.env";
+  credentialItem = if cfg.credentialItem == null then "" else cfg.credentialItem;
+  bootstrapToken = config.services.onepassword-secrets.secrets.hermesVaultToken.path;
+  credentialReferences = pkgs.writeText "hermes-credential-references.json" (
+    builtins.toJSON {
+      environment = [
+        {
+          label = "dashboard";
+          reference = "${credentialItem}/Hermes/Dashboard environment";
+          requiredKeys = [
+            "HERMES_DASHBOARD_BASIC_AUTH_USERNAME"
+            "HERMES_DASHBOARD_BASIC_AUTH_PASSWORD"
+            "HERMES_DASHBOARD_BASIC_AUTH_SECRET"
+            "API_SERVER_KEY"
+          ];
+        }
+      ]
+      ++ lib.optional useOmniroute {
+        label = "provider";
+        reference = "${credentialItem}/Hermes/Provider environment";
+        requiredKeys = [ "HERMES_OMNIROUTE_API_KEY" ];
+      }
+      ++ lib.optional cfg.discord.enable {
+        label = "discord";
+        reference = "${credentialItem}/Hermes/Discord environment";
+        requiredKeys = [ "DISCORD_BOT_TOKEN" ];
+      };
+      sshKey = if cfg.overseer.enable then "${credentialItem}/SSH/Private key" else null;
+      policy = discordPolicy;
+      owner = [
+        config.users.users.hermes.uid
+        config.users.groups.hermes.gid
+      ];
+    }
   );
+  opWrapper = pkgs.writeTextFile {
+    name = "hermes-op";
+    executable = true;
+    text = ''
+      #!/bin/sh
+      set -eu
+      OP_SERVICE_ACCOUNT_TOKEN="$(cat /run/overseer-op-token)"
+      export OP_SERVICE_ACCOUNT_TOKEN
+      exec /run/overseer-tools/op "$@"
+    '';
+  };
   operator = cfg.overseer;
   operatorUser = "hermes-operator";
   sshConfig = pkgs.writeText "hermes-host-ssh-config" ''
@@ -92,6 +127,11 @@ in
       type = lib.types.str;
       default = "https://hermes.shulker.link";
     };
+    credentialItem = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "1Password item reference for this agent's bootstrap and startup credentials.";
+    };
     discord = {
       enable = lib.mkEnableOption "native Discord messaging";
       allowedUsers = lib.mkOption {
@@ -116,6 +156,10 @@ in
   };
   config = lib.mkIf cfg.enable {
     assertions = [
+      {
+        assertion = cfg.credentialItem != null && lib.hasPrefix "op://" credentialItem;
+        message = "Hermes requires its own 1Password credential item reference.";
+      }
       {
         assertion = !cfg.discord.enable || cfg.discord.allowedUsers != [ ];
         message = "Hermes Discord requires an explicit user ID allowlist.";
@@ -142,7 +186,7 @@ in
       isSystemUser = true;
       group = operatorUser;
       shell = pkgs.bashInteractive;
-      # No Docker, wheel or journal group: only the exact sudo commands below.
+      # Keep a distinct SSH login identity; its root authority comes through sudo.
       openssh.authorizedKeys.keys = [ "restrict ${operator.sshPublicKey}" ];
     };
     # Allow the non-wheel account to invoke sudo-rs; grants stay command-specific.
@@ -151,22 +195,12 @@ in
       {
         users = [ operatorUser ];
         runAs = "root";
-        commands =
-          lib.concatMap
-            (unit: [
-              {
-                command = "/run/current-system/sw/bin/systemctl restart ${unit}";
-                options = [ "NOPASSWD" ];
-              }
-              {
-                command = "/run/current-system/sw/bin/journalctl --no-pager -n 100 -u ${unit}";
-                options = [ "NOPASSWD" ];
-              }
-            ])
-            [
-              "docker-hermes.service"
-              "docker-omniroute.service"
-            ];
+        commands = [
+          {
+            command = "ALL";
+            options = [ "NOPASSWD" ];
+          }
+        ];
       }
     ];
     systemd.tmpfiles.rules = [
@@ -187,11 +221,15 @@ in
         "${cfg.stateDir}/workspace:/workspace:rw"
         # Profile isolation reads managed credentials instead of ambient Docker env.
         "${managedEnv}:/etc/hermes/.env:ro"
+        "${bootstrapToken}:/run/overseer-op-token:ro"
+        # The original binary uses the container's loader, not Nix's patched loader.
+        "${pkgs._1password-cli.src}/op:/run/overseer-tools/op:ro"
+        "${opWrapper}:/usr/local/bin/op:ro"
       ]
       ++ lib.optionals operator.enable [
         "${sshConfig}:/etc/ssh/ssh_config.d/90-overseer.conf:ro"
         "${knownHosts}:/etc/hermes-host-known-hosts:ro"
-        "${config.services.onepassword-secrets.secrets.hermesHostKey.path}:/run/hermes-host-key:ro"
+        "${managedDir}/current/host-key:/run/hermes-host-key:ro"
       ];
       environment = {
         HERMES_UID = "10000";
@@ -204,11 +242,7 @@ in
         HERMES_WRITE_SAFE_ROOT = "/opt/data:/workspace";
       }
       // discordPolicy;
-      environmentFiles = [
-        config.services.onepassword-secrets.secrets.hermesDashboardEnv.path
-      ]
-      ++ lib.optional useOmniroute config.services.onepassword-secrets.secrets.hermesProviderEnv.path
-      ++ lib.optional cfg.discord.enable config.services.onepassword-secrets.secrets.hermesDiscordEnv.path;
+      environmentFiles = [ managedEnv ];
       extraOptions = [
         "--memory=4g"
         "--cpus=2"
@@ -217,45 +251,27 @@ in
       ++ lib.optional useOmniroute "--network=omniroute"
       ++ lib.optional operator.enable "--add-host=shulker-host:host-gateway";
     };
-    services.onepassword-secrets.secrets.hermesProviderEnv = lib.mkIf useOmniroute {
-      reference = "op://Shulker/${config.networking.hostName}/Hermes/Provider environment";
-      services = [ "docker-hermes" ];
-      mode = "0400";
-    };
-    services.onepassword-secrets.secrets.hermesDashboardEnv = {
-      reference = "op://Shulker/${config.networking.hostName}/Hermes/Dashboard environment";
-      services = [ "docker-hermes" ];
-      mode = "0400";
-    };
-    services.onepassword-secrets.secrets.hermesDiscordEnv = lib.mkIf cfg.discord.enable {
-      reference = "op://Shulker/${config.networking.hostName}/Hermes/Discord environment";
-      services = [ "docker-hermes" ];
-      mode = "0400";
-    };
-    services.onepassword-secrets.secrets.hermesHostKey = lib.mkIf operator.enable {
-      reference = "op://Shulker/p5yzdcosjfv3qdpepcsjes5kwi/private_key?ssh-format=openssh";
+    services.onepassword-secrets.secrets.hermesVaultToken = {
+      reference = "${credentialItem}/1Password/Service account token";
       services = [ "docker-hermes" ];
       owner = "hermes";
       group = "hermes";
       mode = "0400";
     };
     systemd.services.docker-hermes = {
+      path = [ pkgs.openssh ];
       serviceConfig = {
         RuntimeDirectory = "hermes-managed";
         RuntimeDirectoryMode = "0700";
+        RuntimeDirectoryPreserve = "restart";
       };
       preStart = ''
         set -eu
         umask 077
-        # Keep secrets out of the store and writable profile; regenerate from OpNix.
-        {
-          ${lib.concatMapStringsSep "\n" (path: ''
-            cat ${lib.escapeShellArg path}
-            printf '\n'
-          '') managedEnvSources}
-        } > ${managedEnv}
-        chown hermes:hermes ${managedEnv}
-        chmod 0400 ${managedEnv}
+        # Refetch only this agent's fields; publish nothing on an incomplete fetch.
+        ${pkgs.python3}/bin/python3 ${./render-credentials.py} \
+          ${pkgs._1password-cli}/bin/op ${lib.escapeShellArg bootstrapToken} \
+          ${credentialReferences} ${managedDir}
         ${lib.optionalString operator.enable ''
           ${pkgs.util-linux}/bin/runuser -u hermes -- ${seedBootstrap}
         ''}

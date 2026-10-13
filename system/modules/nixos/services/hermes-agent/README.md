@@ -7,19 +7,27 @@ to a tested tag/digest to upgrade; configuration remains editable inside Hermes.
 Data is under /var/lib/hermes-clean/data, and the mounted workspace is under
 /var/lib/hermes-clean/workspace. The dashboard listens on loopback port 23234
 and is published privately through Pangolin at https://hermes.shulker.link.
-Dashboard credentials are provisioned by OpNix from the Hermes section of the
-shulker server item in 1Password. The container waits for secret provisioning;
-the generated environment files are readable only by root. Hermes has its own
-OmniRoute inference key in the same server item's Hermes section. OpNix injects
-it into the container; native model configuration references the environment
-variable, so the key never belongs in Nix or Git.
+Set `credentialItem` to this agent's 1Password item reference. Shulker uses the
+existing **[AI] Overseer** item in the **Shulker** vault. Its **Hermes** section
+holds the concealed **Dashboard environment**, **Provider environment** and
+**Discord environment** fields. Store unquoted, single-line `KEY=value` entries;
+quoted values, surrounding whitespace and inline-comment syntax are refused
+because Docker and Hermes would parse them differently. Literal `$`, `#` and
+`=` are supported without expansion. The provider field carries Overseer's own
+OmniRoute inference key; model configuration references its environment variable.
 
-At startup, NixOS also combines the provisioned environment files into a private
-runtime file mounted read-only as `/etc/hermes/.env`. Hermes' managed-secret
+OpNix bootstraps only the dedicated service-account token from the item's
+**1Password / Service account token** field. On every Hermes start, the startup
+renderer uses that account to fetch the configured fields directly from the
+vault. It publishes a complete private runtime generation only after every
+required value and the SSH key validate. A failed refresh stops startup and
+retains the last complete generation; it does not silently use stale values.
+
+The generated environment is also mounted read-only as `/etc/hermes/.env`. Hermes' managed-secret
 layer keeps these credentials available inside isolated profile scopes; Docker
 environment variables alone are not sufficient when gateway multiplexing is
 enabled. The runtime file is readable by the Hermes user, regenerated from
-OpNix on each service start, and excluded from persistent state and backups.
+1Password on each service start, and excluded from persistent state and backups.
 Never copy these keys into the writable profile's `.env` to work around a missing
 credential. Future agents with different credentials need separate managed state.
 The same managed layer carries the NixOS Discord allowlist, mention requirement
@@ -43,12 +51,20 @@ sudo docker exec hermes hermes chat -Q --max-turns 2 --run-budget 90 \
   -q 'Reply exactly HERMES_OMNIROUTE_OK. Do not use tools.'
 ```
 
-After changing the stored provider environment, restart `opnix-secrets` to
-reprovision it. Its required-service dependencies also restart Hermes and
-OmniRoute, interrupting Hermes conversations and OpenHands or other gateway
-requests. Use a window where both are idle, then check both container services
-are active. The pre-integration model configuration is retained in the private
-state directory for recovery.
+After editing a stored startup field, restart only `docker-hermes` in an idle
+window and verify recovery. Its startup step fetches the latest values without
+restarting OmniRoute or refreshing the fleet's OpNix secrets. Rotating the
+service-account bootstrap token itself requires host reprovisioning; use the
+checked deployment procedure and inspect its broader restart scope.
+
+The official CLI from the locked nixpkgs input is mounted read-only into the
+unchanged Hermes image. The `op` wrapper supplies the account token from its
+private mount. Overseer can read and edit the Shulker vault through that account,
+including server items. This is vault-wide authority, not item-level access.
+Use `op run` or a subprocess to consume credentials without printing values.
+Future agents need their own provisioning; they do not inherit this account.
+Writing a stored value does not rotate the application credential: use the
+application's supported API, save the new value and refresh the relevant client.
 
 Configure the model and messaging with upstream Hermes commands:
 
@@ -65,8 +81,8 @@ Enable `discord.enable` and set `discord.allowedUsers` to numeric Discord user
 IDs. NixOS requires an explicit allowlist, requires mentions in server channels
 and disables replies to other bots. Direct messages do not require a mention.
 
-OpNix loads the bot token from the concealed **Discord environment** field in
-the Hermes section of the existing shulker server item. The field contains
+The startup renderer loads the bot token from the concealed **Discord environment**
+field in the agent item's Hermes section. The field contains
 `DISCORD_BOT_TOKEN=<token>`; keep its value out of Nix and Git. Activate the
 bundled adapter through Hermes after provisioning the environment:
 
@@ -84,8 +100,8 @@ mention-free channels can be configured with Hermes' native
 choose an agent. Future agents need their own bot credentials and isolated
 Hermes state; bot collaboration must be enabled deliberately when they exist.
 
-Before deployment, use an idle window: reprovisioning OpNix can also restart
-OmniRoute and its dependent clients. Afterward, verify the Discord gateway
+Before deployment, use an idle window and inspect the activation's restart scope.
+Afterward, verify the Discord gateway
 connects, send a DM and a channel mention, and check the replies. Inspect logs
 through the private Hermes dashboard. An enabled plugin alone does not prove
 that Discord messages are being received.
@@ -113,25 +129,24 @@ compact memory remains available in Hermes. Memory and skill writes remain
 enabled, while installation and host permissions remain managed by NixOS.
 
 The `ssh shulker` alias uses a dedicated `hermes-operator` account, a verified
-host key and a read-only private-key mount. Its key is stored in the dedicated
-**overseer ssh** SSH Key item in the Shulker 1Password vault. The other Hermes
-credentials remain in the shulker server item. Only public keys belong in the
-host configuration. The account has no Docker, wheel or journal group membership
-and cannot forward ports or agents.
+host key and a read-only private-key mount. Its private key is stored as a
+concealed OpenSSH value in the agent item's **SSH / Private key** field. That
+field is usable by the server but does not provide native desktop SSH-agent
+features. Preserve the previous **overseer ssh** item through rollout acceptance.
+Only public keys belong in the host configuration. The account has no direct
+Docker, wheel or journal group membership; its SSH key disables forwarding.
 
-Its only passwordless root commands are exact restarts and bounded journal reads
-for `docker-hermes.service` and `docker-omniroute.service`. Normal accessible
-host status can be inspected without sudo. The workspace instructions require
-an idle check and prohibit other live changes without approval. Those
-instructions guide behavior; the account and sudo grants enforce the actual
-authority. Approval in chat does not grant deployment/root access automatically.
-Shulker uses sudo-rs; its execution gate permits this non-wheel account to invoke
-sudo, while its command rules retain the four exact grants. Context seeding runs
+The account has unrestricted passwordless sudo as root, as requested by Pierre.
+Root authority can override host protections and read host secrets; private
+mounts do not constrain it. Workspace instructions require an idle check for
+routine restarts and approval for deployments, destructive operations, server
+credential changes and host permissions. Agent credential records can be
+maintained autonomously. Shulker uses sudo-rs and permits this non-wheel account
+to invoke sudo. Context seeding runs
 as the unprivileged Hermes user, so writable directory symlinks cannot redirect
 root filesystem operations.
 
-Validate access with `ssh shulker 'id; systemctl is-active docker-hermes.service
-docker-omniroute.service'`, then inspect `sudo -l` and confirm a nonpermitted
-command is rejected using sudo's list mode, which does not execute it. Test
+Validate root access with `ssh shulker 'sudo -n id -u'` (expected `0`) and inspect
+`sudo -l`. Test
 knowledge and native memory writes, and start a fresh Discord session to check
 recall. Do not restart services merely to test permissions.

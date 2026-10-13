@@ -31,6 +31,7 @@ let
     (import ./checks/taskview.nix context)
     (import ./checks/actual-budget.nix context)
     (import ./checks/kitchenowl.nix context)
+    (import ./checks/hermes.nix context)
     (import ./checks/suites.nix context)
     (import ./checks/pre-commit.nix context)
   ];

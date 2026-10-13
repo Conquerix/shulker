@@ -51,6 +51,7 @@
         hermes-agent = {
           enable = true;
           impermanence = true;
+          credentialItem = "op://Shulker/j3ucxj57rqa4cpslcafgze4nxq";
           discord = {
             enable = true;
             allowedUsers = [ "240780407442767873" ];
