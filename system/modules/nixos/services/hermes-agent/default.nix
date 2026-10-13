@@ -141,7 +141,7 @@ in
       };
     };
     overseer = {
-      enable = lib.mkEnableOption "Overseer context and restricted host administration";
+      enable = lib.mkEnableOption "Overseer context and root host administration";
       sshPublicKey = lib.mkOption {
         type = lib.types.str;
         default = "";
@@ -189,7 +189,7 @@ in
       # Keep a distinct SSH login identity; its root authority comes through sudo.
       openssh.authorizedKeys.keys = [ "restrict ${operator.sshPublicKey}" ];
     };
-    # Allow the non-wheel account to invoke sudo-rs; grants stay command-specific.
+    # Allow the dedicated non-wheel identity to invoke its requested root sudo grant.
     security.sudo-rs.execWheelOnly = lib.mkIf operator.enable (lib.mkForce false);
     security.sudo-rs.extraRules = lib.mkIf operator.enable [
       {
@@ -263,7 +263,8 @@ in
       serviceConfig = {
         RuntimeDirectory = "hermes-managed";
         RuntimeDirectoryMode = "0700";
-        RuntimeDirectoryPreserve = "restart";
+        # Keep recovery files after terminal failures or a stop; /run clears on reboot.
+        RuntimeDirectoryPreserve = "yes";
       };
       preStart = ''
         set -eu

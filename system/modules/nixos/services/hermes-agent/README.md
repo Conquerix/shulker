@@ -21,10 +21,12 @@ OpNix bootstraps only the dedicated service-account token from the item's
 renderer uses that account to fetch the configured fields directly from the
 vault. It publishes a complete private runtime generation only after every
 required value and the SSH key validate. A failed refresh stops startup and
-retains the last complete generation; it does not silently use stale values.
+retains the last complete generation, including after terminal startup failures
+or an explicit stop. The runtime directory is cleared on reboot. A failed
+refresh does not silently use stale values.
 
-The generated environment is also mounted read-only as `/etc/hermes/.env`. Hermes' managed-secret
-layer keeps these credentials available inside isolated profile scopes; Docker
+The generated environment is also mounted read-only as `/etc/hermes/.env`.
+Hermes' managed-secret layer keeps these credentials available inside isolated profile scopes; Docker
 environment variables alone are not sufficient when gateway multiplexing is
 enabled. The runtime file is readable by the Hermes user, regenerated from
 1Password on each service start, and excluded from persistent state and backups.
