@@ -260,6 +260,8 @@ in
     };
     systemd.services.docker-hermes = {
       path = [ pkgs.openssh ];
+      # Systemd has no HOME; keep the CLI's configuration transient and private.
+      environment.OP_CONFIG_DIR = "${managedDir}/op-config";
       serviceConfig = {
         RuntimeDirectory = "hermes-managed";
         RuntimeDirectoryMode = "0700";

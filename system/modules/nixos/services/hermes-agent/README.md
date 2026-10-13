@@ -24,6 +24,8 @@ required value and the SSH key validate. A failed refresh stops startup and
 retains the last complete generation, including after terminal startup failures
 or an explicit stop. The runtime directory is cleared on reboot. A failed
 refresh does not silently use stale values.
+The loader's CLI configuration stays inside the private runtime directory;
+it does not depend on systemd providing `HOME`.
 
 The generated environment is also mounted read-only as `/etc/hermes/.env`.
 Hermes' managed-secret layer keeps these credentials available inside isolated profile scopes; Docker

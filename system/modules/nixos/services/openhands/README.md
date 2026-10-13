@@ -53,9 +53,35 @@ and Pull requests write permissions. OpNix mounts it read-only for Git's
 credential helper; it is never embedded in remote URLs. The same token is saved
 as github_token in Canvas for repository discovery and pull-request operations.
 After rotating it, update the native Canvas secret as well as the server item.
-Only the Pangolin-protected loopback frontend receives the backend key. Neither
+The primary backend key is injected into the Pangolin-protected frontend. Neither
 the Docker socket nor host credentials are mounted in the container. The home
 and project directories are persistent and included in encrypted backups.
+
+## Overseer access
+
+Overseer uses the **OpenHands** section of its **[AI] Overseer** 1Password item:
+**URL**, **Pangolin token ID**, **Pangolin token** and **Backend API key**.
+Its revocable, non-expiring Pangolin token is restricted to code.shulker.link.
+Use native `op run` or a subprocess to supply `P-Access-Token-Id`,
+`P-Access-Token` and `X-Session-API-Key` without printing credentials.
+
+The server item's existing environment also sets `OH_SESSION_API_KEYS_0` to
+the exact Docker value of `LOCAL_BACKEND_API_KEY`, and `OH_SESSION_API_KEYS_1`
+to Overseer's distinct backend key. Preserve any literal quotes in the existing
+primary key: Docker's env-file parser retains them. Keep `OH_SECRET_KEY`
+unchanged. Canvas injects the first key; the native agent-server API accepts
+either key. Automation endpoints continue to use the primary key.
+
+For a scoped refresh, use OpNix with a temporary configuration selecting only
+`openhandsEnv` and `systemdIntegration.enable = false`. Fetch into private
+temporary storage, verify the original values and primary key are unchanged,
+then atomically replace the root-owned `0400` environment file and restart only
+`docker-openhands` while idle. A global OpNix restart can interrupt its dependents.
+
+Access was verified from Hermes through native `op run`: both backend keys
+returned 200, missing or incorrect backend keys returned 401, missing Pangolin
+authentication redirected to login, and Canvas returned 200. This establishes
+application access; coding-task delegation is a separate integration.
 
 Development Nix uses its own single-user store at /var/lib/openhands-nix,
 mounted as /nix. It persists across container replacement; its reproducible
