@@ -1,4 +1,4 @@
-# One upstream Hermes container, including its built-in dashboard.
+# Overseer with its dashboard, plus an optional isolated Engineer gateway.
 {
   config,
   lib,
@@ -61,6 +61,23 @@ let
       exec /run/overseer-tools/op "$@"
     '';
   };
+  engineer = cfg.engineer;
+  engineerManagedEnv = "/run/hermes-engineer-managed/.env";
+  engineerPolicy = {
+    DISCORD_ALLOWED_USERS = lib.concatStringsSep "," engineer.allowedUsers;
+    DISCORD_ALLOW_ALL_USERS = "false";
+    DISCORD_REQUIRE_MENTION = "true";
+    DISCORD_ALLOW_BOTS = "none";
+  };
+  engineerSettings = pkgs.writeText "hermes-engineer-settings.json" (
+    builtins.toJSON {
+      policy = engineerPolicy;
+      owner = [
+        config.users.users.hermes.uid
+        config.users.groups.hermes.gid
+      ];
+    }
+  );
   operator = cfg.overseer;
   operatorUser = "hermes-operator";
   sshConfig = pkgs.writeText "hermes-host-ssh-config" ''
@@ -140,6 +157,24 @@ in
         description = "Discord user IDs allowed to interact with this Hermes agent.";
       };
     };
+    engineer = {
+      enable = lib.mkEnableOption "isolated Engineer Discord gateway";
+      stateDir = lib.mkOption {
+        type = lib.types.strMatching "/[A-Za-z0-9/_-]+";
+        default = "/var/lib/hermes-engineer";
+        description = "Existing Engineer data and workspace; never seeded or replaced.";
+      };
+      image = lib.mkOption {
+        type = lib.types.str;
+        default = cfg.image;
+        description = "Tested Hermes image, shared with Overseer by default; migration is not an upgrade.";
+      };
+      allowedUsers = lib.mkOption {
+        type = lib.types.listOf (lib.types.strMatching "[0-9]+");
+        default = [ ];
+        description = "Explicit numeric Discord user allowlist for Engineer.";
+      };
+    };
     overseer = {
       enable = lib.mkEnableOption "Overseer context and root host administration";
       sshPublicKey = lib.mkOption {
@@ -159,6 +194,20 @@ in
       {
         assertion = cfg.credentialItem != null && lib.hasPrefix "op://" credentialItem;
         message = "Hermes requires its own 1Password credential item reference.";
+      }
+      {
+        assertion = !engineer.enable || (useOmniroute && engineer.allowedUsers != [ ]);
+        message = "Engineer requires OmniRoute and an explicit Discord user ID allowlist.";
+      }
+      {
+        assertion =
+          !engineer.enable
+          || !(
+            engineer.stateDir == cfg.stateDir
+            || lib.hasPrefix "${cfg.stateDir}/" engineer.stateDir
+            || lib.hasPrefix "${engineer.stateDir}/" cfg.stateDir
+          );
+        message = "Engineer and Overseer state directories must not overlap.";
       }
       {
         assertion = !cfg.discord.enable || cfg.discord.allowedUsers != [ ];
@@ -207,7 +256,42 @@ in
       "d ${cfg.stateDir} 0700 hermes hermes -"
       "d ${cfg.stateDir}/data 0700 hermes hermes -"
       "d ${cfg.stateDir}/workspace 0700 hermes hermes -"
+    ]
+    ++ lib.optionals engineer.enable [
+      "d ${engineer.stateDir} 0700 hermes hermes -"
+      "d ${engineer.stateDir}/data 0700 hermes hermes -"
+      "d ${engineer.stateDir}/workspace 0700 hermes hermes -"
     ];
+    virtualisation.oci-containers.containers.hermes-engineer = lib.mkIf engineer.enable {
+      image = engineer.image;
+      pull = "missing";
+      cmd = [
+        "gateway"
+        "run"
+      ];
+      # No dashboard, published ports, host keys, vault credentials or Docker socket.
+      volumes = [
+        "${engineer.stateDir}/data:/opt/data:rw"
+        "${engineer.stateDir}/workspace:/workspace:rw"
+        "${engineerManagedEnv}:/etc/hermes/.env:ro"
+      ];
+      environment = {
+        HERMES_UID = "10000";
+        HERMES_GID = "10000";
+        HERMES_DASHBOARD = "0";
+        API_SERVER_ENABLED = "false";
+        TERMINAL_CWD = "/workspace";
+        HERMES_WRITE_SAFE_ROOT = "/opt/data:/workspace";
+      }
+      // engineerPolicy;
+      environmentFiles = [ engineerManagedEnv ];
+      extraOptions = [
+        "--memory=4g"
+        "--cpus=2"
+        "--pids-limit=512"
+        "--network=omniroute"
+      ];
+    };
     virtualisation.oci-containers.containers.hermes = {
       image = cfg.image;
       pull = "missing";
@@ -251,12 +335,47 @@ in
       ++ lib.optional useOmniroute "--network=omniroute"
       ++ lib.optional operator.enable "--add-host=shulker-host:host-gateway";
     };
+    services.onepassword-secrets.secrets.hermesProviderEnv = lib.mkIf engineer.enable {
+      reference = "op://Shulker/${config.networking.hostName}/Hermes/Provider environment";
+      services = [ "docker-hermes-engineer" ];
+      mode = "0400";
+    };
     services.onepassword-secrets.secrets.hermesVaultToken = {
       reference = "${credentialItem}/1Password/Service account token";
       services = [ "docker-hermes" ];
       owner = "hermes";
       group = "hermes";
       mode = "0400";
+    };
+    services.onepassword-secrets.secrets.hermesEngineerDiscordEnv = lib.mkIf engineer.enable {
+      reference = "op://Shulker/cjhj7apkfpih3563gmmwfkxwpa/lmpd3oitveqsn5sc45ivndy7vq/kx2e3k4gf5us5uzkldv6vxuxzu";
+      services = [ "docker-hermes-engineer" ];
+      mode = "0400";
+    };
+    systemd.services.docker-hermes-engineer = lib.mkIf engineer.enable {
+      serviceConfig = {
+        RuntimeDirectory = "hermes-engineer-managed";
+        RuntimeDirectoryMode = "0700";
+      };
+      preStart = ''
+        set -eu
+        umask 077
+        # Validate both OpNix sources before publishing; preserve native state.
+        ${pkgs.python3}/bin/python3 ${./render-engineer-environment.py} \
+          ${./render-credentials.py} \
+          ${lib.escapeShellArg config.services.onepassword-secrets.secrets.hermesEngineerDiscordEnv.path} \
+          ${lib.escapeShellArg config.services.onepassword-secrets.secrets.hermesProviderEnv.path} \
+          ${engineerSettings} ${engineerManagedEnv}
+      '';
+      requires = [
+        "opnix-secrets.service"
+        "docker-network-omniroute.service"
+      ];
+      after = [
+        "opnix-secrets.service"
+        "docker-network-omniroute.service"
+      ];
+      unitConfig.RequiresMountsFor = [ engineer.stateDir ];
     };
     systemd.services.docker-hermes = {
       path = [ pkgs.openssh ];
@@ -294,8 +413,17 @@ in
           user = "hermes";
           group = "hermes";
         }
-      ];
+      ]
+      ++ lib.optional engineer.enable {
+        directory = engineer.stateDir;
+        mode = "0700";
+        user = "hermes";
+        group = "hermes";
+      };
     };
-    shulker.system.modules.backup.dirs = [ cfg.stateDir ];
+    shulker.system.modules.backup.dirs = [
+      cfg.stateDir
+    ]
+    ++ lib.optional engineer.enable engineer.stateDir;
   };
 }

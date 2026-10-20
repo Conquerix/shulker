@@ -11,6 +11,9 @@
       }
       ''
         python3 ${../tests/hermes-credentials.py} ${../system/modules/nixos/services/hermes-agent/render-credentials.py}
+        python3 ${../tests/hermes-engineer-environment.py} \
+          ${../system/modules/nixos/services/hermes-agent/render-engineer-environment.py} \
+          ${../system/modules/nixos/services/hermes-agent/render-credentials.py}
         touch "$out"
       '';
 }

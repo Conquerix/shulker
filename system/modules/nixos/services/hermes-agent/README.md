@@ -1,7 +1,8 @@
 # Hermes Agent
 
-Shulker runs one official Hermes container, including its built-in dashboard.
-NixOS controls the image version and the `docker-hermes` service. Set `image`
+Shulker runs the official Hermes image as Overseer (with its built-in dashboard)
+and an optional isolated Engineer Discord gateway. NixOS controls the image
+versions and the `docker-hermes` / `docker-hermes-engineer` services. Set `image`
 to a tested tag/digest to upgrade; configuration remains editable inside Hermes.
 
 Data is under /var/lib/hermes-clean/data, and the mounted workspace is under
@@ -115,6 +116,107 @@ and one gateway. Knowledge publishing and coding delegation can be configured
 later using upstream features. No custom gateway adapter is installed.
 The state directory is persistent and included in the existing encrypted backups.
 The retired installations remain in their old persistent directories for recovery.
+
+## Engineer migration and validation
+
+`engineer.enable` adds a separate `hermes-engineer` OCI container, owned by
+`docker-hermes-engineer.service`. It reuses `/var/lib/hermes-engineer/data` and
+`/var/lib/hermes-engineer/workspace` without seeding identity or overwriting
+`config.yaml`. `engineer.allowedUsers` is an explicit numeric allowlist;
+allow-all is false, server mentions are required and bot replies are disabled.
+The module requires OmniRoute. Engineer shares its inference-only secret and
+Docker bridge, not the dashboard, Overseer bot token or host administration.
+There are no published ports, SSH/key mounts, Docker socket, vault token or
+host workspace mounts. Both agents currently run as UID/GID 10000 inside their
+separate containers; this is a mount boundary, not separate host Unix identities
+or network isolation from peers on the OmniRoute bridge.
+
+OpNix provisions the dedicated **[AI] Engineer** item's Hermes section field
+**Discord Environment** (case-sensitive). It must contain only
+`DISCORD_BOT_TOKEN=<token>`. The provider field must contain exactly one nonempty
+`HERMES_OMNIROUTE_API_KEY=<key>` entry. The file-based startup renderer reuses the
+strict Docker/dotenv parser and rejects missing, empty, malformed, duplicate or
+extra keys in either source, including policy and administrative credentials.
+Inspect key names privately before activation, not values. Only validated values
+and the explicit NixOS Discord policy are atomically published to
+`/run/hermes-engineer-managed/.env`, mode 0400, mounted read-only at
+`/etc/hermes/.env`. Docker consumes that same validated file, never the raw vault
+fields. A validation failure blocks startup without publishing a partial file.
+The runtime file is regenerated on every start and is outside persistence and backups.
+The full Engineer state directory is included in Borgmatic and, when the parent
+`impermanence` option is enabled, `/nix/persist`. Treat state backups as private:
+existing profile files can contain credentials and conversations.
+
+Migration is a NixOS deployment, never a replacement `docker run`:
+
+1. Use an approved idle maintenance window. Record the current Engineer image
+   ID, mounts and enabled messaging platforms privately. Confirm the pinned
+   module image resolves to the same image ID as the existing container before
+   cutover; a local image ID is not a registry manifest digest. The known live
+   ID at migration preparation was
+   `sha256:373ddd5e6649f525b17993e1c885cdf1352127f8e98fd329140a73237125e52f`.
+   The declaration deliberately retains the existing tested stable digest, not
+   a new tag/version. If these differ, stop and resolve the pin without upgrading.
+2. Before any snapshot or copy, disable the old container's autostart and stop
+   the old Engineer container; verify it is stopped and no Engineer gateway is
+   writing either state tree. Keep it stopped through copying and NixOS activation.
+   Only then preserve a private consistent snapshot/backup of both state trees,
+   including SQLite databases, and verify their owner is UID/GID 10000. Inspect
+   `findmnt -T /var/lib/hermes-engineer` and the backing directory to determine
+   whether the existing tree is already persistent before enabling the
+   impermanence bind mount: a new empty backing directory must not hide live
+   tmpfs state. If needed, copy the stopped tree with metadata preserved to
+   `/nix/persist/var/lib/hermes-engineer` using the normal impermanence migration
+   procedure, then verify the copy before activation. Do not restart the old
+   container after the copy: further writes would diverge from persistent state.
+   Never delete or reinitialize the live state. Existing model, identity and
+   Discord plugin activation remain native Hermes state.
+3. Validate with `nix flake check --no-build --all-systems`, build
+   `.#nixosConfigurations.shulker.config.system.build.toplevel`, then use
+   `sudo shulker-rebuild dry-activate --flake .#shulker`. Review the unit diff:
+   Overseer's OCI declaration should be unchanged. Adding an OpNix secret and
+   attaching Engineer to the provider secret changes OpNix's configuration and
+   can restart Overseer, OmniRoute and other dependents. Do not promise a
+   zero-interruption migration or restart OpNix casually.
+4. At cutover only, confirm the old imperative container remains stopped with
+   autostart disabled, then remove its container object without deleting
+   bind-mounted state, so the NixOS OCI
+   unit can own the same name. This is cleanup, not permission for an imperative
+   deployment. Keep the private recovery record/backup. Advance through
+   `sudo shulker-rebuild test --flake .#shulker`, validate, then
+   `sudo shulker-rebuild switch --flake .#shulker`. Do not run two gateway
+   processes against the same state or bot. If activation fails, stop the new
+   unit and use a reviewed NixOS rollback/recovery; do not recreate a container
+   imperatively. A rollback generation without Engineer does not manage it.
+
+After activation, check the exact target without printing secret values:
+
+```sh
+sudo systemctl is-active docker-hermes-engineer docker-hermes docker-omniroute
+sudo docker inspect hermes-engineer --format '{{.Image}} {{json .Mounts}} {{json .HostConfig.PortBindings}}'
+sudo stat -c '%a %u:%g %n' /run/hermes-engineer-managed/.env
+sudo docker exec hermes-engineer hermes gateway status
+sudo docker exec hermes-engineer hermes config get model.default
+sudo docker exec hermes-engineer hermes chat -Q --max-turns 3 --run-budget 90 \
+  -q 'Identify yourself, then run python --version with your terminal tool and report the result.'
+```
+
+Confirm the image ID matches the pre-cutover ID; mounts are exactly Engineer's
+state/workspace plus the read-only managed env; no ports or administrative
+mounts exist. Check the managed env's key names only against the two approved
+sources plus four Discord policy keys. Verify the gateway state/log privately
+for the intended Engineer Discord identity and connected status. Confirm the
+saved model, identity, sessions, memory and workspace survive. Verify the
+Borgmatic sources and persistent backing directory, then inspect the next backup
+and test restoration into an empty directory (never over live state). A generic
+file backup during SQLite writes is not proof of a consistent database restore;
+use a quiesced snapshot for migration recovery.
+
+Finally have the allowed user send Engineer a real Discord DM and server
+mention and confirm replies. A connected gateway, enabled plugin or bot-origin
+message is not user-origin authorization verification. Confirm unsolicited
+messages, other users and bot messages do not trigger replies. Keep deployments,
+upgrades and future migrations declarative through NixOS.
 
 ## Overseer context and host access
 

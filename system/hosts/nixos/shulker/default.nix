@@ -56,6 +56,10 @@
             enable = true;
             allowedUsers = [ "240780407442767873" ];
           };
+          engineer = {
+            enable = true;
+            allowedUsers = [ "240780407442767873" ];
+          };
           overseer = {
             enable = true;
             sshPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE4qIyrC86dJuRlJnTst4Iezl69ffsZBEo4acoSLOuSh hermes-overseer-shulker";
