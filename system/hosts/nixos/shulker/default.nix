@@ -51,19 +51,97 @@
         hermes-agent = {
           enable = true;
           impermanence = true;
-          credentialItem = "op://Shulker/j3ucxj57rqa4cpslcafgze4nxq";
-          discord = {
-            enable = true;
-            allowedUsers = [ "240780407442767873" ];
-          };
-          engineer = {
-            enable = true;
-            allowedUsers = [ "240780407442767873" ];
-          };
-          overseer = {
-            enable = true;
-            sshPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE4qIyrC86dJuRlJnTst4Iezl69ffsZBEo4acoSLOuSh hermes-overseer-shulker";
-            hostPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHsMHVJJq7B5xr8y49tstCoN9DotgIPg1eSOMCBQ4MaT";
+          instances = {
+            overseer = {
+              containerName = "hermes";
+              stateDir = "/var/lib/hermes-clean";
+              dashboard = {
+                enable = true;
+                port = 23234;
+                publicUrl = "https://hermes.shulker.link";
+              };
+              discord = {
+                enable = true;
+                allowedUsers = [ "240780407442767873" ];
+              };
+              credentials = {
+                dashboard = {
+                  reference = "op://Shulker/j3ucxj57rqa4cpslcafgze4nxq/Hermes/Dashboard environment";
+                  requiredKeys = [
+                    "HERMES_DASHBOARD_BASIC_AUTH_USERNAME"
+                    "HERMES_DASHBOARD_BASIC_AUTH_PASSWORD"
+                    "HERMES_DASHBOARD_BASIC_AUTH_SECRET"
+                    "API_SERVER_KEY"
+                  ];
+                };
+                provider = {
+                  reference = "op://Shulker/j3ucxj57rqa4cpslcafgze4nxq/Hermes/Provider environment";
+                  requiredKeys = [ "HERMES_OMNIROUTE_API_KEY" ];
+                };
+                discord = {
+                  reference = "op://Shulker/j3ucxj57rqa4cpslcafgze4nxq/Hermes/Discord environment";
+                  requiredKeys = [ "DISCORD_BOT_TOKEN" ];
+                };
+              };
+              serviceAccount = {
+                enable = true;
+                reference = "op://Shulker/j3ucxj57rqa4cpslcafgze4nxq/1Password/Service account token";
+              };
+              hostAdministration = {
+                enable = true;
+                user = "hermes-operator";
+                privateKeyReference = "op://Shulker/j3ucxj57rqa4cpslcafgze4nxq/SSH/Private key";
+                sshPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE4qIyrC86dJuRlJnTst4Iezl69ffsZBEo4acoSLOuSh hermes-overseer-shulker";
+                hostPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHsMHVJJq7B5xr8y49tstCoN9DotgIPg1eSOMCBQ4MaT";
+              };
+              initial = {
+                files = {
+                  "data/SOUL.md" = ../../../modules/nixos/services/hermes-agent/overseer/SOUL.md;
+                  "data/memories/USER.md" = ../../../modules/nixos/services/hermes-agent/overseer/memories/USER.md;
+                  "data/memories/MEMORY.md" =
+                    ../../../modules/nixos/services/hermes-agent/overseer/memories/MEMORY.md;
+                  "workspace/AGENTS.md" = ../../../modules/nixos/services/hermes-agent/overseer/AGENTS.md;
+                  "workspace/knowledge/README.md" =
+                    ../../../modules/nixos/services/hermes-agent/overseer/knowledge/README.md;
+                };
+                settings = {
+                  "model.default" = "cx/gpt-6.1-sol";
+                  "model.provider" = "omniroute";
+                  "model.base_url" = "http://omniroute:20128/v1";
+                  "model.api_key" = "\${HERMES_OMNIROUTE_API_KEY}";
+                };
+                plugins = [ "discord-platform" ];
+              };
+            };
+            engineer = {
+              containerName = "hermes-engineer";
+              stateDir = "/var/lib/hermes-engineer";
+              discord = {
+                enable = true;
+                allowedUsers = [ "240780407442767873" ];
+              };
+              credentials = {
+                discord = {
+                  # Engineer field label is Discord Environment (capital E); retain stable IDs.
+                  reference = "op://Shulker/cjhj7apkfpih3563gmmwfkxwpa/lmpd3oitveqsn5sc45ivndy7vq/kx2e3k4gf5us5uzkldv6vxuxzu";
+                  requiredKeys = [ "DISCORD_BOT_TOKEN" ];
+                };
+                provider = {
+                  reference = "op://Shulker/shulker/Hermes/Provider environment";
+                  requiredKeys = [ "HERMES_OMNIROUTE_API_KEY" ];
+                };
+              };
+              initial = {
+                # Existing identity is preserved; native model/plugin defaults bootstrap fresh state.
+                settings = {
+                  "model.default" = "cx/gpt-6.1-sol";
+                  "model.provider" = "omniroute";
+                  "model.base_url" = "http://omniroute:20128/v1";
+                  "model.api_key" = "\${HERMES_OMNIROUTE_API_KEY}";
+                };
+                plugins = [ "discord-platform" ];
+              };
+            };
           };
         };
         omniroute = {

@@ -86,9 +86,15 @@ let
           "https://${modules.forgejo.subDomain}.${modules.forgejo.baseUrl}"
         )
         (service "git-pages" "Git Pages" "development" modules.git-pages.enable null)
-        (service "hermes-agent" "Hermes Agent" "automation" modules.hermes-agent.enable
-          modules.hermes-agent.publicUrl
-        )
+        (service "hermes-agent" "Hermes Agent" "automation" modules.hermes-agent.enable (
+          let
+            dashboards = lib.filterAttrs (_: i: i.enable && i.dashboard.enable) modules.hermes-agent.instances;
+          in
+          if dashboards == { } then
+            null
+          else
+            lib.concatStringsSep "; " (lib.mapAttrsToList (_: i: i.dashboard.publicUrl) dashboards)
+        ))
         (service "quartz" "Agent knowledge" "automation" modules.quartz.enable modules.quartz.publicUrl)
         (service "openhands" "OpenHands" "development" modules.openhands.enable modules.openhands.publicUrl)
         (service "home-assistant" "Home Assistant" "automation" modules.home-assistant.enable null)

@@ -93,9 +93,24 @@ let
       "Static sites synchronized from Git"
     )
     (service "Hermes Agent" modules.hermes-agent.enable
-      "${modules.hermes-agent.publicUrl} via 127.0.0.1:${toString modules.hermes-agent.port}"
-      modules.hermes-agent.stateDir
-      "Upstream container with built-in dashboard"
+      (lib.concatStringsSep "; " (
+        lib.mapAttrsToList (
+          name: i:
+          "${name}: "
+          + (
+            if i.dashboard.enable then
+              "${i.dashboard.publicUrl} via 127.0.0.1:${toString i.dashboard.port}"
+            else
+              "gateway only"
+          )
+        ) (lib.filterAttrs (_: i: i.enable) modules.hermes-agent.instances)
+      ))
+      (lib.concatStringsSep "; " (
+        map (i: i.stateDir) (
+          builtins.attrValues (lib.filterAttrs (_: i: i.enable) modules.hermes-agent.instances)
+        )
+      ))
+      "Named upstream containers; independent state and opt-in capabilities"
     )
     (service "Quartz" modules.quartz.enable
       "${modules.quartz.publicUrl} via 127.0.0.1:${toString modules.quartz.port}"

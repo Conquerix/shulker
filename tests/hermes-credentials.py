@@ -1,4 +1,4 @@
-"""Exercise startup refresh against a fake remote vault, with real file publication."""
+"""Exercise shared OpNix file scope and atomic generation publication, offline."""
 import json
 import os
 from pathlib import Path
@@ -8,130 +8,97 @@ import tempfile
 import unittest
 
 RENDERER = Path(sys.argv.pop(1)).resolve()
-FAKE_TOKEN = "fake-service-account-token"
-FAKE_SECRET = "literal$#=${HOME}=credential"
+SECRET = "fixture$#=${HOME}=literal"
+POLICY = {"DISCORD_ALLOW_ALL_USERS": "false", "DISCORD_ALLOWED_USERS": "123",
+          "DISCORD_REQUIRE_MENTION": "true", "DISCORD_ALLOW_BOTS": "none"}
 
 
 class CredentialsTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
         self.target = self.root / "runtime"
-        self.token = self.root / "bootstrap"
-        self.token.write_text(FAKE_TOKEN + "\n")
-        self.vault = self.root / "vault.json"
-        self.op = self.root / "op"
-        self.op.write_text(f"#!{sys.executable}\n" + '''
-import json, os, pathlib, sys
-if os.environ.get("OP_SERVICE_ACCOUNT_TOKEN") != "fake-service-account-token":
-    sys.exit(2)
-if len(sys.argv) != 3 or sys.argv[1] != "read":
-    sys.exit(2)
-value = json.loads(pathlib.Path(__file__).with_name("vault.json").read_text())[sys.argv[2]]
-if isinstance(value, dict):
-    print(value["stderr"], file=sys.stderr)
-    sys.exit(3)
-sys.stdout.write(value)
-''')
-        self.op.chmod(0o700)
-        key = self.root / "fixture-key"
-        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
-        self.key = key.read_text()
-        self.values = {
-            "op://fixture/dashboard": f"API_SERVER_KEY={FAKE_SECRET}\n",
-            "op://fixture/discord": "DISCORD_BOT_TOKEN=fake-discord-key\nDISCORD_ALLOW_ALL_USERS=true\n",
-            "op://fixture/key": self.key,
-        }
-        self.manifest = {
-            "environment": [
-                {"label": "dashboard", "reference": "op://fixture/dashboard", "requiredKeys": ["API_SERVER_KEY"]},
-                {"label": "discord", "reference": "op://fixture/discord", "requiredKeys": ["DISCORD_BOT_TOKEN"]},
-            ],
-            "sshKey": "op://fixture/key",
-            "policy": {"DISCORD_ALLOW_ALL_USERS": "false"},
-        }
-        self.references = self.root / "references.json"
+        self.manifest = self.root / "manifest.json"
+        self.sources = {"discord": "DISCORD_BOT_TOKEN", "provider": "HERMES_OMNIROUTE_API_KEY"}
+        for label, key in self.sources.items():
+            (self.root / label).write_text(f"{key}={SECRET}\n")
+        self.settings = {
+            "environment": [{"label": label, "path": str(self.root / label), "requiredKeys": [key]}
+                            for label, key in self.sources.items()],
+            "policy": POLICY, "owner": [os.getuid(), os.getgid()], "sshKey": None}
 
     def run_renderer(self):
-        self.vault.write_text(json.dumps(self.values))
-        self.references.write_text(json.dumps(self.manifest))
-        return subprocess.run(
-            [sys.executable, str(RENDERER), str(self.op), str(self.token), str(self.references), str(self.target)],
-            capture_output=True, text=True,
-        )
+        self.manifest.write_text(json.dumps(self.settings))
+        return subprocess.run([sys.executable, str(RENDERER), str(self.manifest), str(self.target)],
+                              capture_output=True, text=True,
+                              env=dict(os.environ, DISCORD_ALLOW_ALL_USERS="true"))
 
-    def assert_private_failure(self, result):
-        self.assertNotEqual(result.returncode, 0)
-        for value in (FAKE_TOKEN, FAKE_SECRET, self.key, "fake-discord-key"):
-            self.assertNotIn(value, result.stdout + result.stderr)
-
-    def test_complete_refresh_preserves_literals_key_and_policy(self):
+    def failure(self):
         result = self.run_renderer()
-        self.assertEqual(result.returncode, 0, "complete credentials must publish successfully")
-        current = self.target / "current"
-        self.assertEqual((current / ".env").read_text(),
-                         "API_SERVER_KEY=literal$#=${HOME}=credential\nDISCORD_BOT_TOKEN=fake-discord-key\nDISCORD_ALLOW_ALL_USERS=false\n")
-        self.assertEqual((current / "host-key").read_text(), self.key)
-        self.assertEqual((current / ".env").stat().st_mode & 0o777, 0o400)
-        self.assertEqual(current.stat().st_mode & 0o777, 0o700)
-        self.assertNotIn(FAKE_TOKEN, (current / ".env").read_text())
-        self.assertEqual(result.stdout + result.stderr, "")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn(SECRET, result.stdout + result.stderr)
+        self.assertEqual(result.stdout, "")
 
-    def test_second_fetch_failure_retains_previous_complete_generation(self):
+    def test_literals_policy_private_modes_and_refresh(self):
+        self.assertEqual(self.run_renderer().returncode, 0)
+        target = self.target / "current" / ".env"
+        actual = dict(line.split("=", 1) for line in target.read_text().splitlines())
+        self.assertEqual(actual, {key: SECRET for key in self.sources.values()} | POLICY)
+        self.assertEqual(target.stat().st_mode & 0o777, 0o400)
+        self.assertEqual(target.parent.stat().st_mode & 0o777, 0o700)
+        previous = os.readlink(self.target / "current")
+        (self.root / "discord").write_text("DISCORD_BOT_TOKEN=fresh\n")
+        self.assertEqual(self.run_renderer().returncode, 0)
+        self.assertNotEqual(previous, os.readlink(self.target / "current"))
+        self.assertIn("DISCORD_BOT_TOKEN=fresh\n", target.read_text())
+
+    def test_all_source_failures_preserve_generation(self):
         self.assertEqual(self.run_renderer().returncode, 0)
         previous = os.readlink(self.target / "current")
-        self.values["op://fixture/dashboard"] = "API_SERVER_KEY=changed-first-value\n"
-        self.values["op://fixture/discord"] = {"stderr": FAKE_TOKEN + FAKE_SECRET}
-        self.assert_private_failure(self.run_renderer())
-        self.assertEqual(os.readlink(self.target / "current"), previous)
-        self.assertIn(FAKE_SECRET, (self.target / "current" / ".env").read_text())
+        for label, key in self.sources.items():
+            path = self.root / label
+            good = path.read_text()
+            for text in ("", "# absent\n", f"{key}=\n", f"{key}=a\n{key}=b\n",
+                         f"{key}=bad\x00\n", f'{key}="quoted"\n', f"{key}=value \n",
+                         f"{key}=value # comment\n", f"{key}=value\nEXTRA_KEY=bad\n",
+                         f"{key}=value\nDISCORD_ALLOW_ALL_USERS=true\n",
+                         f"{key}=value\nOP_SERVICE_ACCOUNT_TOKEN=bad\n", "bad-key=value\n"):
+                with self.subTest(label=label, text=text):
+                    path.write_text(text)
+                    self.failure()
+                    self.assertEqual(previous, os.readlink(self.target / "current"))
+            path.unlink()
+            self.failure()
+            path.write_text(good)
 
-    def test_missing_required_value_does_not_publish(self):
-        self.assertEqual(self.run_renderer().returncode, 0)
-        previous = os.readlink(self.target / "current")
-        self.values["op://fixture/dashboard"] = "API_SERVER_KEY=\n"
-        self.assert_private_failure(self.run_renderer())
-        self.assertEqual(os.readlink(self.target / "current"), previous)
-
-    def test_first_boot_failure_leaves_no_current_generation(self):
-        self.assertEqual(self.run_renderer().returncode, 0)
-        self.target = self.root / "first-boot"
-        self.values["op://fixture/discord"] = {"stderr": FAKE_SECRET}
-        self.assert_private_failure(self.run_renderer())
+    def test_first_failure_publishes_nothing(self):
+        (self.root / "provider").unlink()
+        self.failure()
         self.assertFalse((self.target / "current").exists())
 
-    def test_invalid_dotenv_values_fail_before_publication(self):
+    def test_ssh_key_validated_before_joint_publication(self):
+        key = self.root / "host-key"
+        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)], check=True)
+        self.settings["sshKey"] = str(key)
         self.assertEqual(self.run_renderer().returncode, 0)
         previous = os.readlink(self.target / "current")
-        for source in ("API_SERVER_KEY=a\nAPI_SERVER_KEY=b\n", "bad-key=value\n",
-                       "API_SERVER_KEY=value\x00\n", 'API_SERVER_KEY="quoted"\n',
-                       "API_SERVER_KEY=value # parsed as a comment\n"):
-            with self.subTest(source=source):
-                self.values["op://fixture/dashboard"] = source
-                self.assert_private_failure(self.run_renderer())
-                self.assertEqual(os.readlink(self.target / "current"), previous)
+        self.assertEqual((self.target / "current" / "host-key").read_bytes(), key.read_bytes())
+        key.write_text(SECRET)
+        self.failure()
+        self.assertEqual(previous, os.readlink(self.target / "current"))
 
-    def test_bootstrap_token_cannot_enter_application_environment(self):
+    def test_dashboard_exact_source_and_cross_source_duplicate(self):
+        dashboard = self.root / "dashboard"
+        keys = ["HERMES_DASHBOARD_BASIC_AUTH_USERNAME", "HERMES_DASHBOARD_BASIC_AUTH_PASSWORD",
+                "HERMES_DASHBOARD_BASIC_AUTH_SECRET", "API_SERVER_KEY"]
+        dashboard.write_text("".join(f"{key}={SECRET}\n" for key in keys))
+        self.settings["environment"].append({"path": str(dashboard), "requiredKeys": keys})
         self.assertEqual(self.run_renderer().returncode, 0)
-        previous = os.readlink(self.target / "current")
-        self.values["op://fixture/dashboard"] += f"OP_SERVICE_ACCOUNT_TOKEN={FAKE_TOKEN}\n"
-        self.assert_private_failure(self.run_renderer())
-        self.assertEqual(os.readlink(self.target / "current"), previous)
-
-    def test_invalid_private_key_preserves_previous_generation(self):
-        self.assertEqual(self.run_renderer().returncode, 0)
-        previous = os.readlink(self.target / "current")
-        self.values["op://fixture/key"] = "not a private key\n" + FAKE_SECRET
-        self.assert_private_failure(self.run_renderer())
-        self.assertEqual(os.readlink(self.target / "current"), previous)
-
-    def test_restart_reads_changed_vault_value(self):
-        self.assertEqual(self.run_renderer().returncode, 0)
-        self.values["op://fixture/dashboard"] = "API_SERVER_KEY=fresh-key\n"
-        self.assertEqual(self.run_renderer().returncode, 0)
-        self.assertIn("API_SERVER_KEY=fresh-key\n", (self.target / "current" / ".env").read_text())
-        self.assertNotIn(FAKE_SECRET, (self.target / "current" / ".env").read_text())
+        dashboard.write_text(f"API_SERVER_KEY={SECRET}\n")
+        self.failure()
+        self.settings["environment"].append(self.settings["environment"][0])
+        self.failure()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Fetch one complete Hermes credential generation without exposing vault values."""
+"""Validate scoped OpNix source files and publish one complete private generation."""
 import json
 import os
 from pathlib import Path
@@ -25,35 +25,26 @@ def parse_environment(text):
     return values
 
 
-def render_credentials(op_path, token_file, references_file, target_dir):
+def render_credentials(references_file, target_dir):
     manifest = json.loads(references_file.read_text())
-    token = token_file.read_text().strip()
-    if not token:
-        raise ValueError("missing bootstrap token")
-    environment = dict(os.environ, OP_SERVICE_ACCOUNT_TOKEN=token)
-
-    def read(reference):
-        if not reference.startswith("op://"):
-            raise ValueError("invalid secret reference")
-        return subprocess.run(
-            [op_path, "read", reference], env=environment, check=True,
-            capture_output=True, text=True, timeout=30,
-        ).stdout
-
     values = {}
     for entry in manifest["environment"]:
-        fetched = parse_environment(read(entry["reference"]))
-        if any(not fetched.get(key) for key in entry["requiredKeys"]):
-            raise ValueError("missing required environment field")
+        fetched = parse_environment(Path(entry["path"]).read_text())
+        required = entry["requiredKeys"]
+        if (not required or len(required) != len(set(required))
+                or set(fetched) != set(required) or any(not value for value in fetched.values())):
+            raise ValueError("invalid source fields")
         if values.keys() & fetched.keys():
             raise ValueError("duplicate environment field")
         values.update(fetched)
+    if values.keys() & manifest["policy"].keys():
+        raise ValueError("credential source contains managed policy")
     values.update(manifest["policy"])
     env_text = "".join(f"{key}={value}\n" for key, value in values.items())
     parse_environment(env_text)
     payloads = {".env": env_text}
     if manifest.get("sshKey"):
-        payloads["host-key"] = read(manifest["sshKey"])
+        payloads["host-key"] = Path(manifest["sshKey"]).read_text()
 
     target_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(target_dir, 0o700)
@@ -95,8 +86,8 @@ def render_credentials(op_path, token_file, references_file, target_dir):
 if __name__ == "__main__":
     os.umask(0o077)
     try:
-        render_credentials(sys.argv[1], *(Path(arg) for arg in sys.argv[2:]))
+        render_credentials(*(Path(arg) for arg in sys.argv[1:]))
     except Exception:
         # CLI stderr and exception payloads can contain secrets: never forward them.
-        print("Hermes credential refresh failed; check 1Password fields and access.", file=sys.stderr)
+        print("Hermes credential refresh failed; check OpNix source fields and access.", file=sys.stderr)
         sys.exit(1)
