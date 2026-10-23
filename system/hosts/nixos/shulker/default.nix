@@ -54,7 +54,7 @@
           instances = {
             overseer = {
               containerName = "hermes";
-              stateDir = "/var/lib/hermes-clean";
+              stateDir = "/var/lib/hermes-overseer";
               dashboard = {
                 enable = true;
                 port = 23234;
@@ -156,7 +156,7 @@
           image = "sha256:4f5bc1470044e9beb8442b98d5c3742ddfb8b40c2711adbcaf2fa2af274a61d1";
           agents.overseer = {
             name = "Overseer";
-            contentDir = "/var/lib/hermes-clean/workspace/knowledge";
+            contentDir = "/var/lib/hermes-overseer/workspace/knowledge";
           };
         };
         pelican = {

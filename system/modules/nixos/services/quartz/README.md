@@ -15,7 +15,7 @@ can differ. To add an agent, declare its display name and approved publishing
 directory in the host's Quartz configuration. Sources must be readable by the
 Hermes container UID, 10000; other private agent state remains separate.
 
-Overseer publishes `/var/lib/hermes-clean/workspace/knowledge` under `/overseer/`.
+Overseer publishes `/var/lib/hermes-overseer/workspace/knowledge` under `/overseer/`.
 Only selected knowledge directories are mounted, not configuration, credentials,
 sessions, skills or compact native memory. The native memory view remains in each
 agent's dashboard. Hidden files, drafts, private folders and symlinks are excluded.

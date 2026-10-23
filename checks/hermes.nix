@@ -72,7 +72,7 @@ in
     assert builtins.length collision.secretNames == 4;
     assert builtins.length (lib.unique collision.secretNames) == 2;
     assert cfg.instances.overseer.containerName == "hermes";
-    assert cfg.instances.overseer.stateDir == "/var/lib/hermes-clean";
+    assert cfg.instances.overseer.stateDir == "/var/lib/hermes-overseer";
     assert cfg.instances.engineer.stateDir == "/var/lib/hermes-engineer";
     assert engineer.image == overseer.image;
     assert engineer.ports == [ ];

@@ -8,7 +8,7 @@ backup implementation. The host selects capabilities and initial data.
 
 | Instance | Container / unit | State | Dashboard |
 | --- | --- | --- | --- |
-| Overseer | `hermes` / `docker-hermes` | `/var/lib/hermes-clean` | loopback 23234, https://hermes.shulker.link |
+| Overseer | `hermes` / `docker-hermes` | `/var/lib/hermes-overseer` | loopback 23234, https://hermes.shulker.link |
 | Engineer | `hermes-engineer` / `docker-hermes-engineer` | `/var/lib/hermes-engineer` | disabled, no published ports |
 
 The image remains pinned to the tested stable digest; this refactor is not an
