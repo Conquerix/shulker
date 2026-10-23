@@ -74,6 +74,56 @@ in
     assert cfg.instances.overseer.containerName == "hermes";
     assert cfg.instances.overseer.stateDir == "/var/lib/hermes-overseer";
     assert cfg.instances.engineer.stateDir == "/var/lib/hermes-engineer";
+    assert builtins.attrNames cfg.instances == [ "artificer" "engineer" "overseer" "quartermaster" ];
+    assert lib.all
+      (
+        name:
+        let
+          i = cfg.instances.${name};
+          container = config.virtualisation.oci-containers.containers.${i.containerName};
+          expectedTools = [ "web" "memory" "clarify" "todo" ]
+            ++ lib.optionals (name == "artificer") [ "file" "vision" ];
+        in
+        i.enable
+        && i.containerName == "hermes-${name}"
+        && i.stateDir == "/var/lib/hermes-${name}"
+        && container.image == engineer.image
+        && container.ports == [ ]
+        && safeVolumes container
+        && container.volumes == [
+          "${i.stateDir}/data:/opt/data:rw"
+          "${i.stateDir}/workspace:/workspace:rw"
+          "/run/${i.containerName}-managed/current/.env:/etc/hermes/.env:ro"
+        ]
+        && !(i.dashboard.enable || i.hostAdministration.enable || i.serviceAccount.enable)
+        && container.environment.HERMES_DASHBOARD == "0"
+        && container.environment.API_SERVER_ENABLED == "false"
+        && i.discord.enable
+        && container.environment.DISCORD_ALLOWED_USERS == "240780407442767873"
+        && container.environment.DISCORD_ALLOW_ALL_USERS == "false"
+        && container.environment.DISCORD_REQUIRE_MENTION == "true"
+        && container.environment.DISCORD_ALLOW_BOTS == "none"
+        && builtins.attrNames i.credentials == [ "discord" "provider" ]
+        && i.credentials.discord.requiredKeys == [ "DISCORD_BOT_TOKEN" ]
+        && i.credentials.provider == cfg.instances.engineer.credentials.provider
+        && i.initial.plugins == [ "discord-platform" ]
+        && i.initial.settings."model.default" == cfg.instances.engineer.initial.settings."model.default"
+        && i.initial.settings."model.provider" == "omniroute"
+        && i.initial.settings."model.base_url" == "http://omniroute:20128/v1"
+        && i.initial.settings."model.api_key" == "\${HERMES_OMNIROUTE_API_KEY}"
+        && i.initial.settings."gateway.multiplex_profiles" == "false"
+        && i.initial.settings."platforms.discord.enabled" == "true"
+        && builtins.fromJSON i.initial.settings."platform_toolsets.cli" == expectedTools
+        && builtins.fromJSON i.initial.settings."platform_toolsets.discord" == expectedTools
+        && lib.all
+          (label: config.services.onepassword-secrets.secrets."hermes${
+            lib.toUpper (builtins.substring 0 1 name)
+          }${builtins.substring 1 (-1) name}${
+            lib.toUpper (builtins.substring 0 1 label)
+          }${builtins.substring 1 (-1) label}".services == [ "docker-${i.containerName}" ])
+          [ "discord" "provider" ]
+      )
+      [ "artificer" "quartermaster" ];
     assert engineer.image == overseer.image;
     assert engineer.ports == [ ];
     assert overseer.ports == [ "127.0.0.1:23234:9119" ];
@@ -101,6 +151,8 @@ in
       [
         "overseer"
         "engineer"
+        "artificer"
+        "quartermaster"
       ];
     assert lib.all
       (

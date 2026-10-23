@@ -10,13 +10,49 @@ backup implementation. The host selects capabilities and initial data.
 | --- | --- | --- | --- |
 | Overseer | `hermes` / `docker-hermes` | `/var/lib/hermes-overseer` | loopback 23234, https://hermes.shulker.link |
 | Engineer | `hermes-engineer` / `docker-hermes-engineer` | `/var/lib/hermes-engineer` | disabled, no published ports |
+| Artificer | `hermes-artificer` / `docker-hermes-artificer` | `/var/lib/hermes-artificer` | disabled, no published ports |
+| Quartermaster | `hermes-quartermaster` / `docker-hermes-quartermaster` | `/var/lib/hermes-quartermaster` | disabled, no published ports |
+
+Artificer and Quartermaster are standalone Discord gateways, not Overseer
+profiles. Their startup Discord sources are the existing **[AI] Artificer** and
+**[AI] Quartermaster** items, **Hermes / Discord Environment**, addressed by stable
+references. Both use Engineer's inference-only provider source and the same
+pinned image. Neither gets a dashboard, API listener, service account, SSH
+identity, host workspace or Docker socket. Their only permitted Discord user is
+Pierre (`240780407442767873`), with server mentions required, allow-all disabled
+and bot replies disabled. The shared renderer supplies these managed policies.
+
+Fresh native config explicitly disables profile multiplexing, enables Discord
+and sets both CLI and Discord toolset arrays:
+
+| Instance | Initial toolsets |
+| --- | --- |
+| Quartermaster | `web`, `memory`, `clarify`, `todo` |
+| Artificer | `web`, `memory`, `clarify`, `todo`, `file`, `vision` |
+
+These are native toolset names, not individual tool names. Neither includes
+terminal, browser, delegation or code execution; Quartermaster has no file tools.
+This is initial application configuration, not an immutable security sandbox:
+Artificer's file tools can modify its writable state, and native settings remain
+mutable. Do not grant broader tools or mount repositories/data implicitly.
+Verify the effective tool inventory in fresh CLI and Discord sessions before
+cutover. Web/vision provider availability requires a separate live test; enabling
+a toolset does not provision an auxiliary API credential.
+
+Specialist identity seeding is **not included**: the standard write of a new
+`SOUL.md` was denied by instruction-file protection. No alternate-path write or
+substitute identity file was attempted. Add fresh identities only through an
+explicitly permitted native workflow; do not copy Overseer's state or staging
+profiles. Disable obsolete staging profiles with native Hermes commands and
+verify their Discord activation is false before starting dedicated bots.
 
 The image remains pinned to the tested stable digest; this refactor is not an
-upgrade. Both run at UID/GID 10000 with 4 GiB RAM, two CPUs and 512 PIDs. Each
+upgrade. All run at UID/GID 10000 with 4 GiB RAM, two CPUs and 512 PIDs. Each
 mounts only its own `data` at `/opt/data`, `workspace` at `/workspace`, and its
-validated managed environment. Engineer has no SSH key, host workspace, Docker
-socket, dashboard or vault account. This is a container mount boundary, not
-separate host Unix identities. Both join the OmniRoute bridge, so it is not
+validated managed environment. Engineer, Artificer and Quartermaster have no SSH
+key, host workspace, Docker socket, dashboard or vault account. This is a container
+mount boundary, not separate host Unix identities. All join the OmniRoute bridge,
+so it is not
 network isolation from other bridge peers. The dashboard remains private behind
 Pangolin SSO; the API binds loopback inside its container.
 
@@ -150,9 +186,10 @@ nix flake check --no-build --all-systems
 nix build .#nixosConfigurations.shulker.config.system.build.toplevel
 ```
 
-The structural check examines generated Overseer/Engineer services and a third
-unprivileged instance rendered by the same function, including mounts, ports,
-OpNix scopes, ordering, persistence and backups. Python tests use synthetic
+The structural check examines all four declared services and an additional
+unprivileged fixture rendered by the same function, including mounts, ports,
+OpNix scopes, ordering, persistence, backups and explicit specialist toolsets.
+Python tests use synthetic
 fixtures, not live credentials. Native bootstrap tests simulate the CLI contract;
 the exact pinned image must still be tested before approving fresh provisioning.
 

@@ -113,6 +113,78 @@
                 plugins = [ "discord-platform" ];
               };
             };
+            artificer = {
+              containerName = "hermes-artificer";
+              stateDir = "/var/lib/hermes-artificer";
+              initial.files."data/SOUL.md" = ../../../modules/nixos/services/hermes-agent/artificer/SOUL.md;
+              dashboard.enable = false;
+              serviceAccount.enable = false;
+              hostAdministration.enable = false;
+              discord = {
+                enable = true;
+                allowedUsers = [ "240780407442767873" ];
+              };
+              credentials = {
+                discord = {
+                  reference = "op://Shulker/eab4l35akjdofp7dcpitelffnu/hermes/discord-environment";
+                  requiredKeys = [ "DISCORD_BOT_TOKEN" ];
+                };
+                provider = {
+                  reference = "op://Shulker/shulker/Hermes/Provider environment";
+                  requiredKeys = [ "HERMES_OMNIROUTE_API_KEY" ];
+                };
+              };
+              initial = {
+                settings = {
+                  "model.default" = "cx/gpt-6.1-sol";
+                  "model.provider" = "omniroute";
+                  "model.base_url" = "http://omniroute:20128/v1";
+                  "model.api_key" = "\${HERMES_OMNIROUTE_API_KEY}";
+                  "gateway.multiplex_profiles" = "false";
+                  "platforms.discord.enabled" = "true";
+                  "terminal.cwd" = "/workspace";
+                  "platform_toolsets.cli" = ''["web", "memory", "clarify", "todo", "file", "vision"]'';
+                  "platform_toolsets.discord" = ''["web", "memory", "clarify", "todo", "file", "vision"]'';
+                };
+                plugins = [ "discord-platform" ];
+              };
+            };
+            quartermaster = {
+              containerName = "hermes-quartermaster";
+              stateDir = "/var/lib/hermes-quartermaster";
+              initial.files."data/SOUL.md" = ../../../modules/nixos/services/hermes-agent/quartermaster/SOUL.md;
+              dashboard.enable = false;
+              serviceAccount.enable = false;
+              hostAdministration.enable = false;
+              discord = {
+                enable = true;
+                allowedUsers = [ "240780407442767873" ];
+              };
+              credentials = {
+                discord = {
+                  reference = "op://Shulker/qctymuh6eawzb5cfl3xg3rbaau/hermes/discord-environment";
+                  requiredKeys = [ "DISCORD_BOT_TOKEN" ];
+                };
+                provider = {
+                  reference = "op://Shulker/shulker/Hermes/Provider environment";
+                  requiredKeys = [ "HERMES_OMNIROUTE_API_KEY" ];
+                };
+              };
+              initial = {
+                settings = {
+                  "model.default" = "cx/gpt-6.1-sol";
+                  "model.provider" = "omniroute";
+                  "model.base_url" = "http://omniroute:20128/v1";
+                  "model.api_key" = "\${HERMES_OMNIROUTE_API_KEY}";
+                  "gateway.multiplex_profiles" = "false";
+                  "platforms.discord.enabled" = "true";
+                  "terminal.cwd" = "/workspace";
+                  "platform_toolsets.cli" = ''["web", "memory", "clarify", "todo"]'';
+                  "platform_toolsets.discord" = ''["web", "memory", "clarify", "todo"]'';
+                };
+                plugins = [ "discord-platform" ];
+              };
+            };
             engineer = {
               containerName = "hermes-engineer";
               stateDir = "/var/lib/hermes-engineer";
