@@ -19,6 +19,7 @@
           enable = true;
           impermanence = true;
         };
+        pangolin-client.enable = true;
         newt = {
           enable = true;
           endpoint = "https://proxy.shulker.link";

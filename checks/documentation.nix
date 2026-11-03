@@ -64,6 +64,7 @@ let
     "omniroute"
     "openhands"
     "pangolin"
+    "pangolin-client"
     "paperless"
     "pelican"
     "plex"
@@ -166,6 +167,7 @@ let
         "omniroute"
         "openhands"
         "pangolin"
+        "pangolin-client"
         "paperless"
         "pelican"
         "plex"
@@ -180,7 +182,7 @@ let
         "yubikey"
       ];
     in
-    assert builtins.length retainedServices == 25;
+    assert builtins.length retainedServices == 26;
     assert builtins.length excludedCapabilities == 6;
     assert directServiceDirectories == retainedServices;
     assert builtins.all serviceFilesAreCanonical retainedServices;
