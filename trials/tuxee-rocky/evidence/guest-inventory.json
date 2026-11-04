@@ -1,0 +1,19 @@
+{
+  "repositories": [
+    {
+      "path": "tuxee-runtime/gui/src/xutils-dev",
+      "head": "305b802f05beb6be3fbd66f7b351854a8bd5ff25",
+      "branch": "debian-unstable",
+      "dirty": true,
+      "remotes": [
+        {
+          "name": "origin",
+          "location": "salsa.debian.org/xorg-team/app/xutils-dev.git"
+        }
+      ],
+      "worktrees": [
+        "tuxee-runtime/gui/src/xutils-dev"
+      ]
+    }
+  ]
+}

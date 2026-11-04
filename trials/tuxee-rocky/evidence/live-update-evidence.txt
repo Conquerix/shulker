@@ -1,0 +1,9 @@
+BEFORE 3692b9f6-2f07-4172-8365-1aca2189a52f containerd://a934883b378f91037852b5fdc901459a1bbea84015d390be3c4f3b06e5246835
+
+AFTER 3692b9f6-2f07-4172-8365-1aca2189a52f containerd://a934883b378f91037852b5fdc901459a1bbea84015d390be3c4f3b06e5246835
+HTTP 'tuxee-tilt-after\n'
+
+tuxee-trial-… │ 1 File Changed: [app/message.txt]
+tuxee-trial-… │ Will copy 1 file(s) to container: [tuxee-trial-app-7d4c5fc8c7-65rq9/app]
+tuxee-trial-… │ - '/workspace/app/message.txt' --> '/app/message.txt'
+tuxee-trial-… │   → Container tuxee-trial-app-7d4c5fc8c7-65rq9/app updated!

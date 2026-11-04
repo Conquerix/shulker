@@ -1,0 +1,13 @@
+{
+  "tuxee": {"url": "https://github.com/agent0ai/tuxee.git", "commit": "ee6192f5265ef5a75340629aa4f79bfa1490d481"},
+  "musl": {"url": "https://github.com/ifduyue/musl.git", "commit": "0784374d561435f7c787a555aeab8ede699ed298", "version": "1.2.5", "provenance_review_pending": true},
+  "pam_headers": {"url": "https://github.com/linux-pam/linux-pam.git", "commit": "225f17470eed9f44282f435ad1ed64c94d9a2ddf", "version": "1.5.1"},
+  "observed_tool_sha256": {
+    "kind_v0.31.0": "eb244cbafcc157dff60cf68693c14c9a75c4e6e6fedaf9cd71c58117cb93e3fa",
+    "kubectl_v1.35.0": "a2e984a18a0c063279d692533031c1eff93a262afcc0afdc517375432d060989",
+    "tilt_v0.36.3_executable_not_archive": "69357f9ba6532ebee8d760189a22506f60ffea680e31d7ed01d4bd2c703dc215"
+  },
+  "kind_node": "kindest/node:v1.35.0@sha256:986401fce0e567a9860075ba9df8c8459bd99a35f79024d8a682773fb40f0753",
+  "gui_builder_base": "registry.access.redhat.com/ubi9/ubi-minimal@sha256:312b02a8f8ad5bdd219849c3e854cc5191c92fb7b8ce9b30fe2daed2de849094",
+  "complete_image_reproducibility_qualified": false
+}

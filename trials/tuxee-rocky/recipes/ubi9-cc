@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/sysroot
+exec gcc --sysroot="$root" -B"$root/usr/lib64/" -L"$root/usr/lib64" -Wl,-rpath-link,"$root/usr/lib64" "$@"

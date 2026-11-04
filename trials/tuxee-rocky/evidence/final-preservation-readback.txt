@@ -1,0 +1,11 @@
+{
+  "binary_sha256": "9e0e0ef503b9bdb3885c2635451a6bc5435a218195f9e7ac3fed3b201117b112",
+  "handoff_sha256": "9186a7be86cb96fc9faacbb71575656e711160aae4e20bd5541a488fe78f265a",
+  "gui_input_sha256": "edb604c89359fee6f52d041cf69cc47fcb677555906bdf623d77439b4b3303af",
+  "http_message": "tuxee-tilt-after",
+  "node_ready": true,
+  "node_version": "v1.35.0",
+  "pod_uid": "3692b9f6-2f07-4172-8365-1aca2189a52f",
+  "container_id": "containerd://a934883b378f91037852b5fdc901459a1bbea84015d390be3c4f3b06e5246835",
+  "restart_count": 0
+}

@@ -1,0 +1,18 @@
+{"server_pid": 21012, "original_terminal_pid": 21341, "gui_terminal_pid": 138647, "binary_sha256": "9e0e0ef503b9bdb3885c2635451a6bc5435a218195f9e7ac3fed3b201117b112", "handoff_sha256": "9186a7be86cb96fc9faacbb71575656e711160aae4e20bd5541a488fe78f265a", "gui_input": "GUI_KEY_OK", "gui_input_uid": 1000}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Directory listing for /</title>
+</head>
+<body>
+<h1>Directory listing for /</h1>
+<hr>
+<ul>
+<li><a href="message.txt">message.txt</a></li>
+</ul>
+<hr>
+</body>
+</html>
+9186a7be86cb96fc9faacbb71575656e711160aae4e20bd5541a488fe78f265a  /workspace/tuxee-accept/handoff.txt
+sha256:dfa0eb04abc59221544e74862432496add1f491f915c9b531880f91affc0e12c

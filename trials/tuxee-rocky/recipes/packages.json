@@ -1,0 +1,852 @@
+{
+  "available": [
+    {
+      "name": "audit-libs",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "3.1.5",
+        "rel": "8.el9"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/a/audit-libs-3.1.5-8.el9.x86_64.rpm",
+      "sha256": "637ac2995ce1a6c222772b60f6bc6e6f2829355d2c88dfb1262fb76146d985ae"
+    },
+    {
+      "name": "audit-libs",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "3.1.5",
+        "rel": "8.el9"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/a/audit-libs-3.1.5-8.el9.i686.rpm",
+      "sha256": "2c4032852ea8992dd192e959b75a400e584f05a172ae0c8e03cca541ade4d2d6"
+    },
+    {
+      "name": "binutils",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "2.35.2",
+        "rel": "72.el9"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/b/binutils-2.35.2-72.el9.i686.rpm",
+      "sha256": "055f226936f2aa2c7e1f369e969f54730492f827df8d437a26aead414a0187b2"
+    },
+    {
+      "name": "binutils",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "2.35.2",
+        "rel": "72.el9"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/b/binutils-2.35.2-72.el9.x86_64.rpm",
+      "sha256": "bda706d43bf47267e31db8ac62fe3206122f97ff035daa6c93ce9cd5063a63ca"
+    },
+    {
+      "name": "dejavu-sans-fonts",
+      "arch": "noarch",
+      "version": {
+        "epoch": "0",
+        "rel": "18.el9",
+        "ver": "2.37"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/d/dejavu-sans-fonts-2.37-18.el9.noarch.rpm",
+      "sha256": "8aa78a3d2ca4135a8655894e18e3653a381115c26caf95359b367bad01c776bd"
+    },
+    {
+      "name": "glibc",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "2.34",
+        "rel": "283.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/g/glibc-2.34-283.el9_8.i686.rpm",
+      "sha256": "2252c0de7946a07ab53ec96b34ed32c93e06b32b05d68e227ca3410ec1f32e63"
+    },
+    {
+      "name": "glibc",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "2.34",
+        "rel": "283.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/g/glibc-2.34-283.el9_8.x86_64.rpm",
+      "sha256": "ac0a85530d147cc35d56422d2f6eab14800eec63c6d5318f2bef576252426939"
+    },
+    {
+      "name": "gzip",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "1.12",
+        "rel": "2.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/g/gzip-1.12-2.el9_8.x86_64.rpm",
+      "sha256": "a87bdcce45011f232758c01bd99c564b5f6b549d391646cc573a132d22604b85"
+    },
+    {
+      "name": "libcap-ng",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "rel": "7.el9",
+        "ver": "0.8.2"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libcap-ng-0.8.2-7.el9.i686.rpm",
+      "sha256": "8bd386554b1341c7d2086f53b4c625d7bb11a05aada4539d4bd70004904867dc"
+    },
+    {
+      "name": "libcap-ng",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "7.el9",
+        "ver": "0.8.2"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libcap-ng-0.8.2-7.el9.x86_64.rpm",
+      "sha256": "ebddfc188d1ddbb0d6a238583cbc02dcb9fc0bd063a850b22d48980899976628"
+    },
+    {
+      "name": "libeconf",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "0.4.1",
+        "rel": "7.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libeconf-0.4.1-7.el9_8.x86_64.rpm",
+      "sha256": "a570c5baaedeb1445bc2e4f3930b0a709411bbefbdbf463c3e006cbfc7018894"
+    },
+    {
+      "name": "libeconf",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "0.4.1",
+        "rel": "7.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libeconf-0.4.1-7.el9_8.i686.rpm",
+      "sha256": "f579fb3e98ea2321f949f258657bfac7cc016ac240da4be43f7b1fbd46fa48bf"
+    },
+    {
+      "name": "libgcc",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "11.5.0",
+        "rel": "14.el9"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libgcc-11.5.0-14.el9.i686.rpm",
+      "sha256": "d71b57a0bc831f7b00090a6463802f4705a144b1ed08b8f050f346f84d3f34f1"
+    },
+    {
+      "name": "libgcc",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "11.5.0",
+        "rel": "14.el9"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libgcc-11.5.0-14.el9.x86_64.rpm",
+      "sha256": "77c66827ffc14df2f43612b26128b1fd58d5c9597d4d4e564aa239b161272872"
+    },
+    {
+      "name": "libselinux",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "3.el9",
+        "ver": "3.6"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libselinux-3.6-3.el9.x86_64.rpm",
+      "sha256": "ce1cc63a7212c39f5f2a35f719ee38d6418cf081ea78c9317f388d9f41e4a627"
+    },
+    {
+      "name": "libselinux",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "rel": "3.el9",
+        "ver": "3.6"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libselinux-3.6-3.el9.i686.rpm",
+      "sha256": "e19d2450137b3b0f6a4e4146e874c4467d1ec6b054c999a7ab982a3510dc7ebd"
+    },
+    {
+      "name": "libxcrypt",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "rel": "3.el9",
+        "ver": "4.4.18"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libxcrypt-4.4.18-3.el9.i686.rpm",
+      "sha256": "230da3c2c13bc5ab006c3bd84fefb6e088ab92f1c52b69fe362bdb66ba7b3d92"
+    },
+    {
+      "name": "libxcrypt",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "3.el9",
+        "ver": "4.4.18"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/l/libxcrypt-4.4.18-3.el9.x86_64.rpm",
+      "sha256": "a50bb26a28ee7e6379c86b5b91285299b71569fa87ea968d800a56090b7a179d"
+    },
+    {
+      "name": "make",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "1",
+        "rel": "8.el9",
+        "ver": "4.3"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/m/make-4.3-8.el9.x86_64.rpm",
+      "sha256": "561f0c2251e9217c81a6c88de4d2d9231a039aaab37e8a0d2559d36ce9fa85fd"
+    },
+    {
+      "name": "openssl-libs",
+      "arch": "i686",
+      "version": {
+        "epoch": "1",
+        "ver": "3.5.8",
+        "rel": "2.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/o/openssl-libs-3.5.8-2.el9_8.i686.rpm",
+      "sha256": "0544d81f94b046609ae1653d3811e8cdcd53eeb0d723446dcb47cff1244ef138"
+    },
+    {
+      "name": "openssl-libs",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "1",
+        "ver": "3.5.8",
+        "rel": "2.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/o/openssl-libs-3.5.8-2.el9_8.x86_64.rpm",
+      "sha256": "6448671d67b300025edac8382995707a0763ae0843e097cbe717d1cbc29817e2"
+    },
+    {
+      "name": "pam",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "1.5.1",
+        "rel": "28.el9_8.1"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/p/pam-1.5.1-28.el9_8.1.x86_64.rpm",
+      "sha256": "9285aea93392dada0c8399b7d8a1c85ce7a6fdafd2fb5264727448549c15637c"
+    },
+    {
+      "name": "pam",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "1.5.1",
+        "rel": "28.el9_8.1"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/p/pam-1.5.1-28.el9_8.1.i686.rpm",
+      "sha256": "5d4dcb4a4c0d7ae8b78e4434e0e1ca02336497344a460af7699e3b21e9afa5a6"
+    },
+    {
+      "name": "pcre2",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "10.40",
+        "rel": "7.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/p/pcre2-10.40-7.el9_8.x86_64.rpm",
+      "sha256": "ef2c65a463e1ef1bfbf3d9ee66986e14cca0fbae88343f099dd5b16619276f1f"
+    },
+    {
+      "name": "pcre2",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "10.40",
+        "rel": "7.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/p/pcre2-10.40-7.el9_8.i686.rpm",
+      "sha256": "0d5ffa9b9c1b3199d0711de8a24e41396748db9dd699265360d125b9a8c25f3e"
+    },
+    {
+      "name": "pkgconf-pkg-config",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "10.el9",
+        "ver": "1.7.3"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/p/pkgconf-pkg-config-1.7.3-10.el9.x86_64.rpm",
+      "sha256": "9a502d81d73d3303ceb53a06ad7ce525c97117ea64352174a33708bf3429283d"
+    },
+    {
+      "name": "tar",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "2",
+        "ver": "1.34",
+        "rel": "13.el9_8"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/t/tar-1.34-13.el9_8.x86_64.rpm",
+      "sha256": "913d84cd94463e3f0400d80c6742a2974eeab6445ac71ff9eb802a70779c146f"
+    },
+    {
+      "name": "xz",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "5.2.5",
+        "rel": "8.el9_8.1"
+      },
+      "repo": "baseos",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/baseos/os/Packages/x/xz-5.2.5-8.el9_8.1.x86_64.rpm",
+      "sha256": "642e46f7fcc460ee7ec0984a63e9f68ecefbea115c9724c0bab53e885e07bf11"
+    },
+    {
+      "name": "automake",
+      "arch": "noarch",
+      "version": {
+        "epoch": "0",
+        "rel": "8.el9",
+        "ver": "1.16.2"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/a/automake-1.16.2-8.el9.noarch.rpm",
+      "sha256": "905e10fa951af9e7b29d724bdd9ec42a42d25bf53f620d53a52203ac2e2c4f95"
+    },
+    {
+      "name": "fontconfig-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "rel": "2.el9_1",
+        "ver": "2.14.0"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/f/fontconfig-devel-2.14.0-2.el9_1.i686.rpm",
+      "sha256": "5ab945b95dad4024b96bfadcc39a2f1fc33e8886442fa7a715fbb4fce84abaf0"
+    },
+    {
+      "name": "fontconfig-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "2.el9_1",
+        "ver": "2.14.0"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/f/fontconfig-devel-2.14.0-2.el9_1.x86_64.rpm",
+      "sha256": "ac97be8e947aa946073f66f14d1ad3be8c953897e9b82d2f4d7639637c03eaae"
+    },
+    {
+      "name": "freetype-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "10.el9_5",
+        "ver": "2.10.4"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/f/freetype-devel-2.10.4-10.el9_5.x86_64.rpm",
+      "sha256": "423659ae998891e807e124d6ea6bd0d5bc911e457f6dabef6924ada794420886"
+    },
+    {
+      "name": "freetype-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "rel": "10.el9_5",
+        "ver": "2.10.4"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/f/freetype-devel-2.10.4-10.el9_5.i686.rpm",
+      "sha256": "01047d8a6dbf592955f654eed5d515358f88a80420f827edc83cc279168ac53b"
+    },
+    {
+      "name": "libjpeg-turbo-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "rel": "7.el9",
+        "ver": "2.0.90"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libjpeg-turbo-devel-2.0.90-7.el9.i686.rpm",
+      "sha256": "90c27aec3b21f70ef6befe59c82a30236733a32de1ca9927f6cd1f26742d1757"
+    },
+    {
+      "name": "libjpeg-turbo-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "7.el9",
+        "ver": "2.0.90"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libjpeg-turbo-devel-2.0.90-7.el9.x86_64.rpm",
+      "sha256": "29bc1734fd78b4d11c71adbf37fb11c2fbe7920884c0dd475d9b0a6bc05bc6ba"
+    },
+    {
+      "name": "libtool",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "46.el9",
+        "ver": "2.4.6"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libtool-2.4.6-46.el9.x86_64.rpm",
+      "sha256": "29e3e75c1037c5335fd6f9f4029e2dcdcd27d8870fd72b18bd7c16bf51a0db8c"
+    },
+    {
+      "name": "libxcrypt-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "rel": "3.el9",
+        "ver": "4.4.18"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libxcrypt-devel-4.4.18-3.el9.i686.rpm",
+      "sha256": "eb82e26de87e618b29f766508098f3d94ce200e20c7aba57239ed2e77a330019"
+    },
+    {
+      "name": "libxcrypt-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "3.el9",
+        "ver": "4.4.18"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libxcrypt-devel-4.4.18-3.el9.x86_64.rpm",
+      "sha256": "c1d171391a7d2e043a6953efd3df3e01edc9b4c6cdb54517e1608d204a5fce18"
+    },
+    {
+      "name": "patch",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "16.el9",
+        "ver": "2.7.6"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/p/patch-2.7.6-16.el9.x86_64.rpm",
+      "sha256": "d2e0307a2d1d4eff0c2db406841030461b35864926916f2a92244427d89316be"
+    },
+    {
+      "name": "xkeyboard-config",
+      "arch": "noarch",
+      "version": {
+        "epoch": "0",
+        "rel": "2.el9",
+        "ver": "2.33"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/x/xkeyboard-config-2.33-2.el9.noarch.rpm",
+      "sha256": "8575107a4292036df4c33b34b98b459897d2f4b0fdf8385e342eced93102497c"
+    },
+    {
+      "name": "xorg-x11-fonts-Type1",
+      "arch": "noarch",
+      "version": {
+        "epoch": "0",
+        "rel": "33.el9",
+        "ver": "7.5"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/x/xorg-x11-fonts-Type1-7.5-33.el9.noarch.rpm",
+      "sha256": "fdfc3ba1f9671578fbd91fd5bbae7f76c4a0f6a1a116862585be0ebc8e111fda"
+    },
+    {
+      "name": "xorg-x11-proto-devel",
+      "arch": "noarch",
+      "version": {
+        "epoch": "0",
+        "rel": "1.el9",
+        "ver": "2024.1"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/x/xorg-x11-proto-devel-2024.1-1.el9.noarch.rpm",
+      "sha256": "1ad6ee7c810cdacaf1b6d04f09c8a3e38fb14751c3289b800a18127698dc51d9"
+    },
+    {
+      "name": "zlib-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "rel": "40.el9",
+        "ver": "1.2.11"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/z/zlib-devel-1.2.11-40.el9.i686.rpm",
+      "sha256": "274297b9eb1bf67775dde315085e89828c40119ee0de840cee8ac8bdbec628f2"
+    },
+    {
+      "name": "zlib-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "40.el9",
+        "ver": "1.2.11"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/z/zlib-devel-1.2.11-40.el9.x86_64.rpm",
+      "sha256": "9775022716a2b6dd51d151a40aa4a6bcb466edeb01b747f48072703e509be097"
+    },
+    {
+      "name": "autoconf",
+      "arch": "noarch",
+      "version": {
+        "epoch": "0",
+        "rel": "41.el9",
+        "ver": "2.69"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/a/autoconf-2.69-41.el9.noarch.rpm",
+      "sha256": "8865af72585d722c9bc15deab16ecb4dcabfd33c442d007f87fa38bfee8c9bf1"
+    },
+    {
+      "name": "cmake",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "3.31.8",
+        "rel": "3.el9"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/c/cmake-3.31.8-3.el9.x86_64.rpm",
+      "sha256": "e67ea7aef1edd470e4ec22982e97871655abcdc0990754d4e8f147d4e7de317a"
+    },
+    {
+      "name": "gcc",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "11.5.0",
+        "rel": "14.el9"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/g/gcc-11.5.0-14.el9.x86_64.rpm",
+      "sha256": "2082784165bbb246b6e5ef5921ed823f0a9709cacdf5823aa60695fd6d4819a2"
+    },
+    {
+      "name": "gcc-c++",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "11.5.0",
+        "rel": "14.el9"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/g/gcc-c++-11.5.0-14.el9.x86_64.rpm",
+      "sha256": "b073d8965ad8eed7520a2a1c9b7c961232511ad9188dcc8c92356160a9d51e37"
+    },
+    {
+      "name": "glibc-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "2.34",
+        "rel": "283.el9_8"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/g/glibc-devel-2.34-283.el9_8.i686.rpm",
+      "sha256": "b194e20029eec8bb22d363e4f03ec5872d3c51f8aaa71aad66d46a76fce9139a"
+    },
+    {
+      "name": "glibc-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "2.34",
+        "rel": "283.el9_8"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/g/glibc-devel-2.34-283.el9_8.x86_64.rpm",
+      "sha256": "5f47e3ae6aea8fde6cbb02357463b3e8c884971284267ced3806b16a93a5c2e5"
+    },
+    {
+      "name": "glibc-headers",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "2.34",
+        "rel": "283.el9_8"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/g/glibc-headers-2.34-283.el9_8.x86_64.rpm",
+      "sha256": "796a7079041c288eec9e74437c2f9f85513c0dfade393877a9281828bb55e966"
+    },
+    {
+      "name": "libcap-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "2.48",
+        "rel": "10.el9_8.1"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libcap-devel-2.48-10.el9_8.1.i686.rpm",
+      "sha256": "f1c007c43d590435838776ad14e44e0e37d7c5b8215b628314c4ef9140e9c2a8"
+    },
+    {
+      "name": "libcap-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "2.48",
+        "rel": "10.el9_8.1"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libcap-devel-2.48-10.el9_8.1.x86_64.rpm",
+      "sha256": "e8aaf19b3e9edab3368d9a348e544b98944a1a450e7e86b4db79bc423094c914"
+    },
+    {
+      "name": "libpng-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "2",
+        "ver": "1.6.37",
+        "rel": "15.el9_8.2"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libpng-devel-1.6.37-15.el9_8.2.x86_64.rpm",
+      "sha256": "ce49c51a89b02d7d9ce6e9793d825167e6a88ba9f63c4aa9d843a71d1fd285a8"
+    },
+    {
+      "name": "libpng-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "2",
+        "ver": "1.6.37",
+        "rel": "15.el9_8.2"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libpng-devel-1.6.37-15.el9_8.2.i686.rpm",
+      "sha256": "33461ef7733cf0ebd186cf34c539cb94123f132ffeafe83ba3d06be0019abb65"
+    },
+    {
+      "name": "ncurses-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "rel": "12.20210508.el9",
+        "ver": "6.2"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/n/ncurses-devel-6.2-12.20210508.el9.i686.rpm",
+      "sha256": "ae16d17702437bcf8e510ec545685ab88c941a64eb795a58d9039fcb9bb647a2"
+    },
+    {
+      "name": "ncurses-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "12.20210508.el9",
+        "ver": "6.2"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/n/ncurses-devel-6.2-12.20210508.el9.x86_64.rpm",
+      "sha256": "c5edeb1aebfe38d19b91b493503efccbc8baebbef505023e114ee51547985a9d"
+    },
+    {
+      "name": "python3-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "3.9.25",
+        "rel": "7.el9_8.6"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/p/python3-devel-3.9.25-7.el9_8.6.x86_64.rpm",
+      "sha256": "a7ea86a19296b0f0064f2826ab2d4bbb89dd111e605225b47e2a1891f644859f"
+    },
+    {
+      "name": "python3-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "3.9.25",
+        "rel": "7.el9_8.6"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/p/python3-devel-3.9.25-7.el9_8.6.i686.rpm",
+      "sha256": "be6bb7abab3d41c9d15c7fa1c6daeb7d9f79fb1cd61027684780d8f003b16ed2"
+    },
+    {
+      "name": "kernel-headers",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "5.14.0",
+        "rel": "687.65.1.el9_8"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.65.1.el9_8.x86_64.rpm",
+      "sha256": "37231e8f8e573339e68ae8edcf76867a11f7a8941b1904312897789f4ee9d515"
+    },
+    {
+      "name": "libX11",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "1.8.12",
+        "rel": "1.el9_8.1"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libX11-1.8.12-1.el9_8.1.i686.rpm",
+      "sha256": "27b0ab56982f1205400e0480ed7e3780c3955069d03e3f434370fa647bf5a311"
+    },
+    {
+      "name": "libX11",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "1.8.12",
+        "rel": "1.el9_8.1"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libX11-1.8.12-1.el9_8.1.x86_64.rpm",
+      "sha256": "71b9048afc6eae67e026bb68415c6d6fa8442108a8d9ccdfea95beb6c609f607"
+    },
+    {
+      "name": "libX11-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "1.8.12",
+        "rel": "1.el9_8.1"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libX11-devel-1.8.12-1.el9_8.1.i686.rpm",
+      "sha256": "b8a9fa52e24f21c0226d82f440722d52470acb543040432bdcb7174944d62e84"
+    },
+    {
+      "name": "libX11-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "1.8.12",
+        "rel": "1.el9_8.1"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libX11-devel-1.8.12-1.el9_8.1.x86_64.rpm",
+      "sha256": "38ee65f16c0e9fc381fabcf87c07dfbd8e11fdf00b7825b5907261ac18557aa6"
+    },
+    {
+      "name": "libXrender-devel",
+      "arch": "i686",
+      "version": {
+        "epoch": "0",
+        "ver": "0.9.10",
+        "rel": "16.el9_8.2"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libXrender-devel-0.9.10-16.el9_8.2.i686.rpm",
+      "sha256": "7227cf4b50f33441e381290fcb50b15ca463573f929c7ec4623694aa75874413"
+    },
+    {
+      "name": "libXrender-devel",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "ver": "0.9.10",
+        "rel": "16.el9_8.2"
+      },
+      "repo": "appstream",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/appstream/os/Packages/l/libXrender-devel-0.9.10-16.el9_8.2.x86_64.rpm",
+      "sha256": "7a3879cf59fc4639ecda9a98ff1dfe8551aa52cf260960b98c6787c2924a59bc"
+    },
+    {
+      "name": "meson",
+      "arch": "noarch",
+      "version": {
+        "epoch": "0",
+        "rel": "1.el9",
+        "ver": "0.63.3"
+      },
+      "repo": "codeready-builder",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/codeready-builder/os/Packages/m/meson-0.63.3-1.el9.noarch.rpm",
+      "sha256": "cb174ce7d6adf9c7a4b90ecf3360307485f9c1e4bb006c44190de9cfd41511c7"
+    },
+    {
+      "name": "ninja-build",
+      "arch": "x86_64",
+      "version": {
+        "epoch": "0",
+        "rel": "6.el9",
+        "ver": "1.10.2"
+      },
+      "repo": "codeready-builder",
+      "url": "https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi9/9/x86_64/codeready-builder/os/Packages/n/ninja-build-1.10.2-6.el9.x86_64.rpm",
+      "sha256": "1140bec45c316942f870c28fdede79c185a2e09adc48bada42a5610783d56400"
+    }
+  ],
+  "absent": [
+    "dbus-devel",
+    "libXaw-devel",
+    "libXdamage-devel",
+    "libXext-devel",
+    "libXfixes-devel",
+    "libXfont2",
+    "libXfont2-devel",
+    "libXrandr-devel",
+    "libXt-devel",
+    "libXtst-devel",
+    "libfontenc-devel",
+    "libltdl-devel",
+    "libunwind-devel",
+    "libxkbfile-devel",
+    "libxshmfence-devel",
+    "matchbox-window-manager",
+    "musl",
+    "musl-devel",
+    "musl-gcc",
+    "nettle-devel",
+    "pam-devel",
+    "perl-XML-Parser",
+    "pixman-devel",
+    "xorg-x11-font-utils",
+    "xorg-x11-server-Xorg",
+    "xorg-x11-server-Xvfb",
+    "xorg-x11-util-macros",
+    "xorg-x11-xkb-utils",
+    "xorg-x11-xtrans-devel",
+    "xterm"
+  ]
+}

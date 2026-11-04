@@ -1,0 +1,8 @@
+FROM registry.access.redhat.com/ubi9/ubi-init:latest
+RUN dnf install -y podman fuse-overlayfs slirp4netns git openssh-server python3 && dnf clean all
+RUN curl -fsSL https://kind.sigs.k8s.io/dl/v0.31.0/kind-linux-amd64 -o /usr/local/bin/kind && chmod +x /usr/local/bin/kind
+RUN curl -fsSL https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl
+RUN curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v0.36.3/tilt.0.36.3.linux.x86_64.tar.gz | tar -xz -C /usr/local/bin tilt
+ENV KIND_EXPERIMENTAL_PROVIDER=podman
+VOLUME /workspace
+CMD ["/sbin/init"]

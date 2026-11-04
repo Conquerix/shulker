@@ -1,0 +1,73 @@
+[
+  {
+    "test": "gui_terminal",
+    "terminal": {
+      "startedAt": "2026-11-04T06:53:03.821002756Z",
+      "id": "c47c8ddda17b301da939d834",
+      "name": "Real UBI9 GUI",
+      "directory": "/workspace/tuxee-accept",
+      "pid": 138647,
+      "exited": false,
+      "attached": 0
+    }
+  },
+  {
+    "test": "window_state",
+    "terminal": {
+      "display": {
+        "ready": true,
+        "windows": [
+          {
+            "id": 6291457,
+            "title": "Tuxee UBI9 native X11 keyboard probe",
+            "active": true
+          }
+        ]
+      },
+      "type": "display",
+      "control": false,
+      "sequence": 12
+    }
+  },
+  {
+    "test": "rfb_authenticated",
+    "width": 1024,
+    "height": 768,
+    "desktop_name": "tuxeeaccept@03acf911f1fb"
+  },
+  {
+    "test": "framebuffer",
+    "bytes": 3145728,
+    "sha256": "6b1b0f9b86002a5e53cbe6246574a90eb04e9a2c3966cc081c638ec552fc1fdd",
+    "distinct_bytes": 2
+  },
+  {
+    "test": "gui_keyboard_independent_file",
+    "content": "GUI_KEY_OK",
+    "uid": 1000,
+    "sha256": "edb604c89359fee6f52d041cf69cc47fcb677555906bdf623d77439b4b3303af"
+  },
+  {
+    "test": "window_title_after_input",
+    "display": {
+      "ready": true,
+      "windows": [
+        {
+          "id": 6291457,
+          "title": "Tuxee GUI received: GUI_KEY_OK",
+          "active": true
+        }
+      ]
+    }
+  },
+  {
+    "test": "framebuffer_after",
+    "sha256": "ade61cd3e7cea8caae46a21d285f5d88d80b64e856206bb0520fe983d3ef3852",
+    "bytes": 3145728
+  },
+  {
+    "test": "gui_complete",
+    "terminal_id": "c47c8ddda17b301da939d834",
+    "retained": true
+  }
+]

@@ -1,0 +1,140 @@
+[
+  {
+    "package": "bison",
+    "version": "2:3.8.2+dfsg-1",
+    "url": "https://deb.debian.org/debian/pool/main/b/bison/bison_3.8.2+dfsg.orig.tar.xz",
+    "sha256": "dff8a3c96dd34121828f62a7fa49e1f7765815b89e59f564e8d2a9e71c177be5",
+    "file": "bison_3.8.2+dfsg.orig.tar.xz"
+  },
+  {
+    "package": "flex",
+    "version": "2.6.4-8.2",
+    "url": "https://deb.debian.org/debian/pool/main/f/flex/flex_2.6.4.orig.tar.gz",
+    "sha256": "e87aae032bf07c26f85ac0ed3250998c37621d95f8bd748b31f15b33c45ee995",
+    "file": "flex_2.6.4.orig.tar.gz"
+  },
+  {
+    "package": "libfontenc",
+    "version": "1:1.1.8-1",
+    "url": "https://deb.debian.org/debian/pool/main/libf/libfontenc/libfontenc_1.1.8.orig.tar.gz",
+    "sha256": "b55039f70959a1b2f02f4ec8db071e5170528d2c9180b30575dccf7510d7fb9f",
+    "file": "libfontenc_1.1.8.orig.tar.gz"
+  },
+  {
+    "package": "libmatchbox",
+    "version": "1.12+git20170224-3",
+    "url": "https://deb.debian.org/debian/pool/main/libm/libmatchbox/libmatchbox_1.12+git20170224.orig.tar.xz",
+    "sha256": "2627af32c5885102f5304f2d7561e9bc8763e9dabd4bcff4568fa8f7a30a46e7",
+    "file": "libmatchbox_1.12+git20170224.orig.tar.xz"
+  },
+  {
+    "package": "libxdamage",
+    "version": "1:1.1.6-1",
+    "url": "https://deb.debian.org/debian/pool/main/libx/libxdamage/libxdamage_1.1.6.orig.tar.gz",
+    "sha256": "2afcc139eb6eb926ffe344494b1fc023da25def42874496e6e6d3aa8acef8595",
+    "file": "libxdamage_1.1.6.orig.tar.gz"
+  },
+  {
+    "package": "libxdmcp",
+    "version": "1:1.1.5-1",
+    "url": "https://deb.debian.org/debian/pool/main/libx/libxdmcp/libxdmcp_1.1.5.orig.tar.gz",
+    "sha256": "31a7abc4f129dcf6f27ae912c3eedcb94d25ad2e8f317f69df6eda0bc4e4f2f3",
+    "file": "libxdmcp_1.1.5.orig.tar.gz"
+  },
+  {
+    "package": "libxext",
+    "version": "2:1.3.4-1",
+    "url": "https://deb.debian.org/debian/pool/main/libx/libxext/libxext_1.3.4.orig.tar.gz",
+    "sha256": "8ef0789f282826661ff40a8eef22430378516ac580167da35cc948be9041aac1",
+    "file": "libxext_1.3.4.orig.tar.gz"
+  },
+  {
+    "package": "libxfixes",
+    "version": "1:6.0.0-2",
+    "url": "https://deb.debian.org/debian/pool/main/libx/libxfixes/libxfixes_6.0.0.orig.tar.gz",
+    "sha256": "82045da5625350838390c9440598b90d69c882c324ca92f73af9f0e992cb57c7",
+    "file": "libxfixes_6.0.0.orig.tar.gz"
+  },
+  {
+    "package": "libxfont",
+    "version": "1:2.0.6-1+deb13u1",
+    "url": "https://deb.debian.org/debian/pool/main/libx/libxfont/libxfont_2.0.6.orig.tar.gz",
+    "sha256": "a944df7b6837c8fa2067f6a5fc25d89b0acc4011cd0bc085106a03557fb502fc",
+    "file": "libxfont_2.0.6.orig.tar.gz"
+  },
+  {
+    "package": "libxkbfile",
+    "version": "1:1.1.0-1",
+    "url": "https://deb.debian.org/debian/pool/main/libx/libxkbfile/libxkbfile_1.1.0.orig.tar.gz",
+    "sha256": "2a92adda3992aa7cbad758ef0b8dfeaedebb49338b772c64ddf369d78c1c51d3",
+    "file": "libxkbfile_1.1.0.orig.tar.gz"
+  },
+  {
+    "package": "libxrandr",
+    "version": "2:1.5.4-1",
+    "url": "https://deb.debian.org/debian/pool/main/libx/libxrandr/libxrandr_1.5.4.orig.tar.gz",
+    "sha256": "c72c94dc3373512ceb67f578952c5d10915b38cc9ebb0fd176a49857b8048e22",
+    "file": "libxrandr_1.5.4.orig.tar.gz"
+  },
+  {
+    "package": "libxtst",
+    "version": "2:1.2.5-1",
+    "url": "https://deb.debian.org/debian/pool/main/libx/libxtst/libxtst_1.2.5.orig.tar.gz",
+    "sha256": "244ba6e1c5ffa44f1ba251affdfa984d55d99c94bb925a342657e5e7aaf6d39c",
+    "file": "libxtst_1.2.5.orig.tar.gz"
+  },
+  {
+    "package": "matchbox-window-manager",
+    "version": "1.2.2+git20200512-2",
+    "url": "https://deb.debian.org/debian/pool/main/m/matchbox-window-manager/matchbox-window-manager_1.2.2+git20200512.orig.tar.xz",
+    "sha256": "a0d869dd182b8e31cd67bd4425db48f66ada4f4163e57b9b796304f5a022abcd",
+    "file": "matchbox-window-manager_1.2.2+git20200512.orig.tar.xz"
+  },
+  {
+    "package": "pixman",
+    "version": "0.44.0-3",
+    "url": "https://deb.debian.org/debian/pool/main/p/pixman/pixman_0.44.0.orig.tar.gz",
+    "sha256": "89a4c1e1e45e0b23dffe708202cb2eaffde0fe3727d7692b2e1739fec78a7dac",
+    "file": "pixman_0.44.0.orig.tar.gz"
+  },
+  {
+    "package": "x11-xkb-utils",
+    "version": "7.7+9",
+    "url": "https://deb.debian.org/debian/pool/main/x/x11-xkb-utils/x11-xkb-utils_7.7+9.tar.xz",
+    "sha256": "27ae7efb512f3b816c66b7c7290f28de4ae811972e06c5e27a9124d2eab766d4",
+    "file": "x11-xkb-utils_7.7+9.tar.xz"
+  },
+  {
+    "package": "xfonts-utils",
+    "version": "1:7.7+7",
+    "url": "https://deb.debian.org/debian/pool/main/x/xfonts-utils/xfonts-utils_7.7+7.tar.gz",
+    "sha256": "4120140bf5a428109cb2fc4dedd39d6f43f5ec363756d720244fda11501ddb37",
+    "file": "xfonts-utils_7.7+7.tar.gz"
+  },
+  {
+    "package": "xtrans",
+    "version": "1.4.0-1",
+    "url": "https://deb.debian.org/debian/pool/main/x/xtrans/xtrans_1.4.0.orig.tar.gz",
+    "sha256": "48ed850ce772fef1b44ca23639b0a57e38884045ed2cbb18ab137ef33ec713f9",
+    "file": "xtrans_1.4.0.orig.tar.gz"
+  },
+  {
+    "package": "xutils-dev",
+    "version": "1:7.7+7",
+    "url": "https://deb.debian.org/debian/pool/main/x/xutils-dev/xutils-dev_7.7+7.tar.gz",
+    "sha256": "2d9418f0b08079c7748fb6951f894f9ea67c5c69a32fb9d7a61a029c0ad6dc20",
+    "file": "xutils-dev_7.7+7.tar.gz"
+  },
+  {
+    "package": "tigervnc",
+    "url": "https://codeload.github.com/TigerVNC/tigervnc/tar.gz/refs/tags/v1.16.2",
+    "sha256": "b107c0c8b8a962594281690366c24186e95c2ea4a169acbc0076aa62ed01f467",
+    "file": "tiger.tar.gz"
+  },
+  {
+    "package": "xorg-server",
+    "url": "https://www.x.org/releases/individual/xserver/xorg-server-21.1.25.tar.xz",
+    "sha256": "6ad4e3c7b59a309b32c92e5c15ce1267110f9e13f1ac78da62361a628da1a0eb",
+    "file": "xorg.tar.xz"
+  }
+]

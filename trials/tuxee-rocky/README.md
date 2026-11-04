@@ -35,7 +35,20 @@ prove runtime operation. After activation, explicitly start
 `tuxee-rocky-trial.service`, verify loopback binding and guest identity, and
 record versions and SELinux state before installing guest dependencies.
 
-## Required runtime evidence (not yet obtained)
+## Current runtime results
+
+Successful diagnostic qualification and its limits are now recorded in
+[recipes/README.md](recipes/README.md), with actual runtime/Tilt fixtures,
+locked GUI sources, acceptance drivers and retained [evidence](evidence/).
+Core Kubernetes/Tilt, native Tuxee authentication/files/terminal/SSH and a
+minimal X11 keyboard/display probe passed. A read-only repository/worktree
+inventory CLI is implemented and exercised. Server restart execution is still
+approval-pending; AI inference, VS Code UI, representative desktop apps,
+restricted isolation and clean-room reproducible packaging remain unqualified.
+The historical preparation result below is retained as chronology, not current
+runtime status. No production deployment or final VM architecture is implied.
+
+## Required runtime evidence checklist
 
 The decisive chain is rootless guest-host Podman → UBI9 Init/systemd →
 container-root inner Podman → kind/containerd → real Kubernetes workload.

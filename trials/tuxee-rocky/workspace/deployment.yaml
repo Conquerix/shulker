@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tuxee-trial-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: tuxee-trial-app}
+  template:
+    metadata:
+      labels: {app: tuxee-trial-app}
+    spec:
+      containers:
+      - name: app
+        image: localhost/tuxee-trial-app
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet: {path: /message.txt, port: 8080}
+          initialDelaySeconds: 1
+          periodSeconds: 2

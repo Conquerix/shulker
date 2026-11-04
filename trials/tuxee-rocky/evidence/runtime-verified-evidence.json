@@ -1,0 +1,91 @@
+{
+  "evidence": [
+    {
+      "test": "runtime",
+      "pid": 21012,
+      "binary_sha256": "9e0e0ef503b9bdb3885c2635451a6bc5435a218195f9e7ac3fed3b201117b112",
+      "bind": "http://127.0.0.1:18443"
+    },
+    {
+      "test": "anonymous_denied",
+      "status": 401
+    },
+    {
+      "test": "native_pam_login",
+      "status": 200,
+      "user": {
+        "name": "tuxeeaccept",
+        "home": "/home/tuxeeaccept",
+        "uid": 1000,
+        "gid": 1000
+      }
+    },
+    {
+      "test": "file_write_read",
+      "path": "/workspace/tuxee-accept/handoff.txt"
+    },
+    {
+      "test": "terminal_created",
+      "terminal": {
+        "startedAt": "2026-11-04T06:29:44.515339505Z",
+        "id": "f2fc12d98b346d411f635247",
+        "name": "UBI acceptance",
+        "directory": "/workspace/tuxee-accept",
+        "pid": 21341,
+        "exited": false,
+        "attached": 0
+      }
+    },
+    {
+      "test": "websocket_snapshot",
+      "control": true
+    },
+    {
+      "test": "terminal_input_output",
+      "marker": "TERM_OK"
+    },
+    {
+      "test": "logout_revokes_websocket",
+      "closed": true
+    },
+    {
+      "test": "logout_retains_terminal",
+      "id": "f2fc12d98b346d411f635247",
+      "pid": 21341
+    },
+    {
+      "test": "terminal_reconnected",
+      "marker": "RECONNECT_OK"
+    },
+    {
+      "test": "ssh_same_file",
+      "content": "from-tuxee-api\nfrom-terminal\nfrom-ssh\n",
+      "stat": "42107248:1000:1000",
+      "sha256": "9186a7be86cb96fc9faacbb71575656e711160aae4e20bd5541a488fe78f265a"
+    },
+    {
+      "test": "gui_not_running",
+      "status": 409,
+      "response": {
+        "error": "display is not running",
+        "text": {
+          "key": "backend.server.displayIsNotRunning"
+        }
+      },
+      "passed": false
+    },
+    {
+      "test": "complete",
+      "terminal_id": "f2fc12d98b346d411f635247",
+      "retained": true
+    }
+  ],
+  "readback": {
+    "server_pid": 21012,
+    "terminal_pid": 21341,
+    "terminal_alive": true,
+    "file_stat": "42107248:1000:1000",
+    "file_sha256": "9186a7be86cb96fc9faacbb71575656e711160aae4e20bd5541a488fe78f265a",
+    "fixture_account": "tuxeeaccept"
+  }
+}
