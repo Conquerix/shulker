@@ -8,6 +8,11 @@
   # Preserve the running D-Bus backend; changing it requires a planned reboot.
   services.dbus.implementation = "dbus";
 
+  # Use the existing account; the shared user module also grants these keys to root.
+  users.users.conquerix.openssh.authorizedKeys.keys = [
+    "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE4qIyrC86dJuRlJnTst4Iezl69ffsZBEo4acoSLOuSh hermes-overseer-shulker"
+  ];
+
   shulker = {
     users.conquerix.enable = true;
     system = {

@@ -173,6 +173,18 @@ changes and other service changes. Check idle state before routine restarts;
 announce self-restarts and verify recovery. No deployment is authorized by this
 runbook.
 
+Enderdragon authorizes Overseer's existing restricted key for `conquerix`; the
+shared user module also copies its keys to `root`. Its sudo policy is unchanged.
+Overseer's Pangolin client uses `overseer-enderdragon.ssh` (`100.96.128.12`);
+the desktop resource
+`enderdragon.ssh` is a separate grant. The generated `ssh shulker` stanza selects
+the local host only. For Enderdragon, explicitly select `conquerix` or `root` and
+`/run/hermes-host-key`, and pin Enderdragon's independently verified host key with
+strict checking. Reachability does not establish account authorization: verify
+the remote username after an approved Enderdragon deployment. `conquerix` sudo
+still requires its existing authentication; use the authorized root SSH login
+for noninteractive administration.
+
 ## Validation and migration
 
 Run offline regression tests and the evaluated structural contract:

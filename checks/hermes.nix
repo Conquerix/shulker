@@ -9,6 +9,7 @@ let
   };
   engineer = config.virtualisation.oci-containers.containers.hermes-engineer;
   overseer = config.virtualisation.oci-containers.containers.hermes;
+  enderdragon = self.nixosConfigurations.enderdragon.config;
   # Render a third instance from the same implementation, with all capabilities off.
   worker = render "worker" (
     cfg.instances.engineer
@@ -69,20 +70,46 @@ in
       '';
 
   hermes-instances-contract =
+    assert builtins.elem "restrict ${cfg.instances.overseer.hostAdministration.sshPublicKey}"
+      enderdragon.users.users.conquerix.openssh.authorizedKeys.keys;
+    assert lib.all (
+      key: builtins.elem key enderdragon.users.users.conquerix.openssh.authorizedKeys.keys
+    ) config.users.users.conquerix.openssh.authorizedKeys.keys;
+    assert
+      enderdragon.users.users.root.openssh.authorizedKeys.keys
+      == enderdragon.users.users.conquerix.openssh.authorizedKeys.keys;
+    assert !(enderdragon.users.users ? hermes-operator);
+    assert enderdragon.security.sudo-rs.execWheelOnly;
+    assert enderdragon.security.sudo-rs.wheelNeedsPassword;
+    assert !enderdragon.shulker.system.modules.hermes-agent.enable;
     assert builtins.length collision.secretNames == 4;
     assert builtins.length (lib.unique collision.secretNames) == 2;
     assert cfg.instances.overseer.containerName == "hermes";
     assert cfg.instances.overseer.stateDir == "/var/lib/hermes-overseer";
     assert cfg.instances.engineer.stateDir == "/var/lib/hermes-engineer";
-    assert builtins.attrNames cfg.instances == [ "artificer" "engineer" "overseer" "quartermaster" ];
+    assert
+      builtins.attrNames cfg.instances == [
+        "artificer"
+        "engineer"
+        "overseer"
+        "quartermaster"
+      ];
     assert lib.all
       (
         name:
         let
           i = cfg.instances.${name};
           container = config.virtualisation.oci-containers.containers.${i.containerName};
-          expectedTools = [ "web" "memory" "clarify" "todo" ]
-            ++ lib.optionals (name == "artificer") [ "file" "vision" ];
+          expectedTools = [
+            "web"
+            "memory"
+            "clarify"
+            "todo"
+          ]
+          ++ lib.optionals (name == "artificer") [
+            "file"
+            "vision"
+          ];
         in
         i.enable
         && i.containerName == "hermes-${name}"
@@ -90,11 +117,12 @@ in
         && container.image == engineer.image
         && container.ports == [ ]
         && safeVolumes container
-        && container.volumes == [
-          "${i.stateDir}/data:/opt/data:rw"
-          "${i.stateDir}/workspace:/workspace:rw"
-          "/run/${i.containerName}-managed/current/.env:/etc/hermes/.env:ro"
-        ]
+        &&
+          container.volumes == [
+            "${i.stateDir}/data:/opt/data:rw"
+            "${i.stateDir}/workspace:/workspace:rw"
+            "/run/${i.containerName}-managed/current/.env:/etc/hermes/.env:ro"
+          ]
         && !(i.dashboard.enable || i.hostAdministration.enable || i.serviceAccount.enable)
         && container.environment.HERMES_DASHBOARD == "0"
         && container.environment.API_SERVER_ENABLED == "false"
@@ -103,7 +131,11 @@ in
         && container.environment.DISCORD_ALLOW_ALL_USERS == "false"
         && container.environment.DISCORD_REQUIRE_MENTION == "true"
         && container.environment.DISCORD_ALLOW_BOTS == "none"
-        && builtins.attrNames i.credentials == [ "discord" "provider" ]
+        &&
+          builtins.attrNames i.credentials == [
+            "discord"
+            "provider"
+          ]
         && i.credentials.discord.requiredKeys == [ "DISCORD_BOT_TOKEN" ]
         && i.credentials.provider == cfg.instances.engineer.credentials.provider
         && i.initial.plugins == [ "discord-platform" ]
@@ -115,15 +147,25 @@ in
         && i.initial.settings."platforms.discord.enabled" == "true"
         && builtins.fromJSON i.initial.settings."platform_toolsets.cli" == expectedTools
         && builtins.fromJSON i.initial.settings."platform_toolsets.discord" == expectedTools
-        && lib.all
-          (label: config.services.onepassword-secrets.secrets."hermes${
-            lib.toUpper (builtins.substring 0 1 name)
-          }${builtins.substring 1 (-1) name}${
-            lib.toUpper (builtins.substring 0 1 label)
-          }${builtins.substring 1 (-1) label}".services == [ "docker-${i.containerName}" ])
-          [ "discord" "provider" ]
+        &&
+          lib.all
+            (
+              label:
+              config.services.onepassword-secrets.secrets."hermes${
+                lib.toUpper (builtins.substring 0 1 name)
+              }${builtins.substring 1 (-1) name}${lib.toUpper (builtins.substring 0 1 label)}${
+                builtins.substring 1 (-1) label
+              }".services == [ "docker-${i.containerName}" ]
+            )
+            [
+              "discord"
+              "provider"
+            ]
       )
-      [ "artificer" "quartermaster" ];
+      [
+        "artificer"
+        "quartermaster"
+      ];
     assert engineer.image == overseer.image;
     assert engineer.ports == [ ];
     assert overseer.ports == [ "127.0.0.1:23234:9119" ];
