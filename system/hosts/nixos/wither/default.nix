@@ -251,10 +251,6 @@ in
           home = true;
         };
         yubikey.enable = true;
-        ollama = {
-          enable = true;
-          impermanence = true;
-        };
         # Nvidia-only: the dGPU renders and scans out to the TV directly over
         # HDMI 2.1 — needed for 4K@120+/VRR on the S95F, which amdgpu cannot do
         # (no HDMI 2.1 on the open driver). The earlier direct-scanout attempt

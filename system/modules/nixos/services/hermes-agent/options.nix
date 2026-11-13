@@ -40,6 +40,7 @@ in
                 type = types.str;
                 default = "docker.io/nousresearch/hermes-agent:stable@sha256:9774f4f39a9bb8c2f68ce728ed5e99ddbad282163be56764afacf88ed952b784";
               };
+              omh.enable = mkEnableOption "pinned Oh My Hermes workflows and native plugin setup (no extra credentials)";
               dashboard = {
                 enable = mkEnableOption "private dashboard and local API";
                 port = mkOption {

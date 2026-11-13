@@ -1,9 +1,8 @@
 # OmniRoute
 
-Hermes on Shulker connects through the shared `omniroute` Docker bridge using
+Administrator on Shulker connects through the shared `omniroute` Docker bridge using
 its own inference key. Its key permits Sol and Astra, disables prompt logging,
-and has no management access or additional request budget. External clients
-continue to use the private Pangolin endpoint. NixOS creates the bridge before
+and has no management access or additional request budget. No other AI workload is retained on Shulker. NixOS creates the bridge before
 starting either local container and retains it across service restarts.
 
 OmniRoute is a private, OpenAI-compatible gateway for the owner's ChatGPT
@@ -24,7 +23,7 @@ from the OmniRoute section of the existing Shulker server item in 1Password.
 Keep these secrets with a database restore; never put values in Git or chat.
 
 Connect the native Codex/ChatGPT OAuth provider in the dashboard. This supplies
-subscription authentication; OpenHands remains the coding agent. Leave paid
+subscription authentication for Administrator. Leave paid
 credits disabled and quota filtering enabled. Connect no billable API provider
 and use explicit Sol/Astra model IDs without automatic paid fallback.
 
@@ -35,19 +34,6 @@ from that page's address bar into the callback URL field in the original
 OmniRoute dialog, then click Connect. If the dialog was closed or reloaded,
 start a new login so its PKCE session matches. Enter callback URLs only in the
 dashboard; they contain a temporary authorization code.
-
-OpenHands on Enderdragon will use `https://ai.shulker.link/v1`, an inference key
-restricted to `cx/gpt-6.1-sol` and `cx/gpt-6-astra`, and resource-scoped Pangolin
-headers in native Canvas settings. Store its credentials in Enderdragon's
-existing server item. Avoid unauthenticated exceptions for API paths.
-
-Deployment startup, dashboard password authentication and anonymous inference
-rejection have passed. The owner completed subscription sign-in; native
-OpenHands agent checks passed with streamed tool calls for Sol and Astra. The
-saved account has paid credits disabled, quota filtering enabled and refresh
-state present. Automatic refresh after expiry and subscription-exhaustion
-behavior have not been forced in a live test; finding a model in the compiled
-image alone is not proof that the subscription can run it.
 
 ## Image and updates
 

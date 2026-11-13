@@ -1,30 +1,36 @@
-# Runtime credential/bootstrap regressions and evaluated shared-instance isolation.
+# Administrator-only deployment and synthetic unprivileged renderer contracts.
 { pkgs, self, ... }:
 let
   inherit (pkgs) lib;
   config = self.nixosConfigurations.shulker.config;
   cfg = config.shulker.system.modules.hermes-agent;
+  admin = cfg.instances.administrator;
+  container = config.virtualisation.oci-containers.containers.hermes-administrator;
   render = import ../system/modules/nixos/services/hermes-agent/render-instance.nix {
     inherit lib pkgs config;
   };
-  engineer = config.virtualisation.oci-containers.containers.hermes-engineer;
-  overseer = config.virtualisation.oci-containers.containers.hermes;
-  enderdragon = self.nixosConfigurations.enderdragon.config;
-  # Render a third instance from the same implementation, with all capabilities off.
   worker = render "worker" (
-    cfg.instances.engineer
+    admin
     // {
       containerName = "hermes-worker";
       stateDir = "/var/lib/hermes-worker";
       credentials = { };
+      omh.enable = false;
       discord = {
         enable = false;
         allowedUsers = [ ];
       };
+      serviceAccount = {
+        enable = false;
+        reference = null;
+      };
+      hostAdministration = admin.hostAdministration // {
+        enable = false;
+      };
     }
   );
   collision = render "agent" (
-    cfg.instances.engineer
+    admin
     // {
       credentials = {
         a-b = {
@@ -40,19 +46,21 @@ let
           requiredKeys = [ "C" ];
         };
       };
-      serviceAccount = {
-        enable = true;
-        reference = "op://fixture/token";
-      };
     }
   );
-  has = lib.hasInfix;
-  safeVolumes =
-    container:
-    builtins.length container.volumes == 3
-    && lib.all (
-      v: !(has "overseer" v) && !(has "docker.sock" v) && !(has "host-key" v)
-    ) container.volumes;
+  retired = [
+    "hermes"
+    "hermes-engineer"
+    "hermes-artificer"
+    "hermes-quartermaster"
+    "openbot-trial"
+    "garcon"
+    "paperclip-airgap"
+    "paperclip-airgap-db"
+    "tuxee-hq-trial"
+    "quartz-build"
+    "quartz-web"
+  ];
 in
 {
   hermes-credentials-contract =
@@ -68,146 +76,34 @@ in
         python3 ${../tests/hermes-bootstrap.py} ${../system/modules/nixos/services/hermes-agent/bootstrap.py}
         touch "$out"
       '';
-
   hermes-instances-contract =
-    assert builtins.elem "restrict ${cfg.instances.overseer.hostAdministration.sshPublicKey}"
-      enderdragon.users.users.conquerix.openssh.authorizedKeys.keys;
+    assert builtins.attrNames cfg.instances == [ "administrator" ];
+    assert admin.stateDir == "/var/lib/hermes-administrator";
+    assert admin.hostAdministration.enable && admin.serviceAccount.enable && admin.omh.enable;
+    assert admin.hostAdministration.user == "hermes-administrator-operator";
+    assert admin.discord.allowedUsers == [ "240780407442767873" ];
+    assert container.ports == [ ];
+    assert container.environment.DISCORD_ALLOW_ALL_USERS == "false";
+    assert container.environment.DISCORD_REQUIRE_MENTION == "true";
+    assert container.environment.DISCORD_ALLOW_BOTS == "none";
+    assert lib.all (v: !(lib.hasInfix "docker.sock" v)) container.volumes;
     assert lib.all (
-      key: builtins.elem key enderdragon.users.users.conquerix.openssh.authorizedKeys.keys
-    ) config.users.users.conquerix.openssh.authorizedKeys.keys;
-    assert
-      enderdragon.users.users.root.openssh.authorizedKeys.keys
-      == enderdragon.users.users.conquerix.openssh.authorizedKeys.keys;
-    assert !(enderdragon.users.users ? hermes-operator);
-    assert enderdragon.security.sudo-rs.execWheelOnly;
-    assert enderdragon.security.sudo-rs.wheelNeedsPassword;
-    assert !enderdragon.shulker.system.modules.hermes-agent.enable;
-    assert builtins.length collision.secretNames == 4;
-    assert builtins.length (lib.unique collision.secretNames) == 2;
-    assert cfg.instances.overseer.containerName == "hermes";
-    assert cfg.instances.overseer.stateDir == "/var/lib/hermes-overseer";
-    assert cfg.instances.engineer.stateDir == "/var/lib/hermes-engineer";
-    assert
-      builtins.attrNames cfg.instances == [
-        "artificer"
-        "engineer"
-        "overseer"
-        "quartermaster"
-      ];
-    assert lib.all
-      (
-        name:
-        let
-          i = cfg.instances.${name};
-          container = config.virtualisation.oci-containers.containers.${i.containerName};
-          expectedTools = [
-            "web"
-            "memory"
-            "clarify"
-            "todo"
-          ]
-          ++ lib.optionals (name == "artificer") [
-            "file"
-            "vision"
-          ];
-        in
-        i.enable
-        && i.containerName == "hermes-${name}"
-        && i.stateDir == "/var/lib/hermes-${name}"
-        && container.image == engineer.image
-        && container.ports == [ ]
-        && safeVolumes container
-        &&
-          container.volumes == [
-            "${i.stateDir}/data:/opt/data:rw"
-            "${i.stateDir}/workspace:/workspace:rw"
-            "/run/${i.containerName}-managed/current/.env:/etc/hermes/.env:ro"
-          ]
-        && !(i.dashboard.enable || i.hostAdministration.enable || i.serviceAccount.enable)
-        && container.environment.HERMES_DASHBOARD == "0"
-        && container.environment.API_SERVER_ENABLED == "false"
-        && i.discord.enable
-        && container.environment.DISCORD_ALLOWED_USERS == "240780407442767873"
-        && container.environment.DISCORD_ALLOW_ALL_USERS == "false"
-        && container.environment.DISCORD_REQUIRE_MENTION == "true"
-        && container.environment.DISCORD_ALLOW_BOTS == "none"
-        &&
-          builtins.attrNames i.credentials == [
-            "discord"
-            "provider"
-          ]
-        && i.credentials.discord.requiredKeys == [ "DISCORD_BOT_TOKEN" ]
-        && i.credentials.provider == cfg.instances.engineer.credentials.provider
-        && i.initial.plugins == [ "discord-platform" ]
-        && i.initial.settings."model.default" == cfg.instances.engineer.initial.settings."model.default"
-        && i.initial.settings."model.provider" == "omniroute"
-        && i.initial.settings."model.base_url" == "http://omniroute:20128/v1"
-        && i.initial.settings."model.api_key" == "\${HERMES_OMNIROUTE_API_KEY}"
-        && i.initial.settings."gateway.multiplex_profiles" == "false"
-        && i.initial.settings."platforms.discord.enabled" == "true"
-        && builtins.fromJSON i.initial.settings."platform_toolsets.cli" == expectedTools
-        && builtins.fromJSON i.initial.settings."platform_toolsets.discord" == expectedTools
-        &&
-          lib.all
-            (
-              label:
-              config.services.onepassword-secrets.secrets."hermes${
-                lib.toUpper (builtins.substring 0 1 name)
-              }${builtins.substring 1 (-1) name}${lib.toUpper (builtins.substring 0 1 label)}${
-                builtins.substring 1 (-1) label
-              }".services == [ "docker-${i.containerName}" ]
-            )
-            [
-              "discord"
-              "provider"
-            ]
-      )
-      [
-        "artificer"
-        "quartermaster"
-      ];
-    assert engineer.image == overseer.image;
-    assert engineer.ports == [ ];
-    assert overseer.ports == [ "127.0.0.1:23234:9119" ];
-    assert safeVolumes engineer && safeVolumes worker.container;
+      name: !(builtins.hasAttr name config.virtualisation.oci-containers.containers)
+    ) retired;
+    assert !(config.users.users ? hermes-operator);
+    assert config.shulker.system.modules.omniroute.enable;
+    assert builtins.hasAttr "hermesAdministratorDiscord" config.services.onepassword-secrets.secrets;
+    assert !(builtins.hasAttr "hermesOverseerHostKey" config.services.onepassword-secrets.secrets);
+    assert builtins.elem admin.stateDir config.shulker.system.modules.backup.dirs;
+    assert lib.any (
+      d: d.directory == admin.stateDir
+    ) config.environment.persistence."/nix/persist".directories;
     assert worker.container.ports == [ ];
+    assert builtins.length worker.container.volumes == 3;
     assert worker.secrets == { };
-    assert
-      !(cfg.instances.engineer.hostAdministration.enable || cfg.instances.engineer.serviceAccount.enable);
-    assert builtins.hasAttr "hermesOverseerDashboard" config.services.onepassword-secrets.secrets;
-    assert builtins.hasAttr "hermesEngineerDiscord" config.services.onepassword-secrets.secrets;
-    assert lib.all
-      (
-        name:
-        let
-          i = cfg.instances.${name};
-          service = config.systemd.services."docker-${i.containerName}";
-        in
-        builtins.elem "opnix-secrets.service" service.after
-        && builtins.elem "opnix-secrets.service" service.requires
-        && has "render-credentials.py" service.preStart
-        && !(has "op read" service.preStart)
-        && builtins.elem i.stateDir config.shulker.system.modules.backup.dirs
-        && lib.any (d: d.directory == i.stateDir) config.environment.persistence."/nix/persist".directories
-      )
-      [
-        "overseer"
-        "engineer"
-        "artificer"
-        "quartermaster"
-      ];
-    assert lib.all
-      (
-        label:
-        config.services.onepassword-secrets.secrets."hermesEngineer${
-          lib.toUpper (builtins.substring 0 1 label)
-        }${builtins.substring 1 (-1) label}".services == [ "docker-hermes-engineer" ]
-      )
-      [
-        "discord"
-        "provider"
-      ];
     assert builtins.length worker.tmpfiles == 3;
     assert worker.persistence.directory == "/var/lib/hermes-worker";
+    assert builtins.length collision.secretNames == 5;
+    assert builtins.length (lib.unique collision.secretNames) == 3;
     pkgs.runCommand "hermes-instances-contract" { } ''touch "$out"'';
 }

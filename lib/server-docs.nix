@@ -112,16 +112,6 @@ let
       ))
       "Named upstream containers; independent state and opt-in capabilities"
     )
-    (service "Quartz" modules.quartz.enable
-      "${modules.quartz.publicUrl} via 127.0.0.1:${toString modules.quartz.port}"
-      modules.quartz.stateDir
-      "Private agent knowledge; source notes backed up by each agent"
-    )
-    (service "OpenHands" modules.openhands.enable
-      "${modules.openhands.publicUrl} via 127.0.0.1:${toString modules.openhands.port}"
-      "${modules.openhands.stateDir}; projects ${modules.openhands.projectsDir}"
-      "Upstream all-in-one container; native OpenHands agent"
-    )
     (service "OmniRoute" modules.omniroute.enable
       "${modules.omniroute.publicUrl} via 127.0.0.1:${toString modules.omniroute.port}"
       modules.omniroute.stateDir
@@ -169,11 +159,6 @@ let
       "Apache 127.0.0.1:${toString modules.nextcloud.mainPort}; admin 127.0.0.1:${toString modules.nextcloud.aioPort}"
       "Docker-managed volumes"
       "AIO manages its child containers"
-    )
-    (service "Ollama" modules.ollama.enable
-      "Port ${toString modules.ollama.port}; firewall ${enabledDisabled modules.ollama.openFirewall}"
-      modules.ollama.stateDir
-      "Local model service"
     )
     (service "Pangolin" modules.pangolin.enable "Docker-published edge ports" modules.pangolin.stateDir
       "Gerbil, Pangolin, and Traefik"

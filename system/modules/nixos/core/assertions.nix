@@ -11,7 +11,6 @@ let
     "Hermes Agent" = modules.hermes-agent.impermanence;
     "Home Assistant" = modules.home-assistant.impermanence;
     Newt = modules.newt.impermanence;
-    Ollama = modules.ollama.impermanence;
     Pangolin = modules.pangolin.impermanence;
     "Pelican Panel" = modules.pelican.panel.impermanence;
     "Pelican Wings" = modules.pelican.wings.impermanence;

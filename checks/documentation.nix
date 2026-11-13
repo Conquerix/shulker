@@ -60,15 +60,12 @@ let
     "kitchenowl"
     "newt"
     "nextcloud"
-    "ollama"
     "omniroute"
-    "openhands"
     "pangolin"
     "paperless"
     "pelican"
     "plex"
     "pocket-id"
-    "quartz"
     "seafile"
     "sunshine"
     "taskview"
@@ -162,15 +159,12 @@ let
         "newt"
         "nextcloud"
         "nvidia"
-        "ollama"
         "omniroute"
-        "openhands"
         "pangolin"
         "paperless"
         "pelican"
         "plex"
         "pocket-id"
-        "quartz"
         "seafile"
         "steam"
         "sunshine"
@@ -180,7 +174,7 @@ let
         "yubikey"
       ];
     in
-    assert builtins.length retainedServices == 25;
+    assert builtins.length retainedServices == 22;
     assert builtins.length excludedCapabilities == 6;
     assert directServiceDirectories == retainedServices;
     assert builtins.all serviceFilesAreCanonical retainedServices;

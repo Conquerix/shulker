@@ -65,6 +65,15 @@ let
     }
   );
   initial = pkgs.writeText "${i.containerName}-initial.json" (builtins.toJSON i.initial);
+  omh = import ./omh-package.nix { inherit pkgs; };
+  omhCommand = pkgs.writeTextFile {
+    name = "omh-command";
+    executable = true;
+    text = ''
+      #!/bin/sh
+      exec python /opt/omh/launch.py "$@"
+    '';
+  };
   opWrapper = pkgs.writeTextFile {
     name = "${i.containerName}-op";
     executable = true;
@@ -113,6 +122,10 @@ in
       "${i.stateDir}/workspace:/workspace:rw"
       "${env}:/etc/hermes/.env:ro"
     ]
+    ++ lib.optionals i.omh.enable [
+      "${omh}:/opt/omh:ro"
+      "${omhCommand}:/usr/local/bin/omh:ro"
+    ]
     ++ lib.optionals i.serviceAccount.enable [
       "${secretPath "service-account"}:/run/overseer-op-token:ro"
       # Use the image's loader, not Nix's patched executable.
@@ -135,6 +148,13 @@ in
     // lib.optionalAttrs i.dashboard.enable {
       HERMES_DASHBOARD_HOST = "0.0.0.0";
       API_SERVER_HOST = "127.0.0.1";
+    }
+    // lib.optionalAttrs i.omh.enable {
+      OMH_HOME = "/opt/data/omh";
+      OMH_TUI_UPDATE_CHECK = "0";
+      OMH_IMPACT_CHECK = "0";
+      OMH_SKIP_COMMAND_PACKAGE_UPDATE = "1";
+      PYTHONDONTWRITEBYTECODE = "1";
     }
     // policy;
     environmentFiles = [ env ];
@@ -159,21 +179,38 @@ in
       ${pkgs.python3}/bin/python3 ${./render-credentials.py} ${manifest} ${managed}
       ${pkgs.util-linux}/bin/runuser -u hermes -- \
         ${pkgs.python3}/bin/python3 ${./bootstrap.py} files ${initial} ${lib.escapeShellArg i.stateDir}
-      ${lib.optionalString (i.initial.settings != { } || i.initial.plugins != [ ]) ''
-        if [ ! -e ${i.stateDir}/data/config.yaml ] && [ ! -L ${i.stateDir}/data/config.yaml ]; then
-          # Native CLI bootstrap in the pinned image, with no network or credentials.
-          # Docker's generated pull step may run later; pull only the declared image.
-          if ! ${pkgs.docker}/bin/docker image inspect ${lib.escapeShellArg i.image} >/dev/null 2>&1; then
-            ${pkgs.docker}/bin/docker pull ${lib.escapeShellArg i.image}
+      ${
+        lib.optionalString (i.initial.settings != { } || i.initial.plugins != [ ]) ''
+          if [ ! -e ${i.stateDir}/data/config.yaml ] && [ ! -L ${i.stateDir}/data/config.yaml ]; then
+            # Native CLI bootstrap in the pinned image, with no network or credentials.
+            # Docker's generated pull step may run later; pull only the declared image.
+            if ! ${pkgs.docker}/bin/docker image inspect ${lib.escapeShellArg i.image} >/dev/null 2>&1; then
+              ${pkgs.docker}/bin/docker pull ${lib.escapeShellArg i.image}
+            fi
+            ${pkgs.docker}/bin/docker run --rm --pull=never --network=none \
+              --user 10000:10000 --entrypoint python \
+              -e HERMES_HOME=/opt/data -e HERMES_WRITE_SAFE_ROOT=/opt/data:/workspace \
+              -v ${i.stateDir}/data:/opt/data:rw -v ${i.stateDir}/workspace:/workspace:rw \
+              -v ${./bootstrap.py}:/run/hermes-bootstrap.py:ro \
+              -v ${initial}:/run/hermes-initial.json:ro \
+              ${lib.escapeShellArg i.image} /run/hermes-bootstrap.py native /run/hermes-initial.json /opt/data
           fi
-          ${pkgs.docker}/bin/docker run --rm --pull=never --network=none \
-            --user 10000:10000 --entrypoint python \
-            -e HERMES_HOME=/opt/data -e HERMES_WRITE_SAFE_ROOT=/opt/data:/workspace \
-            -v ${i.stateDir}/data:/opt/data:rw -v ${i.stateDir}/workspace:/workspace:rw \
-            -v ${./bootstrap.py}:/run/hermes-bootstrap.py:ro \
-            -v ${initial}:/run/hermes-initial.json:ro \
-            ${lib.escapeShellArg i.image} /run/hermes-bootstrap.py native /run/hermes-initial.json /opt/data
+        ''
+      }${lib.optionalString i.omh.enable ''
+
+        if ! ${pkgs.docker}/bin/docker image inspect ${lib.escapeShellArg i.image} >/dev/null 2>&1; then
+          ${pkgs.docker}/bin/docker pull ${lib.escapeShellArg i.image}
         fi
+        # Same image and state, offline, unprivileged, before gateway startup.
+        # No managed environment/credential mount in this setup container.
+        ${pkgs.docker}/bin/docker run --rm --pull=never --network=none \
+          --user 10000:10000 --entrypoint python \
+          -e HERMES_HOME=/opt/data -e HOME=/opt/data \
+          -e PYTHONDONTWRITEBYTECODE=1 \
+          -v ${i.stateDir}/data:/opt/data:rw \
+          -v ${omh}:/opt/omh:ro \
+          -v ${./omh-setup.py}:/run/omh-setup.py:ro \
+          ${lib.escapeShellArg i.image} /run/omh-setup.py /opt/omh /opt/data
       ''}
     '';
     requires = [
