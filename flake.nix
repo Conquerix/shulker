@@ -31,6 +31,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Independently pinned runtime; do not upgrade the fleet's nixpkgs for Aegis.
+    openclaw.url = "github:openclaw/nix-openclaw/b04843a59efe524bc01a14aed1d5b977dc811334";
+
     # Flake for the Eden emulator
     eden = {
       url = "github:conquerix/eden-flake";

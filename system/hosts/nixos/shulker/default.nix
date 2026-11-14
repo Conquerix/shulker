@@ -56,6 +56,8 @@
           impermanence = true;
         };
 
+        agent-zero.enable = true;
+        openclaw = { enable = true; paused = true; };
         omniroute = {
           enable = true;
           impermanence = true;

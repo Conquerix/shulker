@@ -50,6 +50,7 @@ let
   # The explicit inventory catches accidental service moves or discovery expansion.
   retainedServices = [
     "actual-budget"
+    "agent-zero"
     "backup"
     "beszel"
     "forgejo"
@@ -61,6 +62,7 @@ let
     "newt"
     "nextcloud"
     "omniroute"
+    "openclaw"
     "pangolin"
     "paperless"
     "pelican"
@@ -145,6 +147,7 @@ let
       ) nixosModuleManifest.imports;
       expectedRootImportNames = [
         "actual-budget"
+    "agent-zero"
         "backup"
         "beszel"
         "containers"
@@ -160,6 +163,7 @@ let
         "nextcloud"
         "nvidia"
         "omniroute"
+        "openclaw"
         "pangolin"
         "paperless"
         "pelican"
@@ -174,7 +178,7 @@ let
         "yubikey"
       ];
     in
-    assert builtins.length retainedServices == 22;
+    assert builtins.length retainedServices == 24;
     assert builtins.length excludedCapabilities == 6;
     assert directServiceDirectories == retainedServices;
     assert builtins.all serviceFilesAreCanonical retainedServices;
